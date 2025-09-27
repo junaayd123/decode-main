@@ -16,6 +16,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
+import java.util.ArrayList;
+
 @TeleOp
 public class AprilTestTeleOP extends LinearOpMode {
     public float normalizedRadians;
@@ -49,6 +51,13 @@ public class AprilTestTeleOP extends LinearOpMode {
                         telemetry.addData(i + " roll", tag.ftcPose.roll);
                         telemetry.addData(i + " pitch", tag.ftcPose.pitch);
                         telemetry.addData(i + " yaw", tag.ftcPose.yaw);
+                        telemetry.addData(i + " range", tag.ftcPose.range);
+                        telemetry.addData(i + " bearing", tag.ftcPose.bearing);
+                        double currentX = tag.ftcPose.range * Math.sin(Math.toRadians(tag.ftcPose.bearing - tag.ftcPose.yaw));
+                        double currentY= tag.ftcPose.range * Math.cos(Math.toRadians(tag.ftcPose.bearing - tag.ftcPose.yaw));
+                        telemetry.addData("Correct X", currentX);
+                        telemetry.addData("Correct Y", currentY);
+                        telemetry.addData("Relative Rotation", tag.ftcPose.bearing-tag.ftcPose.yaw);
                     } catch (Exception e) {
                         telemetry.addData("exception: ", e);
                         telemetry.addData(i + " x", "NULL");
@@ -63,13 +72,23 @@ public class AprilTestTeleOP extends LinearOpMode {
                 if (gamepad1.a && !follower.isBusy() && !tagProcessor.getDetections().isEmpty()) {
                     currentRobotPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading());
                     follower.setStartingPose(currentRobotPose);
-                    try {} catch {}
-                    double tempX = tagProcessor.getDetections().get(1).ftcPose.x;
-                    double tempX = tagProcessor.getDetections().get(1).ftcPose.x;
-                    PathBuilder path = follower.pathBuilder()
-                            .setLinearHeadingInterpolation(0, 90)
-                            .addPath(new BezierLine(currentRobotPose, ));
-                    follower.followPath(path);
+                    try {
+                        AprilTagDetection detectionArray = tagProcessor.getDetections().get(0);
+                        double currentX = detectionArray.ftcPose.range * Math.sin(detectionArray.ftcPose.yaw - detectionArray.ftcPose.bearing);
+                        double currentY=detectionArray.ftcPose.range * Math.cos(detectionArray.ftcPose.yaw - detectionArray.ftcPose.bearing);
+                        double heading = currentRobotPose.getHeading();
+                        double relX = tagProcessor.getDetections().get(0).ftcPose.x;
+                        double relY = tagProcessor.getDetections().get(0).ftcPose.y;
+                        double tempHeading = Math.toRadians(tagProcessor.getDetections().get(0).ftcPose.yaw);
+                        Pose targetPose = new Pose(currentX, currentY, heading);
+                        PathBuilder path = follower.pathBuilder()
+                                .addPath(new BezierLine(currentRobotPose, targetPose))
+                                .setLinearHeadingInterpolation(currentRobotPose.getHeading(), tempHeading);
+                        follower.followPath(path.build());
+                    } catch (Exception e) {
+
+                    }
+
                 }
             }
             telemetry.update();
