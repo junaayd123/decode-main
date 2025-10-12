@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
-public class Constants {
+/*public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(12.247)
@@ -73,9 +73,9 @@ public class Constants {
                 .pathConstraints(pathConstraints)
                 .build();
     }
-}
+}*/
 
-/*public class Constants {
+public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(9.5)
@@ -115,7 +115,7 @@ public class Constants {
             .encoderResolution(
                     GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD
             )
-            .customEncoderResolution(13.26291192)
+            //.customEncoderResolution(13.26291192)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
@@ -133,4 +133,4 @@ public class Constants {
                 .pathConstraints(pathConstraints)
                 .build();
     }
-}*/
+}

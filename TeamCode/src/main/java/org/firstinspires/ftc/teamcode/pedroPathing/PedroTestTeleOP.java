@@ -22,7 +22,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.ArrayList;
 
 @TeleOp
-public class AprilTestTeleOP extends LinearOpMode {
+public class PedroTestTeleOP extends LinearOpMode {
 
     public TagCoordinate Tag20 = new TagCoordinate(5, 125, (float)29, -54);
     public TagCoordinate Tag24 = new TagCoordinate(5, 125, (float)29, 54); //FIX THIS
@@ -39,26 +39,29 @@ public class AprilTestTeleOP extends LinearOpMode {
     public Pose currentRobotPose;
     public double fieldCentricRotation;
     public double TagCalibrationValue = 0;
+    public double headingTest = 0;
 
     @Override
     public void runOpMode() throws InterruptedException{
-        AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder().setDrawAxes(true).setDrawCubeProjection(true).setDrawTagID(true).setDrawTagOutline(true).setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11).setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary()).build();
-        VisionPortal visionPortal= new VisionPortal.Builder().addProcessor(tagProcessor).setCamera(hardwareMap.get(WebcamName.class, "Webcam 1")).setCameraResolution(new Size(640,480)).build();
+        //AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder().setDrawAxes(true).setDrawCubeProjection(true).setDrawTagID(true).setDrawTagOutline(true).setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11).setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary()).build();
+        //VisionPortal visionPortal= new VisionPortal.Builder().addProcessor(tagProcessor).setCamera(hardwareMap.get(WebcamName.class, "Webcam 1")).setCameraResolution(new Size(640,480)).build();
         waitForStart();
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(83, 60, 0));
+        follower.setStartingPose(new Pose(0, 0, 0));
 
         while (!isStopRequested()&&opModeIsActive()){
             if (follower.isBusy()) {
                 telemetry.addLine("Pedro busy");
-                telemetry.addData("Pedro Heading", follower.getPose().getHeading());
             }
             if (gamepad1.a) {
                 telemetry.addLine("A pressed");
             }
+            if (gamepad1.dpad_up) {
+                headingTest += Math.toRadians(30);
+            }
             follower.update();
             currentRobotPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), follower.getPose().getHeading());
-            if(!tagProcessor.getDetections().isEmpty()){
+            /*if(!tagProcessor.getDetections().isEmpty()){
                 for(int i=0; i<tagProcessor.getDetections().size(); i++) {
                     AprilTagDetection tag = tagProcessor.getDetections().get(i);
                     try {
@@ -100,23 +103,20 @@ public class AprilTestTeleOP extends LinearOpMode {
                         telemetry.addData(i + " yaw", "NULL");
 
                     }
-                }
+                }*/
                 telemetry.addData("Pedro X", currentRobotPose.getX());
                 telemetry.addData("Pedro Y", currentRobotPose.getY());
                 telemetry.addData("Pedro Heading", Math.toDegrees(currentRobotPose.getHeading()));
-                if (gamepad1.b && !follower.isBusy() && !tagProcessor.getDetections().isEmpty()) {
+                /*if (gamepad1.b && !follower.isBusy()) {
                     //TagCalibrationValue = Math.toRadians(fieldCentricRotation);
-                    currentRobotPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), -Math.toRadians(fieldCentricRotation));
+                    currentRobotPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), fieldCentricRotation);
                     follower.setPose(currentRobotPose);
-                }
-                if (gamepad1.a && !follower.isBusy() && !tagProcessor.getDetections().isEmpty()) {
-                    currentRobotPose = new Pose(currentRobotPose.getX(), currentRobotPose.getY(), -Math.toRadians(fieldCentricRotation));
-                    follower.setPose(currentRobotPose);
+                }*/
+                if (gamepad1.a && !follower.isBusy()) {
                     try {
-                        AprilTagDetection detectionArray = tagProcessor.getDetections().get(0);
                         PathChain pathChain = follower.pathBuilder()
-                                .addPath(new BezierLine(currentRobotPose, new Pose (currentRobotPose.getX()+1, currentRobotPose.getY()+1, 0)))
-                                .setLinearHeadingInterpolation(-Math.toRadians(fieldCentricRotation), 0)
+                                .addPath(new BezierLine(currentRobotPose, new Pose (currentRobotPose.getX()+5, currentRobotPose.getY()+5, Math.toRadians(50))))
+                                .setLinearHeadingInterpolation(currentRobotPose.getHeading(), Math.toRadians(50))
                                 .build();
                         follower.followPath(pathChain);
                     } catch (Exception e) {
@@ -124,14 +124,14 @@ public class AprilTestTeleOP extends LinearOpMode {
                     }
 
                 }
-            }
+
             telemetry.update();
         }
     }
 
-    public TagCoordinate subtractCoordinateWithoutZ(TagCoordinate currentPosition, TagCoordinate tagPosition) {
+    /*public TagCoordinate subtractCoordinateWithoutZ(TagCoordinate currentPosition, TagCoordinate tagPosition) {
         // do stuff
         TagCoordinate test = new TagCoordinate(tagPosition.getTagX() - currentPosition.getTagX(), tagPosition.getTagY() - currentPosition.getTagY(), tagPosition.getTagZ(), tagPosition.getTagYaw()-currentPosition.getTagYaw());
         return test;
-    }
+    }*/
 }
