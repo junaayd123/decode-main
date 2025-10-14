@@ -9,8 +9,8 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import pedroPathing.subsystems.Deposition;
-import pedroPathing.subsystems.launch_lift;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.launch_lift;
 
 @TeleOp(name = "SimpleTeleOp", group = "TeleOp")
 public class simple_teleOp extends OpMode {
@@ -32,7 +32,7 @@ public class simple_teleOp extends OpMode {
     @Override
     public void init() {
         LL = new launch_lift(hardwareMap);
-        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
+        follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         intake = hardwareMap.get(DcMotor.class, "intake");
         depo = new Deposition(hardwareMap);
@@ -104,7 +104,7 @@ public class simple_teleOp extends OpMode {
         }
 
 
-        follower.setTeleOpMovementVectors( -gamepad1.left_stick_y, (gamepad1.left_trigger - gamepad1.right_trigger), -gamepad1.right_stick_x, true );
+        follower.setTeleOpDrive( -gamepad1.left_stick_y, (gamepad1.left_trigger - gamepad1.right_trigger), -gamepad1.right_stick_x, true );
         follower.update();
 
         // Telemetry
