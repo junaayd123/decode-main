@@ -8,6 +8,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.localization.Localizer;
 import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.paths.PathChain;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Deposition;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -18,6 +19,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
 
 import java.util.ArrayList;
 
@@ -39,6 +41,7 @@ public class AprilTestTeleOP extends LinearOpMode {
     public Pose currentRobotPose;
     public double fieldCentricRotation;
     public double TagCalibrationValue = 0;
+    public double fieldWiseX, fieldWiseY;
 
     @Override
     public void runOpMode() throws InterruptedException{
@@ -49,10 +52,10 @@ public class AprilTestTeleOP extends LinearOpMode {
         follower.setStartingPose(new Pose(83, 60, 0));
 
         while (!isStopRequested()&&opModeIsActive()){
-            if (follower.isBusy()) {
+            /*if (follower.isBusy()) {
                 telemetry.addLine("Pedro busy");
                 telemetry.addData("Pedro Heading", follower.getPose().getHeading());
-            }
+            }*/
             if (gamepad1.a) {
                 telemetry.addLine("A pressed");
             }
@@ -78,17 +81,24 @@ public class AprilTestTeleOP extends LinearOpMode {
                         }
                         if (tag.id == 20) {
                             fieldCentricRotation = tag.ftcPose.yaw + Tag20.getTagYaw();
-                            //telemetry.addData("X to move to desired location", subtractCoordinateWithoutZ(new TagCoordinate(), Tag20));
                             telemetry.addData("Field centric Rotation", fieldCentricRotation);
                         }
 
-                        double currentX = tag.ftcPose.range * Math.sin(Math.toRadians(tag.ftcPose.bearing - tag.ftcPose.yaw));
-                        double currentY= tag.ftcPose.range * Math.cos(Math.toRadians(tag.ftcPose.bearing - tag.ftcPose.yaw));
-                        telemetry.addData("Correct X", currentX);
-                        telemetry.addData("Correct Y", currentY);
+                        double currentX = tag.ftcPose.range * Math.sin(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw)); //THESE ARE FROM THE APRIL TAG AWAY
+                        double currentY= tag.ftcPose.range * Math.cos(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw));
+                        telemetry.addData("Tagwise X", currentX);
+                        telemetry.addData("Tagwise Y", currentY);
+                        // range * sin(bearing - yaw + tagRotation)
+                        double TagFieldwiseY = tag.ftcPose.range * Math.cos(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw + Tag20.getTagYaw()));
+                        double TagFieldwiseX = tag.ftcPose.range * Math.sin(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw + Tag20.getTagYaw()));
+                        fieldWiseY = -(tag.ftcPose.range * Math.cos(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw + Tag20.getTagYaw()))) + Tag20.getTagY();
+                        fieldWiseX = -(tag.ftcPose.range * Math.sin(Math.toRadians(-tag.ftcPose.bearing + tag.ftcPose.yaw + Tag20.getTagYaw()))) + Tag20.getTagX();
                         telemetry.addData("Relative Rotation", tag.ftcPose.bearing-tag.ftcPose.yaw);
+                        telemetry.addData("Tag Fieldwise X", TagFieldwiseX);
+                        telemetry.addData("Tag Fieldwise Y", TagFieldwiseY);
+                        telemetry.addData("Fieldwise X", fieldWiseX);
+                        telemetry.addData("Fieldwise Y", fieldWiseY);
                         telemetry.addData("ID number", tag.id);
-                        //telemetry.addData("Fieldwise Rotation");
 
                     } catch (Exception e) {
                         telemetry.addData("exception: ", e);
@@ -106,16 +116,16 @@ public class AprilTestTeleOP extends LinearOpMode {
                 telemetry.addData("Pedro Heading", Math.toDegrees(currentRobotPose.getHeading()));
                 if (gamepad1.b && !follower.isBusy() && !tagProcessor.getDetections().isEmpty()) {
                     //TagCalibrationValue = Math.toRadians(fieldCentricRotation);
-                    currentRobotPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), -Math.toRadians(fieldCentricRotation));
+                    currentRobotPose = new Pose(fieldWiseX, fieldWiseY, -Math.toRadians(fieldCentricRotation));
                     follower.setPose(currentRobotPose);
                 }
                 if (gamepad1.a && !follower.isBusy() && !tagProcessor.getDetections().isEmpty()) {
-                    currentRobotPose = new Pose(currentRobotPose.getX(), currentRobotPose.getY(), -Math.toRadians(fieldCentricRotation));
+                    currentRobotPose = new Pose(fieldWiseX, fieldWiseY, -Math.toRadians(fieldCentricRotation));
                     follower.setPose(currentRobotPose);
                     try {
                         AprilTagDetection detectionArray = tagProcessor.getDetections().get(0);
                         PathChain pathChain = follower.pathBuilder()
-                                .addPath(new BezierLine(currentRobotPose, new Pose (currentRobotPose.getX()+1, currentRobotPose.getY()+1, 0)))
+                                .addPath(new BezierLine(currentRobotPose, new Pose (40, 40, 0)))
                                 .setLinearHeadingInterpolation(-Math.toRadians(fieldCentricRotation), 0)
                                 .build();
                         follower.followPath(pathChain);

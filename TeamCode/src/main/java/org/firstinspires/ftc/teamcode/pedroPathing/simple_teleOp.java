@@ -1,4 +1,6 @@
-package pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing;
+
+import android.util.Size;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
@@ -8,9 +10,13 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.launch_lift;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 @TeleOp(name = "SimpleTeleOp", group = "TeleOp")
 public class simple_teleOp extends OpMode {
@@ -31,6 +37,8 @@ public class simple_teleOp extends OpMode {
     private final Pose startPose = new Pose(0,0,0);
     @Override
     public void init() {
+        AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder().setDrawAxes(true).setDrawCubeProjection(true).setDrawTagID(true).setDrawTagOutline(true).setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11).setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary()).build();
+        VisionPortal visionPortal= new VisionPortal.Builder().addProcessor(tagProcessor).setCamera(hardwareMap.get(WebcamName.class, "Webcam 1")).setCameraResolution(new Size(640,480)).build();
         LL = new launch_lift(hardwareMap);
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
