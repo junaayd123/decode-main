@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import java.lang.Math;
+import java.util.List;
 
 @Autonomous
 public class TBEncoderTesting extends LinearOpMode{
@@ -35,12 +36,15 @@ public class TBEncoderTesting extends LinearOpMode{
         double rotations; // this is a rotation based off of 1/3s
         int normalizedRotations;
         int normalizedSection;
+        int normalizedEncoderValue;
         tbenc = hardwareMap.get(DcMotor.class, "tbenc");
         waitForStart();
         while (!isStopRequested()&&opModeIsActive()) {
             rotations = ((double)-tbenc.getCurrentPosition()/(8192.0/3));
             normalizedRotations = (int)Math.floor(rotations);
+            normalizedEncoderValue = Math.floorMod(tbenc.getCurrentPosition(), 8192);
             normalizedSection = Math.floorMod(normalizedRotations, 3);
+            //midpoint values: 0.5, 1.5, 2.5
             telemetry.addData("Encoder Data", tbenc.getCurrentPosition());
             telemetry.addData("Full rotation:", rotations);
             telemetry.addData("Full rotation:", normalizedRotations);
@@ -62,10 +66,20 @@ public class TBEncoderTesting extends LinearOpMode{
             telemetry.addData("State", state);
             if (gamepad1.a)
             {
-                sorterServo.setPower(1);
+                CRStatus = 1;
             } else if (gamepad1.b) {
-                sorterServo.setPower(-1);
+                CRStatus = 2;
+            } else if (gamepad1.x) {
+                CRStatus = 0;
             }
+            if (CRStatus>0&&CRStatus != normalizedSection) {
+                sorterServo.setPower(1);
+            } else {
+                CRStatus = -1;
+                sorterServo.setPower(0);
+            }
+
+            // IN THE FUTURE, make a function to go to a COLOR, THEN FIND THE NEAREST COLOR THATS EASY.
         }
     }
 }
