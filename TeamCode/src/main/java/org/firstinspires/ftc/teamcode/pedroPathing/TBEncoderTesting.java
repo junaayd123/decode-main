@@ -37,6 +37,10 @@ public class TBEncoderTesting extends LinearOpMode{
         int normalizedRotations;
         int normalizedSection;
         int normalizedEncoderValue;
+        int degrees;
+        int[] degreesModArray = new int[3];
+        int[] degreeArray = {0, 120, 240};
+        int degreesError = 40;
         tbenc = hardwareMap.get(DcMotor.class, "tbenc");
         waitForStart();
         while (!isStopRequested()&&opModeIsActive()) {
@@ -44,11 +48,21 @@ public class TBEncoderTesting extends LinearOpMode{
             normalizedRotations = (int)Math.floor(rotations);
             normalizedEncoderValue = Math.floorMod(tbenc.getCurrentPosition(), 8192);
             normalizedSection = Math.floorMod(normalizedRotations, 3);
+            degrees = (int)Math.floor((double)-tbenc.getCurrentPosition()/(8192.0/360.0));
+            degreesModArray[0] = Math.floorMod(degrees, 360);
+            degreesModArray[1] = Math.floorMod(degrees-120, 360);
+            degreesModArray[2] = Math.floorMod(degrees-240, 360);
+
+
             //midpoint values: 0.5, 1.5, 2.5
             telemetry.addData("Encoder Data", tbenc.getCurrentPosition());
             telemetry.addData("Full rotation:", rotations);
-            telemetry.addData("Full rotation:", normalizedRotations);
-            telemetry.addData("Full rotation:", normalizedSection);
+            telemetry.addData("Full rotation Integer:", normalizedRotations);
+            telemetry.addData("Full rotation Modulus:", normalizedSection);
+            telemetry.addData("Degrees:", degrees);
+            telemetry.addData("Degrees Modulus:", degreesModArray[0]);
+            telemetry.addData("Degrees Modulus:", degreesModArray[1]);
+            telemetry.addData("Degrees Modulus:", degreesModArray[2]);
 
 
             // quadrant (or tridrant) = total rotations floor mod 3
@@ -67,17 +81,56 @@ public class TBEncoderTesting extends LinearOpMode{
             if (gamepad1.a)
             {
                 CRStatus = 1;
-            } else if (gamepad1.b) {
+            } if (gamepad1.b) {
                 CRStatus = 2;
-            } else if (gamepad1.x) {
+            } if (gamepad1.x) {
                 CRStatus = 0;
+            } if (gamepad1.y) {
+                CRStatus = -1;
             }
-            if (CRStatus>0&&CRStatus != normalizedSection) {
-                sorterServo.setPower(1);
+            if (CRStatus>=0) {
+                if (CRStatus == 0) {
+                    if (!(Math.abs(degreesModArray[0]) <degreesError) || !(Math.abs(degreesModArray[0]) >360-degreesError)) {
+                        if (degreesModArray[0] < 360 - degreesModArray[0]) {
+                            sorterServo.setPower(0.2);
+                        } else {
+                            sorterServo.setPower(-0.2);
+                        }
+                    } else {
+                        CRStatus = -1;
+                        sorterServo.setPower(0);
+                    }
+                }
+                if (CRStatus == 1) {
+                    if (!(Math.abs(degreesModArray[1]) <degreesError) || !(Math.abs(degreesModArray[1]) >360-degreesError)) {
+                        if (degreesModArray[1] < 360 - degreesModArray[1]) {
+                            sorterServo.setPower(0.2);
+                        } else {
+                            sorterServo.setPower(-0.2);
+                        }
+                    } else {
+                        CRStatus = -1;
+                        sorterServo.setPower(0);
+                    }
+                }
+                if (CRStatus == 2) {
+                    if (!(Math.abs(degreesModArray[2]) <degreesError) || !(Math.abs(degreesModArray[2]) >360-degreesError)) {
+                        if (degreesModArray[2] < 360 - degreesModArray[2]) {
+                            sorterServo.setPower(0.2);
+                        } else {
+                            sorterServo.setPower(-0.2);
+                        }
+                    } else {
+                        CRStatus = -1;
+                        sorterServo.setPower(0);
+                    }
+                }
+
             } else {
                 CRStatus = -1;
                 sorterServo.setPower(0);
             }
+
 
             // IN THE FUTURE, make a function to go to a COLOR, THEN FIND THE NEAREST COLOR THATS EASY.
         }
