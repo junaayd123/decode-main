@@ -1,3 +1,5 @@
+package org.firstinspires.ftc.teamcode.pedroPathing;
+
 /* Copyright (c) 2024 Dryw Wade. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -27,8 +29,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.robotcontroller.external.samples;
-
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -43,6 +43,16 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import com.pedropathing.ftc.FTCCoordinates;
+import com.pedropathing.geometry.PedroCoordinates;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathBuilder;
+import com.pedropathing.follower.Follower;
 
 import java.util.List;
 
@@ -65,9 +75,8 @@ import java.util.List;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
-@TeleOp(name = "Concept: AprilTag Localization", group = "Concept")
-@Disabled
-public class ConceptAprilTagLocalization extends LinearOpMode {
+@TeleOp(name = "NEW April Tag TeleOp")
+public class NEWAprilTagTeleOp extends LinearOpMode {
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
@@ -96,7 +105,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
      * to +/-90 degrees if it's vertical, or 180 degrees if it's upside-down.
      */
     private Position cameraPosition = new Position(DistanceUnit.INCH,
-            0, 0, 0, 0);
+            -3, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
@@ -109,9 +118,15 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
      * The variable to store our instance of the vision portal.
      */
     private VisionPortal visionPortal;
+    public Follower follower;
+    public boolean tagDetected;
+    Pose pedroPose,ftcPose;
+
 
     @Override
     public void runOpMode() {
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(0, 0, 0, FTCCoordinates.INSTANCE));
 
         initAprilTag();
 
@@ -122,8 +137,27 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
+            follower.update();
 
-            telemetryAprilTag();
+            updateAprilTagPedro();
+            if (tagDetected) {
+                follower.setPose(pedroPose.getPose());
+            }
+            if (gamepad1.a && tagDetected && !follower.isBusy()) {
+                PathChain moveToFTCZero = follower.pathBuilder()
+                                .addPath(new BezierLine(follower.getPose(), new Pose(72, 72, 0)))
+                                .setLinearHeadingInterpolation(follower.getPose().getHeading(), 0)
+                                .build();
+                PathChain moveToShoot = follower.pathBuilder()
+                        .addPath(new BezierLine(follower.getPose(), new Pose(72, 72, Math.toRadians(45))))
+                        .setLinearHeadingInterpolation(follower.getPose().getHeading(), Math.toRadians(45))
+                        .build();
+                follower.followPath(moveToShoot);
+            }
+            telemetry.addData("67 for vihaan pedro x", follower.getPose().getX());
+            telemetry.addData("67 for vihaan pedro y", follower.getPose().getY());
+            telemetry.addData("67 for vihaan heading", follower.getPose().getHeading());
+
 
             // Push telemetry to the Driver Station.
             telemetry.update();
@@ -217,17 +251,29 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
     /**
      * Add telemetry about AprilTag detections.
      */
-    private void telemetryAprilTag() {
+    private void updateAprilTagPedro() {
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
+        tagDetected = false;
 
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null) {
+
                 telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                 // Only use tags that don't have Obelisk in them
                 if (!detection.metadata.name.contains("Obelisk")) {
+                    tagDetected = true; // Tag that is good for tracking LOCATION ON FIELD
+                    double xInches = detection.robotPose.getPosition().x; // already in inches
+                    double yInches = detection.robotPose.getPosition().y;
+                    double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg), FTCCoordinates.INSTANCE);
+
+                    /*pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change
+                    pedroPose = new Pose(pedroPose.getX()+72, pedroPose.getY()+72, pedroPose.getHeading()); // origin changes*/
+                    //pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change COMMENTED OUT CUZ ROTATION IS WEIRD
+                    pedroPose = new Pose(ftcPose.getY()+72, -ftcPose.getX()+72, ftcPose.getHeading()); // origin changes
                     telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
                             detection.robotPose.getPosition().x,
                             detection.robotPose.getPosition().y,
@@ -247,6 +293,8 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
         telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
         telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
 
-    }   // end method telemetryAprilTag()
+    }
+    // end method telemetryAprilTag()
 
 }   // end class
+
