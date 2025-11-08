@@ -48,7 +48,7 @@ public class fullTest extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         // hardware map (match names in your configuration)
         intakeMotor = hardwareMap.get(DcMotor.class, "intakeMotor");
-        sorterServo = hardwareMap.get(CRServo.class, "sorterservo");
+        sorterServo = hardwareMap.get(CRServo.class, "sorterServo");
         colorSensor = hardwareMap.get(NormalizedColorSensor.class, "colorSensor");
         tbenc = hardwareMap.get(DcMotor.class, "tbenc");
 
