@@ -1,102 +1,82 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.arcrobotics.ftclib.controller.PIDController;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
-// If PedroPathing has its own @Config annotation, import that instead.
-// Otherwise, remove the @Config line below.
-//import com.arcrobotics.ftclib.command.CommandOpMode; // optional, safe to ignore if unused
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-@TeleOp(name = "CRServo Position PID (Pedro)", group = "Tuning")
+@TeleOp(name = "Servo PID Tuner", group = "tuning")
+@Config
 public class sorter_PID extends LinearOpMode {
 
-    // --- Tunable PID Coefficients ---
-    public static double kP = 0.01;
-    public static double kI = 0.0;
-    public static double kD = 0.0;
-
-    // --- Target Position ---
-    public static double targetPosition = 0.0;
-
-    // --- Position tolerance ---
-    public static double positionTolerance = 5.0;
-
     private CRServo servo;
-    private DcMotorEx encoder;
-    private ElapsedTime timer = new ElapsedTime();
+    private DcMotorEx encoderMotor;   // Motor port used to read encoder
 
-    // PID state
-    private double integralSum = 0;
-    private double lastError = 0;
-    private double lastTime = 0;
+    private PIDController pid;
+    private FtcDashboard dashboard = FtcDashboard.getInstance();
 
-    private boolean runToTarget = false;
+    public static double p = 0.00023;
+    public static double i = 0.07;
+    public static double d = 0.000025;
+    public static int target = 0;
+
+    private enum Mode { DRIVER, AUTO }
+    private Mode mode = Mode.DRIVER;
 
     @Override
-    public void runOpMode() throws InterruptedException {
-        servo = hardwareMap.get(CRServo.class, "sorter");
-        encoder = hardwareMap.get(DcMotorEx.class, "encoder");
+    public void runOpMode() {
+        servo = hardwareMap.get(CRServo.class, "sorterservo");
+        encoderMotor = hardwareMap.get(DcMotorEx.class, "tbenc");
 
-        encoder.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        encoder.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        // Don’t actually drive the motor, just use its encoder
+        encoderMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        telemetry.addLine("CRServo PID (Pedro) Ready");
-        telemetry.update();
+        pid = new PIDController(p, i, d);
+
+        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
+        ElapsedTime timer = new ElapsedTime();
 
         waitForStart();
         timer.reset();
-        lastTime = timer.seconds();
 
         while (opModeIsActive()) {
-            double currentTime = timer.seconds();
-            double dt = currentTime - lastTime;
-            lastTime = currentTime;
+            pid.setPID(p, i, d);
 
-            // Control mode toggle
-            if (gamepad1.a) {
-                runToTarget = true;
-            } else if (gamepad1.b) {
-                runToTarget = false;
-                servo.setPower(0);
+            double currentPos = encoderMotor.getCurrentPosition();
+
+            if (gamepad1.y) mode = Mode.AUTO;
+            if (gamepad1.b) mode = Mode.DRIVER;
+
+            double power;
+
+            if (mode == Mode.DRIVER) {
+                // Manual control
+                power = -gamepad1.left_stick_y;
+            } else {
+                // PID control
+                double pidOutput = pid.calculate(currentPos, target);
+                power = Math.max(-1, Math.min(1, pidOutput)); // Clamp
             }
 
-            double currentPosition = encoder.getCurrentPosition();
-            double error = targetPosition - currentPosition;
-            double servoPower = 0;
+            servo.setPower(-power);
 
-            if (runToTarget) {
-                // PID computation
-                if (Math.abs(error) > positionTolerance) {
-                    integralSum += error * dt;
-                } else {
-                    integralSum = 0;
-                }
-
-                double derivative = (error - lastError) / dt;
-                double output = (kP * error) + (kI * integralSum) + (kD * derivative);
-                lastError = error;
-
-                servoPower = Range.clip(output, -1.0, 1.0);
-
-                if (Math.abs(error) < positionTolerance) {
-                    servoPower = 0;
-                }
-
-                servo.setPower(servoPower);
-            }
-
-            telemetry.addData("Mode", runToTarget ? "RUNNING (A pressed)" : "STOPPED (B pressed)");
-            telemetry.addData("Target Position", targetPosition);
-            telemetry.addData("Current Position", currentPosition);
-            telemetry.addData("Error", error);
-            telemetry.addData("Servo Power", servoPower);
-            telemetry.addData("kP", kP);
-            telemetry.addData("kI", kI);
-            telemetry.addData("kD", kD);
+            telemetry.addData("Mode", mode);
+            telemetry.addData("Target", target);
+            telemetry.addData("Encoder Position", currentPos);
+            telemetry.addData("Error", target - currentPos);
+            telemetry.addData("Servo Power", power);
+            telemetry.addData("P", p);
+            telemetry.addData("I", i);
+            telemetry.addData("D", d);
             telemetry.update();
         }
     }
