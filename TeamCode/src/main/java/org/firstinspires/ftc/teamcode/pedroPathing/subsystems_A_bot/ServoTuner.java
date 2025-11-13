@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.subsystems;
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 @TeleOp(name = "Servo Tuner", group = "Tuning")
 public class ServoTuner extends OpMode {
     private Servo[] servos;
-    private String[] servoNames = { "lift","launch_angle" }; // Change to your servo names
+    private String[] servoNames = { "lift_left","lift_right","lift_back","launch_angle" }; // Change to your servo names
     //    private String[] servoNames = { "VA", "VP", "VE","VR","VT" }; // Change to your servo names
     private int currentServoIndex = 0;
     private double[] positions;
@@ -28,7 +28,7 @@ public class ServoTuner extends OpMode {
             servos[i] = hardwareMap.get(Servo.class, servoNames[i]);
 
             // Reverse specific servos from the start
-            if (servoNames[i].equals("lift") || servoNames[i].equals("HW") || servoNames[i].equals("HE")|| servoNames[i].equals("VE")) {
+            if (servoNames[i].equals("lift_left") || servoNames[i].equals("lift_back") || servoNames[i].equals("HE")|| servoNames[i].equals("VE")) {
                 servos[i].setDirection(Servo.Direction.REVERSE);
                 reversed[i] = true;
             } else {

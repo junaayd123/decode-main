@@ -1,0 +1,92 @@
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot;
+
+import com.acmerobotics.dashboard.config.Config;
+import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+@Config
+public class Deposition {
+
+    // --- Motors ---
+    public DcMotorEx left;    // Has encoder
+    public DcMotor right;     // Follower (no encoder)
+
+    // --- PID controller for velocity ---
+    private PIDController pid;
+
+    // --- PID constants (dashboard-tunable) ---
+    public static double p = -0.001;
+    public static double i = 0.0;
+    public static double d = 0.0;
+
+    // Target velocity in ticks per second
+    public  double targetVelocity = 0;
+
+    // Optional: motor-specific constant for simple feedforward
+    public double kF = -0.0004;
+
+    // --- Pre-set powers ---
+    public double closePower = 0.61;
+    public double farPower   = 0.75;
+    public double farPower2  = 0.75;
+    public double closeVelo = -1250;
+    public double farVelo = -1700;
+
+    // --- Internal variable for storing last output ---
+    private double powerOutput = 0.0;
+
+    public Deposition(HardwareMap hardwareMap) {
+        left = hardwareMap.get(DcMotorEx.class, "depo");
+        right = hardwareMap.get(DcMotor.class, "depo1");
+
+        left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        pid = new PIDController(p, i, d);
+    }
+    public void setTargetVelocity(double target) {
+        this.targetVelocity = target;
+    }
+
+    // --- PID velocity update (call periodically in your loop) ---
+    public void updatePID() {
+        pid.setPID(p, i, d);
+
+        double currentVelocity = left.getVelocity();  // ticks per second
+        double pidOutput = pid.calculate(currentVelocity, targetVelocity);
+        double ff = kF * targetVelocity;
+
+        powerOutput = pidOutput + ff;
+        powerOutput = Math.max(-1.0, Math.min(1.0, powerOutput));
+
+        left.setPower(powerOutput);
+        right.setPower(powerOutput);
+    }
+
+    // --- Manual control (driver mode) ---
+    public void setPowerBoth(double power) {
+        left.setPower(power);
+        right.setPower(power);
+    }
+
+    // --- Preset shooting powers ---
+    public void shootClose() { setPowerBoth(closePower); }
+    public void shootFar()   { setPowerBoth(farPower); }
+    public void shootFar2()  { setPowerBoth(farPower2); }
+
+    // --- Stop both motors ---
+    public void stop() {
+        setPowerBoth(0.0);
+    }
+
+    // --- Getters for telemetry/debugging ---
+    public double getVelocity() { return left.getVelocity(); }
+    public double getTargetVelocity() { return targetVelocity; }
+    public double getPowerOutput() { return powerOutput; }
+}
