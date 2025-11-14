@@ -114,6 +114,9 @@ public class simple_teleOp extends OpMode {
 
         follower.setTeleOpDrive( -gamepad1.left_stick_y, (gamepad1.left_trigger - gamepad1.right_trigger), -gamepad1.right_stick_x, true );
         follower.update();
+        if (gamepad1.right_bumper) {
+            follower.turnToDegrees(45);
+        }
 
         // Telemetry
         telemetry.addData("Launch Position", LL.launchServo.getPosition());

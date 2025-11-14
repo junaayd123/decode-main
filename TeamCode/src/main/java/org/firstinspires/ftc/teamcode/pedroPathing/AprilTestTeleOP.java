@@ -45,7 +45,6 @@ public class AprilTestTeleOP extends LinearOpMode {
     public double TagCalibrationValue = 0;
     public double fieldX, fieldY;
     public double correctRange;
-
     @Override
     public void runOpMode() throws InterruptedException{
         AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder().setDrawAxes(true).setDrawCubeProjection(true).setDrawTagID(true).setDrawTagOutline(true).setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11).setTagLibrary(AprilTagGameDatabase.getCurrentGameTagLibrary()).build();

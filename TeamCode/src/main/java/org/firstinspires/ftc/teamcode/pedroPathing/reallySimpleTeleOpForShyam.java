@@ -1,0 +1,51 @@
+package org.firstinspires.ftc.teamcode.pedroPathing;
+
+
+
+import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+@TeleOp
+
+public class reallySimpleTeleOpForShyam extends OpMode {
+    public Follower follower;
+    @Override
+    public void init() {
+        follower = Constants.createFollower(hardwareMap);
+    }
+
+    /** This initializes the PoseUpdater, the mecanum drive motors, and the Panels telemetry. */
+    @Override
+    public void init_loop() {
+        telemetry.addLine("This will print your robot's position to telemetry while "
+                + "allowing robot control through a basic mecanum drive on gamepad 1.");
+        telemetry.update();
+        follower.update();
+
+    }
+
+    @Override
+    public void start() {
+        follower.startTeleopDrive();
+        follower.update();
+    }
+
+    /**
+     * This updates the robot's pose estimate, the simple mecanum drive, and updates the
+     * Panels telemetry with the robot's position as well as draws the robot's position.
+     */
+    @Override
+    public void loop() {
+        follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
+        follower.update();
+
+        telemetry.addData("x:", follower.getPose().getX());
+        telemetry.addData("y:",  follower.getPose().getY());
+        telemetry.addData("heading:",  follower.getPose().getHeading());
+        telemetry.addData("total heading:",  follower.getTotalHeading());
+        telemetry.update();
+
+
+    }
+}

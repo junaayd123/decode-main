@@ -39,6 +39,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.launch_lift;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -53,6 +55,7 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import java.util.List;
 
@@ -78,7 +81,9 @@ import java.util.List;
 @TeleOp(name = "NEW April Tag TeleOp")
 public class NEWAprilTagTeleOp extends LinearOpMode {
 
+
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    public boolean isTagTracked;
 
     /**
      * Variables to store the position and orientation of the camera on the robot. Setting these
@@ -121,12 +126,51 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
     public Follower follower;
     public boolean tagDetected;
     Pose pedroPose,ftcPose;
+    private Deposition depo;
+    private launch_lift LL;
+    private DcMotor intake = null;
+    private DcMotor d1 = null;
+    private DcMotor d2 = null;
+    private double getBatteryVoltage() {
+        double v = 0.0;
+        for (com.qualcomm.robotcore.hardware.VoltageSensor vs : hardwareMap.voltageSensor) {
+            double vv = vs.getVoltage();
+            if (vv > 0) v = Math.max(v, vv);
+        }
+        return (v > 0) ? v : 12.35;
+    }
 
+    /** Set both shooter motors with voltage compensation (base power is what you'd use at 12.0V). */
+    private void setShooterPowerVoltageComp(double basePowerAt12V) {
+        double v = getBatteryVoltage();          // e.g., 13.2V fresh, 12.0V nominal, 11.5V lower
+        double compensated = basePowerAt12V * (12.35 / v);
+        compensated = Math.max(0.0, Math.min(1.0, compensated));
+
+        if (d1 != null) d1.setPower(compensated);
+        if (d2 != null) d2.setPower(compensated);
+        telemetry.addData("ShooterVComp", "V=%.2f base=%.3f out=%.3f", v, basePowerAt12V, compensated);
+    }
+
+    private void stopShooter() {
+        if (d1 != null) d1.setPower(0.0);
+        if (d2 != null) d2.setPower(0.0);
+    }
 
     @Override
     public void runOpMode() {
+        // Init subsystems
+        depo    = new Deposition(hardwareMap);
+        LL      = new launch_lift(hardwareMap);
+        intake  = hardwareMap.get(DcMotor.class, "intake");
+        d1      = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
+        d2      = hardwareMap.get(DcMotor.class, "depo1");
+        if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(0, 0, 0, FTCCoordinates.INSTANCE));
+        LL.down();
+        LL.far();
+        stopShooter();
 
         initAprilTag();
 
@@ -138,10 +182,17 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
 
         while (opModeIsActive()) {
             follower.update();
+            if (gamepad1.b && tagDetected && !follower.isBusy()) {
+                isTagTracked = !isTagTracked;
+            }
+
 
             updateAprilTagPedro();
             if (tagDetected) {
                 follower.setPose(pedroPose.getPose());
+            }
+            if (isTagTracked && tagDetected) {
+                //follower.turnTo()
             }
             if (gamepad1.a && tagDetected && !follower.isBusy()) {
                 PathChain moveToFTCZero = follower.pathBuilder()
@@ -149,11 +200,13 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                                 .setLinearHeadingInterpolation(follower.getPose().getHeading(), 0)
                                 .build();
                 PathChain moveToShoot = follower.pathBuilder()
-                        .addPath(new BezierLine(follower.getPose(), new Pose(72, 72, Math.toRadians(45))))
+                        .addPath(new BezierLine(follower.getPose(), new Pose(100, 100, Math.toRadians(45))))
                         .setLinearHeadingInterpolation(follower.getPose().getHeading(), Math.toRadians(45))
                         .build();
                 follower.followPath(moveToShoot);
             }
+
+
             telemetry.addData("67 for vihaan pedro x", follower.getPose().getX());
             telemetry.addData("67 for vihaan pedro y", follower.getPose().getY());
             telemetry.addData("67 for vihaan heading", follower.getPose().getHeading());
