@@ -334,11 +334,23 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                     double yawTagField = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
                     // desired heading so tag is centered (yaw=0)
                     double desiredHeadingDeg = yawTagField + bearing;
-                    if (gamepad1.b && tagDetected && !follower.isBusy()) {
+                    if (gamepad1.circleWasPressed() && tagDetected && !follower.isBusy()) {
 
 
                         follower.turnTo(Math.toRadians(desiredHeadingDeg));
+
+
+
                     }
+                    if (gamepad1.squareWasPressed() && tagDetected && follower.isBusy()) {
+
+
+                        follower.breakFollowing();
+
+
+
+                    }
+
 
                     telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
                             detection.robotPose.getPosition().x,
