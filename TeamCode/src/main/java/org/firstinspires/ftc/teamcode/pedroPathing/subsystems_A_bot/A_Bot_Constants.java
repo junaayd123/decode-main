@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -75,12 +75,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
     }
 }*/
 
-public class Constants {
+public class A_Bot_Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(10)
-            .forwardZeroPowerAcceleration(-29.97205041135591)
-            .lateralZeroPowerAcceleration(-65.48226011470760)
+            .mass(9.5)
+            .forwardZeroPowerAcceleration(-36.70498698)
+            .lateralZeroPowerAcceleration(-68.37003861162188)
             .useSecondaryTranslationalPIDF(true)
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
@@ -99,12 +99,12 @@ public class Constants {
             .leftRearMotorName("lbmotor")
             .rightFrontMotorName("rfmotor")
             .rightRearMotorName("rbmotor")
-            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+            .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(76.00975168783835)
-            .yVelocity(55.483829528328);
+            .xVelocity(78.896702237104)
+            .yVelocity(60.22467346211731);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(-7.2)

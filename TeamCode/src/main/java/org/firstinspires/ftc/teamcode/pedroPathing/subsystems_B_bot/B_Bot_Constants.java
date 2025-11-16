@@ -1,4 +1,5 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot;
+
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -75,7 +76,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
     }
 }*/
 
-public class Constants {
+public class B_Bot_Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(10)

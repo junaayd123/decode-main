@@ -39,8 +39,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems.launch_lift;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -48,7 +48,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import com.pedropathing.ftc.FTCCoordinates;
 import com.pedropathing.geometry.PedroCoordinates;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
@@ -166,7 +166,7 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
         d2      = hardwareMap.get(DcMotor.class, "depo1");
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        follower = Constants.createFollower(hardwareMap);
+        follower = A_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(0, 0, 0, FTCCoordinates.INSTANCE));
         LL.down();
         LL.far();
@@ -183,7 +183,8 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
         while (opModeIsActive()) {
             follower.update();
             if (gamepad1.b && tagDetected && !follower.isBusy()) {
-                isTagTracked = !isTagTracked;
+                //isTagTracked = !isTagTracked;
+
             }
 
 
@@ -191,9 +192,9 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
             if (tagDetected) {
                 follower.setPose(pedroPose.getPose());
             }
-            if (isTagTracked && tagDetected) {
+            /*if (isTagTracked && tagDetected) {
                 //follower.turnTo()
-            }
+            }*/
             if (gamepad1.a && tagDetected && !follower.isBusy()) {
                 PathChain moveToFTCZero = follower.pathBuilder()
                                 .addPath(new BezierLine(follower.getPose(), new Pose(72, 72, 0)))
@@ -327,6 +328,18 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                     pedroPose = new Pose(pedroPose.getX()+72, pedroPose.getY()+72, pedroPose.getHeading()); // origin changes*/
                     //pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change COMMENTED OUT CUZ ROTATION IS WEIRD
                     pedroPose = new Pose(ftcPose.getY()+72, -ftcPose.getX()+72, ftcPose.getHeading()); // origin changes
+                    // how many degrees to just
+                    double bearing = detection.ftcPose.bearing;
+                    // current heading from tag
+                    double yawTagField = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                    // desired heading so tag is centered (yaw=0)
+                    double desiredHeadingDeg = yawTagField + bearing;
+                    if (gamepad1.b && tagDetected && !follower.isBusy()) {
+
+
+                        follower.turnTo(Math.toRadians(desiredHeadingDeg));
+                    }
+
                     telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
                             detection.robotPose.getPosition().x,
                             detection.robotPose.getPosition().y,
@@ -335,7 +348,10 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                             detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    telemetry.addData("Bearing", detection.ftcPose.bearing);
+                    telemetry.addData("Degrees to turn", desiredHeadingDeg);
                 }
+
             } else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
