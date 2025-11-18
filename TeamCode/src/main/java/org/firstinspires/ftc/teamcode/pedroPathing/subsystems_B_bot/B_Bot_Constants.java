@@ -82,7 +82,7 @@ public class B_Bot_Constants {
             .mass(10)
             .forwardZeroPowerAcceleration(-29.97205041135591)
             .lateralZeroPowerAcceleration(-65.48226011470760)
-            .useSecondaryTranslationalPIDF(true)
+            .useSecondaryTranslationalPIDF(false)
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
             .centripetalScaling(0.0003)
@@ -108,8 +108,8 @@ public class B_Bot_Constants {
             .yVelocity(55.483829528328);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-7.2)
-            .strafePodX(-3.2)
+            .forwardPodY(3.25)
+            .strafePodX(-7.15)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .yawScalar(1.0)
@@ -118,7 +118,7 @@ public class B_Bot_Constants {
             )
             //.customEncoderResolution(13.26291192)
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
 
     public static PathConstraints pathConstraints = new PathConstraints(
             0.995,

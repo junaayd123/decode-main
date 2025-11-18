@@ -29,7 +29,6 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -46,14 +45,11 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import com.pedropathing.ftc.FTCCoordinates;
-import com.pedropathing.geometry.PedroCoordinates;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.follower.Follower;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -79,7 +75,7 @@ import java.util.List;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
 @TeleOp(name = "NEW April Tag TeleOp")
-public class NEWAprilTagTeleOp extends LinearOpMode {
+public class JunaaydNEWAprilTagTeleOp extends LinearOpMode {
 
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
@@ -340,7 +336,6 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                         follower.turnTo(Math.toRadians(desiredHeadingDeg));
 
 
-
                     }
                     if (gamepad1.squareWasPressed() && tagDetected && follower.isBusy()) {
 
@@ -362,6 +357,7 @@ public class NEWAprilTagTeleOp extends LinearOpMode {
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
                     telemetry.addData("Bearing", detection.ftcPose.bearing);
                     telemetry.addData("Degrees to turn", desiredHeadingDeg);
+                    telemetry.addData("is it turning", follower.isTurning());
                 }
 
             } else {

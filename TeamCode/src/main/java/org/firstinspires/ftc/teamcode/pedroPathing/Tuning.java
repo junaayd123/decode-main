@@ -6,6 +6,7 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.drawCurrentAndH
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.stopRobot;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.telemetryM;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 
 import com.bylazar.configurables.PanelsConfigurables;
 import com.bylazar.configurables.annotations.Configurable;
@@ -78,10 +79,10 @@ public class Tuning extends SelectableOpMode {
     @Override
     public void onSelect() {
         if (follower == null) {
-            follower = Constants.createFollower(hardwareMap);
+            follower = B_Bot_Constants.createFollower(hardwareMap);
             PanelsConfigurables.INSTANCE.refreshClass(this);
         } else {
-            follower = Constants.createFollower(hardwareMap);
+            follower = B_Bot_Constants.createFollower(hardwareMap);
         }
 
         follower.setStartingPose(new Pose());

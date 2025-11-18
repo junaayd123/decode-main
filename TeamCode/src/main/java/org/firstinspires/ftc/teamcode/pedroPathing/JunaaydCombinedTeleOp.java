@@ -11,40 +11,33 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import com.pedropathing.follower.Follower;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import com.pedropathing.ftc.FTCCoordinates;
 
-@TeleOp(name = "ShakthiTeleOp", group = "TeleOp")
-public class shakthiTeleOp extends OpMode {
+import java.util.List;
+
+@TeleOp(name = "junaayd combined teleop", group = "TeleOp")
+public class JunaaydCombinedTeleOp extends OpMode {
     private boolean aligning = false;   // true while the robot is following the align path
-//
-//    private static final double FAR_BASE_POWER_12V   = 0.72;  // what worked for FAR at ~12.0V
-//    private static final double FAR_BASE_POWER2_12V  = 0.715;  // a touch hotter between shots (optional)
-//    private static final double CLOSE_BASE_POWER_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
     private DcMotor intake = null;
     private Deposition depo;
     private boolean bluealliance = false;
     Gamepad preG1= new Gamepad();
-//    public double curTime = 10000;
-//    public double curTime2 = 10000;
-//    public double curTime3 = 10000;
-//    private ElapsedTime timer = new ElapsedTime();
     Timer timer1;
     Timer timer2;
     Timer timer3;
@@ -59,11 +52,28 @@ public class shakthiTeleOp extends OpMode {
 
     private Follower follower;
 
-    private final Pose startPose = new Pose(0,0,0);
+    private final Pose startPose = new Pose(0,0,0.0);
+    private final Pose blueNearShootPose = new Pose(50,  100, Math.toRadians(135.0));
+    private final Pose redNearShootPose = new Pose(94,  100, Math.toRadians(45.0));
+
+    // === AprilTag / Vision members ===
+    private static final boolean USE_WEBCAM = true;
+    private Position cameraPosition = new Position(DistanceUnit.INCH,
+            -3, 6, 12, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            0, -90, 0, 0);
+
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
+    public boolean tagDetected;
+    public boolean pauseTagDetection;
+    Pose pedroPose, ftcPose;
+
     @Override
     public void init() {
+        // ----- existing init -----
         LL = new launch_lift(hardwareMap);
-        follower = Constants.createFollower(hardwareMap);
+        follower = A_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         intake = hardwareMap.get(DcMotor.class, "intake");
         depo = new Deposition(hardwareMap);
@@ -76,17 +86,20 @@ public class shakthiTeleOp extends OpMode {
         g1.copy(gamepad1);
         g2.copy(gamepad2);
 
-        // Optional: set directions if your motors are mounted opposite each other
-        // intake.setDirection(DcMotorSimple.Direction.FORWARD);
-        // depo.setDirection(DcMotorSimple.Direction.FORWARD);
-
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        // ----- turning off pause tag detection -----
+        pauseTagDetection=false;
+
+        // ----- aprilTag init -----
+        initAprilTag();
+
         telemetry.addData("Status", "Initialized");
         telemetry.update();
     }
+
     @Override
     public void start(){
         follower.startTeleopDrive();
@@ -141,7 +154,7 @@ public class shakthiTeleOp extends OpMode {
             bluealliance = !bluealliance;
         }
 
-        // Depo with gamepad cirlce
+        // Depo with gamepad circle
         if (g2.circle && !preG2.circle && !g2.start) {
             timer2.startTimer();
         }
@@ -161,15 +174,121 @@ public class shakthiTeleOp extends OpMode {
         closeshoot();
         spitOut();
 
+        // ---------- update april tags and apply to follower ----------
+        updateAprilTagPedro();
+
+        // if we have a valid tag-derived pedroPose, update follower pose
+        if (!pauseTagDetection && tagDetected && pedroPose != null) {
+            follower.setPose(pedroPose.getPose());
+        }
+
         followerstuff();
 
-        // Telemetry
+        // Telemetry (existing)
         telemetry.addData("is alliance blue?",bluealliance);
         telemetry.addData("Launch Position", LL.launchServo.getPosition());
         telemetry.addData("Intake Power", intake.getPower());
         telemetry.addData("Depo Power", depo.right.getPower());
-//        telemetry.addData("time since run", timer.seconds()-curTime);
         telemetry.update();
+    }
+
+    // ---------------- AprilTag init ----------------
+    private void initAprilTag() {
+        // Create the AprilTag processor.
+        aprilTag = new AprilTagProcessor.Builder()
+                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+                .setCameraPose(cameraPosition, cameraOrientation)
+                .build();
+
+        // Create the vision portal by using a builder.
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        // Set the camera (webcam vs. built-in RC phone camera).
+        if (USE_WEBCAM) {
+            try {
+                builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+            } catch (Exception e) {
+                telemetry.addLine("Warning: Webcam 'Webcam 1' not found");
+            }
+        } else {
+            builder.setCamera(BuiltinCameraDirection.BACK);
+        }
+
+        // Add the processor and build.
+        builder.addProcessor(aprilTag);
+        visionPortal = builder.build();
+    }
+
+    // ---------------- update april tag detections and telemetry ----------------
+    private void updateAprilTagPedro() {
+        if (aprilTag == null) return;
+
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        telemetry.addData("# AprilTags Detected", currentDetections.size());
+        tagDetected = false;
+
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                // Only use tags that don't have Obelisk in them
+                if (!detection.metadata.name.contains("Obelisk")) {
+                    tagDetected = true; // Tag that is good for tracking LOCATION ON FIELD
+
+                    double xInches = detection.robotPose.getPosition().x; // already in inches
+                    double yInches = detection.robotPose.getPosition().y;
+                    double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                    // Construct an ftcPose in FTCCoordinates
+                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg), FTCCoordinates.INSTANCE);
+
+                    // Convert to Pedro coordinates
+                    pedroPose = new Pose(ftcPose.getY() + 72, -ftcPose.getX() + 72, ftcPose.getHeading());
+
+                    // bearing from detection (how much we need to rotate so tag faces camera) - provided by sdk
+                    double bearing = detection.ftcPose.bearing;
+                    double yawTagField = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                    double desiredHeadingDeg = yawTagField + bearing;
+
+                    // edge-detected button handling for follower.turnTo() and break
+                    if (g1.circle && !preG1.circle && tagDetected && !follower.isBusy()) {
+                        //follower.turnTo(Math.toRadians(desiredHeadingDeg));
+                        pauseTagDetection = true;
+                        PathChain blueShoot = follower.pathBuilder()
+                                .addPath(new BezierLine(pedroPose, blueNearShootPose))
+                                .setLinearHeadingInterpolation(pedroPose.getHeading(), blueNearShootPose.getHeading())
+                                .build();
+                        PathChain redShoot = follower.pathBuilder()
+                                .addPath(new BezierLine(pedroPose, redNearShootPose))
+                                .setLinearHeadingInterpolation(pedroPose.getHeading(), redNearShootPose.getHeading())
+                                .build();
+                        follower.followPath(redShoot);
+                    }
+                    if (g1.square && !preG1.square && tagDetected && follower.isBusy()) {
+                        follower.breakFollowing();
+                        pauseTagDetection = false;
+                    }
+
+                    // telemetry (detection & follower debug)
+                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                            detection.robotPose.getPosition().x,
+                            detection.robotPose.getPosition().y,
+                            detection.robotPose.getPosition().z));
+                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    telemetry.addData("Bearing", detection.ftcPose.bearing);
+                    telemetry.addData("Degrees to turn", desiredHeadingDeg);
+                    telemetry.addData("is it turning", follower.isTurning());
+                    telemetry.addData("is tag detection paused?", pauseTagDetection);
+                }
+            } else {
+                telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+            }
+        }   // end for()
+
+        telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+        telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
     }
 
     private void align_far_red(boolean blue) {
@@ -214,11 +333,13 @@ public class shakthiTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
+            pauseTagDetection = false;
         }
     }
 
 
     public void closeshoot(){
+
         if(timer2.checkAtSeconds(0)){
             depo.setTargetVelocity(depo.closeVelo);
             LL.close();
@@ -230,6 +351,7 @@ public class shakthiTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
+            pauseTagDetection = false;
         }
     }
     public void farshoot3x() {
@@ -267,6 +389,7 @@ public class shakthiTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer3.stopTimer();
+            pauseTagDetection = false;
         }
     }
 
@@ -305,17 +428,18 @@ public class shakthiTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer4.stopTimer();
+            pauseTagDetection = false;
         }
     }
     private void followerstuff(){
         // Update follower first so it can progress following path if active
         follower.update();
 
-// Telemetry & debug info about follower state
+        // Telemetry & debug info about follower state
         telemetry.addData("FollowerBusy", follower.isBusy());
         telemetry.addData("AligningFlag", aligning);
 
-// If we are currently aligning, wait for follower to finish and then return to teleop
+        // If we are currently aligning, wait for follower to finish and then return to teleop
         if (aligning) {
             if (!follower.isBusy()) {
                 // path finished
@@ -328,7 +452,7 @@ public class shakthiTeleOp extends OpMode {
             }
         }
 
-// Only set teleop movement vectors when follower is NOT busy (i.e., manual control allowed)
+        // Only set teleop movement vectors when follower is NOT busy (i.e., manual control allowed)
         if (!follower.isBusy()) {
             // apply driver joystick input
             follower.setTeleOpDrive(
@@ -341,52 +465,5 @@ public class shakthiTeleOp extends OpMode {
             // optional: zero sticks to make behavior predictable while follower drives
             // follower.setTeleOpMovementVectors(0, 0, 0, true);
         }
-
-// Make sure to call update again only if needed — we already called it at top so this is fine
-// follower.update();
-
     }
-
-//    public void farshoot3x(){
-//        if(timer.seconds() >= curTime2 && timer.seconds()<curTime2+0.1){
-//            depo.shootFar();
-//            LL.far();
-//        }
-//        if(timer.seconds() >= curTime2 +1.0 && timer.seconds()< curTime2+1.1){
-//            LL.up();
-//        }
-//        if (timer.seconds()>=curTime2+1.3 && timer.seconds() < curTime2+1.4){
-//            LL.down();
-//        }
-//        //intake 1
-//        if (timer.seconds()>=curTime2+1.5 && timer.seconds() < curTime2+1.6){
-//            intake.setPower(-1);
-//            depo.shootFar2();
-//        }
-//        //shoot 2
-//        if(timer.seconds() >= curTime2 +2 && timer.seconds()< curTime2+2.1){
-//            LL.up();
-////            intake.setPower(0);
-//        }
-//        if (timer.seconds()>=curTime2+2.3 && timer.seconds() < curTime2+2.4){
-//            LL.down();
-//        }
-//        //intake 2
-//        if (timer.seconds()>=curTime2+2.5 && timer.seconds() < curTime2+2.6){
-//            intake.setPower(-1);
-//            depo.shootFar();
-//        }
-//        //shoot 3
-//        if(timer.seconds() >= curTime2 +3.0 && timer.seconds()< curTime2+3.1){
-//            LL.up();
-////            intake.setPower(0);
-//        }
-//        if (timer.seconds()>=curTime2+3.3 && timer.seconds() < curTime2+3.4){
-//            LL.down();
-//            intake.setPower(0);
-//            depo.setPowerBoth(0.0);
-//            curTime2 = 10000;
-//        }
-//
-//    }
 }
