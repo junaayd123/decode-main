@@ -59,7 +59,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
     // === AprilTag / Vision members ===
     private static final boolean USE_WEBCAM = true;
     private Position cameraPosition = new Position(DistanceUnit.INCH,
-            -3, 6, 12, 0);
+            0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
             0, -90, 0, 0);
 
@@ -67,6 +67,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
     private VisionPortal visionPortal;
     public boolean tagDetected;
     public boolean pauseTagDetection;
+    public boolean followPathSquarePressed;
     Pose pedroPose, ftcPose;
 
     @Override
@@ -90,8 +91,8 @@ public class JunaaydCombinedTeleOp extends OpMode {
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // ----- turning off pause tag detection -----
-        pauseTagDetection=false;
+        // ----- turning on pause tag detection -----
+        pauseTagDetection=true;
 
         // ----- aprilTag init -----
         initAprilTag();
@@ -148,7 +149,13 @@ public class JunaaydCombinedTeleOp extends OpMode {
             LL.launchServo.setPosition(LL.launchServo.getPosition()-0.1);
         }
         if(g1.square && !preG1.square){
-            align_far_red(bluealliance);
+            //align_far_red(bluealliance);
+        }
+        if (g1.squareWasPressed()) {
+            followPathSquarePressed = true;
+        }
+        if (g1.triangle) {
+            pauseTagDetection=false;
         }
         if(g1.ps && !preG1.ps){
             bluealliance = !bluealliance;
@@ -178,7 +185,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
         updateAprilTagPedro();
 
         // if we have a valid tag-derived pedroPose, update follower pose
-        if (!pauseTagDetection && tagDetected && pedroPose != null) {
+        if (!pauseTagDetection && !follower.isBusy() && tagDetected && pedroPose != null) {
             follower.setPose(pedroPose.getPose());
         }
 
@@ -260,11 +267,18 @@ public class JunaaydCombinedTeleOp extends OpMode {
                                 .addPath(new BezierLine(pedroPose, redNearShootPose))
                                 .setLinearHeadingInterpolation(pedroPose.getHeading(), redNearShootPose.getHeading())
                                 .build();
-                        follower.followPath(redShoot);
+                        if (followPathSquarePressed) {
+                            followPathSquarePressed = false;
+                            if (bluealliance) {
+                                follower.followPath(blueShoot);
+                            } else {
+                                follower.followPath(redShoot);
+                            }
+                        }
                     }
                     if (g1.square && !preG1.square && tagDetected && follower.isBusy()) {
-                        follower.breakFollowing();
-                        pauseTagDetection = false;
+                        //follower.breakFollowing();
+                        //pauseTagDetection = true;
                     }
 
                     // telemetry (detection & follower debug)
@@ -333,7 +347,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
-            pauseTagDetection = false;
+
         }
     }
 
@@ -351,7 +365,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
-            pauseTagDetection = false;
+
         }
     }
     public void farshoot3x() {
@@ -428,7 +442,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
             LL.down();
             depo.setTargetVelocity(0);
             timer4.stopTimer();
-            pauseTagDetection = false;
+
         }
     }
     private void followerstuff(){

@@ -25,14 +25,14 @@ public class Deposition {
     public  double targetVelocity = 0;
 
     // Optional: motor-specific constant for simple feedforward
-    public double kF = -0.0004;
+    public static double kF = -0.0004;
 
     // --- Pre-set powers ---
-    public double closePower = 0.61;
-    public double farPower   = 0.75;
-    public double farPower2  = 0.75;
-    public double closeVelo = -1250;
-    public double farVelo = -1700;
+    public double closePower = 0.56;
+    public double farPower   = 0.70;
+    public double farPower2  = 0.70;
+    public double closeVelo = -1300;
+    public double farVelo = -1750;
 
     // --- Internal variable for storing last output ---
     private double powerOutput = 0.0;
@@ -52,6 +52,9 @@ public class Deposition {
     }
     public void setTargetVelocity(double target) {
         this.targetVelocity = target;
+    }
+    public boolean reachedTarget(){
+        return targetVelocity != 0 && getVelocity() >= targetVelocity - 20 && getVelocity() <= targetVelocity + 20;
     }
 
     // --- PID velocity update (call periodically in your loop) ---

@@ -79,9 +79,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class B_Bot_Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(10)
-            .forwardZeroPowerAcceleration(-29.97205041135591)
-            .lateralZeroPowerAcceleration(-65.48226011470760)
+            .mass(11.3398)
+            .forwardZeroPowerAcceleration(-27.81357699530939)
+            .lateralZeroPowerAcceleration(-69.74173019864497)
             .useSecondaryTranslationalPIDF(false)
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
@@ -89,13 +89,14 @@ public class B_Bot_Constants {
             .translationalPIDFCoefficients(new PIDFCoefficients(0.05, 0, 0.000001, 0))
             .headingPIDFCoefficients(new PIDFCoefficients(2, 0, 0.07, 0))
             .drivePIDFCoefficients(
-                    new FilteredPIDFCoefficients(0.0075, 0, 0.000005, 0.085, 0)
+                    new FilteredPIDFCoefficients(0.014, 0, 0.000005, 0.085, 0.003)
             )
             .secondaryTranslationalPIDFCoefficients(
                     new PIDFCoefficients(0.11, 0, 0, 0)
             );
 
     public static MecanumConstants driveConstants = new MecanumConstants()
+            .maxPower(1)
             .leftFrontMotorName("lfmotor")
             .leftRearMotorName("lbmotor")
             .rightFrontMotorName("rfmotor")
@@ -104,8 +105,8 @@ public class B_Bot_Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(76.00975168783835)
-            .yVelocity(55.483829528328);
+            .xVelocity(76.90455639456202)
+            .yVelocity(61.644394761934066);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(3.25)
@@ -123,7 +124,7 @@ public class B_Bot_Constants {
     public static PathConstraints pathConstraints = new PathConstraints(
             0.995,
             500,
-            0.625,
+            0.875,
             1
     );
 
