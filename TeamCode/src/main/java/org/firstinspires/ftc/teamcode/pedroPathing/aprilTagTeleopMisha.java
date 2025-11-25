@@ -33,13 +33,21 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Junaayd Combined TeleOp Modified", group = "TeleOp")
+@TeleOp(name = "TeleOp with tags", group = "TeleOp")
 public class aprilTagTeleopMisha extends OpMode {
 
     private boolean aligning = false;
+    // Coordinates of red/blue speaker tags (meters)
+    private static final double BLUE_SPEAKER_X = 0.36;
+    private static final double BLUE_SPEAKER_Y = 3.27;
+
+    private static final double RED_SPEAKER_X  = 1.22;
+    private static final double RED_SPEAKER_Y  = 0.76;
+
     private DcMotor intake = null;
     private Deposition depo;
     private boolean bluealliance = false;
+    private double desiredHeading = 0;
 
     Gamepad preG1 = new Gamepad();
     Timer timer1, timer2, timer3, timer4, timer5;
@@ -51,10 +59,11 @@ public class aprilTagTeleopMisha extends OpMode {
     private double speed = 1;
 
     private Follower follower;
-
     private final Pose startPose = new Pose(0,0,0.0);
-    private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(135.0));
-    private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(45.0));
+    private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(140.0));
+    private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(40.0));
+    private final Pose redGoal  = new Pose(144, 144, 0);
+    private final Pose blueGoal  = new Pose(0, 144,0);
 
     private static final boolean USE_WEBCAM = true;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
@@ -112,7 +121,7 @@ public class aprilTagTeleopMisha extends OpMode {
         depo.updatePID();
 
         if (g1.cross) speed = 0.3; else speed = 1;
-
+        if(g1.psWasPressed()) bluealliance = !bluealliance;
         handleIntakeAndDepo();
 
         // ========= APRILTAG LOCALIZATION WHILE TRIANGLE IS HELD =========
@@ -129,10 +138,17 @@ public class aprilTagTeleopMisha extends OpMode {
                 goToAllianceShootingPose();
             }
         }
+        if (g1.circle && !preG1.circle && !follower.isBusy()) {
+            faceAllianceGoal();
+        }
+
 
         followerstuff();
 
         telemetry.addData("Alliance Blue?", bluealliance);
+        Pose cur = follower.getPose();
+        telemetry.addData("follower heading",Math.toDegrees(cur.getHeading()));
+        telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
         telemetry.update();
     }
 
@@ -191,6 +207,7 @@ public class aprilTagTeleopMisha extends OpMode {
                 .build();
 
         follower.followPath(chain);
+        aligning = true;
     }
 
     // ---------- intake + deposition ----------
@@ -202,16 +219,89 @@ public class aprilTagTeleopMisha extends OpMode {
         else if (allTimersOff) intake.setPower(0);
     }
 
-    private void followerstuff(){
+    private void followerstuff() {
+        // Update follower so it progresses along any active path
         follower.update();
 
-        if (!follower.isBusy()) {
+        // Telemetry & debug
+        telemetry.addData("FollowerBusy", follower.isBusy());
+        telemetry.addData("AligningFlag", aligning);
+
+        // If aligning, check if follower is done OR turn is basically done
+        if (aligning && (!follower.isBusy() || turnIsBasicallyDone())) {
+            // Re-enable teleop driving
+            follower.startTeleopDrive();
+            aligning = false;
+            telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
+        } else if (aligning) {
+            telemetry.addData("AlignStatus", "Running");
+        }
+
+        // Only allow manual teleop driving if follower is NOT busy
+        if (!follower.isBusy() && !aligning) {
+            // Apply joystick inputs
             follower.setTeleOpDrive(
-                    -gamepad1.left_stick_y * speed,
-                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed,
-                    -gamepad1.right_stick_x * speed,
+                    -gamepad1.left_stick_y * speed,                     // forward/back
+                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed, // strafe
+                    -gamepad1.right_stick_x * speed,                    // rotation
                     true
             );
         }
     }
+    public void farshoot3x() {
+        // shot 1
+        if (timer3.checkAtSeconds(0)) {
+            LL.up();
+            if (intake != null) intake.setPower(-1);
+        }
+        if(timer3.checkAtSeconds(0.3)){
+            LL.down();
+        }
+        if(timer3.checkAtSeconds(0.7)){
+            LL.up();
+        }
+        if(timer3.checkAtSeconds(1.0)){
+            LL.down();
+        }
+        if(timer3.checkAtSeconds(1.4)){
+            LL.up();
+        }
+        if (timer3.checkAtSeconds(1.7)) {
+            LL.down();
+            depo.setTargetVelocity(0);
+            if (intake != null) intake.setPower(0);
+            timer3.stopTimer();
+        }
+    }
+
+    private void faceAllianceGoal() {
+
+        // Get current robot pose from Pedro
+        Pose cur = follower.getPose();
+
+        // Pick which goal to face
+        Pose target = bluealliance ? blueGoal : redGoal;
+
+        // Compute angle from robot to goal
+        double angle = Math.atan2(target.getY() - cur.getY(), target.getX() - cur.getX());
+
+        // Tell Pedropathing to rotate in place to that heading
+        desiredHeading = angle;
+
+        follower.turnTo(angle);
+
+        aligning = true;
+    }
+    private boolean turnIsBasicallyDone() {
+        Pose cur = follower.getPose();
+        double error = Math.abs(desiredHeading - cur.getHeading());
+        error = Math.abs((error + Math.PI) % (2 * Math.PI) - Math.PI); // normalize
+
+        return error < Math.toRadians(5);  // 2 degrees tolerance
+    }
+
+
+
+
+
 }

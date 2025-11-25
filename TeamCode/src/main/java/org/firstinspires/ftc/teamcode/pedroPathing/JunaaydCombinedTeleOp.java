@@ -26,7 +26,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import com.pedropathing.ftc.FTCCoordinates;
+//import com.pedropathing.ftc.FTCCoordinates;
 
 import java.util.List;
 
@@ -245,7 +245,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
                     double yInches = detection.robotPose.getPosition().y;
                     double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
                     // Construct an ftcPose in FTCCoordinates
-                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg), FTCCoordinates.INSTANCE);
+                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg));
 
                     // Convert to Pedro coordinates
                     pedroPose = new Pose(ftcPose.getY() + 72, -ftcPose.getX() + 72, ftcPose.getHeading());

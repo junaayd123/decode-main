@@ -44,7 +44,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-import com.pedropathing.ftc.FTCCoordinates;
+//import com.pedropathing.ftc.FTCCoordinates;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
 import com.pedropathing.geometry.Pose;
@@ -163,7 +163,7 @@ public class JunaaydNEWAprilTagTeleOp extends LinearOpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         follower = A_Bot_Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(0, 0, 0, FTCCoordinates.INSTANCE));
+        follower.setStartingPose(new Pose(0, 0, 0));
         LL.down();
         LL.far();
         stopShooter();
@@ -318,7 +318,7 @@ public class JunaaydNEWAprilTagTeleOp extends LinearOpMode {
                     double xInches = detection.robotPose.getPosition().x; // already in inches
                     double yInches = detection.robotPose.getPosition().y;
                     double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
-                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg), FTCCoordinates.INSTANCE);
+                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg));
 
                     /*pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change
                     pedroPose = new Pose(pedroPose.getX()+72, pedroPose.getY()+72, pedroPose.getHeading()); // origin changes*/
