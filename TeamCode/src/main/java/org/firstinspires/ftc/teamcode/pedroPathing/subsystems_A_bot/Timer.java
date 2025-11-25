@@ -25,5 +25,9 @@ public class Timer {
         if(curtime ==10000) return false;
         else return true;
     }
+    public boolean timerIsOff(){
+        if(curtime ==10000) return true;
+        else return false;
+    }
 
 }

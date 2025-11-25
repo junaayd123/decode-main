@@ -34,6 +34,9 @@ public class Deposition {
     public double closeVelo = -1300;
     public double farVelo = -1750;
 
+    public double closeVelo_auto = 1300;
+    public double farVelo_auto = 1750;
+
     // --- Internal variable for storing last output ---
     private double powerOutput = 0.0;
 

@@ -11,17 +11,20 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
-@Autonomous(name = "redFarAuto", group = "Pedro")
-public class firstmovementfarred extends LinearOpMode {
+@Autonomous(name = "newBot_farRed", group = "Pedro")
+public class newBot_farRed extends LinearOpMode {
 
     // ---------- Shooter subsystems -------------
     // Commented out: depo usage will be removed
-//    private Deposition depo;
-//    private launch_lift LL;
+    private Deposition depo;
+    private lift_three LL;
     private DcMotor intake = null;
 
     // Shooter motors (direct handles for voltage compensation)
@@ -38,19 +41,19 @@ public class firstmovementfarred extends LinearOpMode {
     private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose start_align_Pose = new Pose(-2.0, 3.0, Math.toRadians(0.0));
-    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-22.5));
+    private final Pose start_align_Pose = new Pose(-2.0, 3.0, Math.toRadians(-180));
+    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-202.5));
 
     // Your goal pose (exactly as in your movement program)
-    private final Pose firstpickupPose = new Pose(23, -22.5, Math.toRadians(-90.0));
+    private final Pose firstpickupPose = new Pose(25, -20, Math.toRadians(-90));
 
-    private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90.0));
-    private final Pose secondpickupPose = new Pose(44, -19.5, Math.toRadians(-90.0));
+    private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
+    private final Pose secondpickupPose = new Pose(48, -17, Math.toRadians(-90));
 
-    private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90.0));
-    private final Pose thirdpickupPose = new Pose(69, -22.5, Math.toRadians(-90.0));
-
-    private final Pose near_shot_Pose  = new Pose(85, 0.5, Math.toRadians(-50.0));
+    private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
+    private final Pose thirdpickupPose = new Pose(74, -20, Math.toRadians(-90));
+    private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
+    private final Pose near_shot_Pose  = new Pose(82, -0.5, Math.toRadians(-240.0));
 
     private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
 
@@ -58,7 +61,7 @@ public class firstmovementfarred extends LinearOpMode {
     private static final double SHOT_DELAY_S  = 0.75;  // delay between shots (you already use timing windows below)
 
     // ---------- Upgraded shooter timing ----------
-    private Timer timer3;
+    private Timer timer1;
     private int sequence = 0;
 
     // --------- Voltage-comp helpers (kept) ---------
@@ -90,11 +93,11 @@ public class firstmovementfarred extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Init subsystems
-        // depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
-//        LL      = new launch_lift(hardwareMap);
-        timer3  = new Timer();
+        depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
+        LL      = new lift_three(hardwareMap);
+        timer1  = new Timer();
 
-        // intake  = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
+        intake  = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
         d1      = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
         d2      = hardwareMap.get(DcMotor.class, "depo1");
 
@@ -106,8 +109,9 @@ public class firstmovementfarred extends LinearOpMode {
         follower.setStartingPose(start_align_Pose);
 
         // Launcher safe start
-//        LL.down();
-//        LL.far();
+        LL.allDown();
+        LL.launchAngleServo.setPosition(0);
+        timer1.resetTimer();
         stopShooter();
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
@@ -117,19 +121,19 @@ public class firstmovementfarred extends LinearOpMode {
         if (isStopRequested()) return;
 
         first_align_movement();
-//        three_far_shots();
+        three_far_shots();
         first_line_pickup();
         reset();
         go_home();
-//        three_far_shots();
+        three_far_shots();
         second_line_pickup();
         reset();
         go_close();
-//        three_close_shots();
+        three_close_shots();
         third_line_pickup();
         reset();
         go_close();
-//        three_close_shots();
+        three_close_shots();
         go_infront();
 
         telemetry.addLine("✅ Done: fired shots + completed paths.");
@@ -164,9 +168,9 @@ public class firstmovementfarred extends LinearOpMode {
 
     private void reset() {
         stopShooter();
-        // depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
+        depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
 
-        // if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void go_home() {
@@ -185,50 +189,50 @@ public class firstmovementfarred extends LinearOpMode {
     // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        // depo.setTargetVelocity(depo.farVelo);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_auto);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
 
     private void startCloseShot() {
         sequence = 4;
-        // depo.setTargetVelocity(depo.closeVelo);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.closeVelo_auto);  // COMMENTED OUT (depo)
 //        LL.close();
-        // optionally: setShooterPowerVoltageComp(CLOSE_BASE_POWER_12V);
+
     }
 
-//    private void three_far_shots() {
-//        startFarShot();
-//        while (opModeIsActive() && !isFarShotCycleDone()) {
-//            // depo.updatePID();  // COMMENTED OUT (depo)
-//            // if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
-//            //     if (sequence == 3 || sequence == 4) {
-//            //         timer3.startTimer();
-//            //         sequence = 0;
-//            //     }
-//            // }
-//            shoot3x();
-//            follower.update();
-//        }
-//    }
+    private void three_far_shots() {
+        startFarShot();
+        while (opModeIsActive() && !isFarShotCycleDone()) {
+            depo.updatePID();  // COMMENTED OUT (depo)
+            if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
+                if (sequence == 3 || sequence == 4) {
+                    timer1.startTimer();
+                    sequence = 0;
+                }
+            }
+            shoot3x();
+            follower.update();
+        }
+    }
 
-//    private void three_close_shots() {
-//        startCloseShot();
-//        while (opModeIsActive() && !isFarShotCycleDone()) {
-//            // depo.updatePID();  // COMMENTED OUT (depo)
-//            // if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
-//            //     if (sequence == 3 || sequence == 4) {
-//            //         timer3.startTimer();
-//            //         sequence = 0;
-//            //     }
-//            // }
-//            shoot3x();
-//            follower.update();
-//        }
-//    }
+    private void three_close_shots() {
+        startCloseShot();
+        while (opModeIsActive() && !isFarShotCycleDone()) {
+            depo.updatePID();  // COMMENTED OUT (depo)
+            if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
+                if (sequence == 3 || sequence == 4) {
+                    timer1.startTimer();
+                    sequence = 0;
+                }
+            }
+            shoot3x();
+            follower.update();
+        }
+    }
 
     private void first_line_pickup() {
-        // if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         // path 1
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(startPose, firstpickupPose)))
@@ -252,11 +256,11 @@ public class firstmovementfarred extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         follower.setMaxPower(1.0);
-        // if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void second_line_pickup() {
-        // if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(startPose, midPoint1, secondpickupPose)))
                 .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
@@ -276,14 +280,14 @@ public class firstmovementfarred extends LinearOpMode {
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        // if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void third_line_pickup() {
-        // if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         Pose cur = follower.getPose();
         PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midPoint2, thirdpickupPose)))
+                .addPath(new Path(new BezierCurve(cur, midPoint3, thirdpickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
@@ -301,7 +305,7 @@ public class firstmovementfarred extends LinearOpMode {
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        // if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void go_close() {
@@ -314,34 +318,28 @@ public class firstmovementfarred extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
     }
 
-//    private boolean isFarShotCycleDone() {
-//        return (sequence == 0 && timer3.timerIsOff());
-//    }
+    private boolean isFarShotCycleDone() {
+        return (sequence == 0 && timer1.timerIsOff());
+    }
 
     // unified shooting timing (copied from far-blue)
-//    public void shoot3x() {
-//        // shot 1
-//        if (timer3.checkAtSeconds(0)) {
-////            LL.up();
-//            // if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
-//        }
-//        if (timer3.checkAtSeconds(0.3)) {
-////            LL.down();
-//        }
-//        if (timer3.checkAtSeconds(0.7)) {
-////            LL.up();
-//        }
-//        if (timer3.checkAtSeconds(1.0)) {
-////            LL.down();
-//        }
-//        if (timer3.checkAtSeconds(1.4)) {
-////            LL.up();
-//        }
-//        if (timer3.checkAtSeconds(1.7)) {
-////            LL.down();
-//            // depo.setTargetVelocity(0);        // COMMENTED OUT (depo)
-//            // if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
-//            timer3.stopTimer();
-//        }
-//    }
+    private void shoot3x(){
+        if(timer1.checkAtSeconds(0)){
+            LL.leftUp();
+        }
+        if(timer1.checkAtSeconds(0.6)){
+            LL.leftDown();
+            LL.rightUp();
+        }
+        if(timer1.checkAtSeconds(1.2)){
+            LL.rightDown();
+            LL.backUp();
+        }
+        if(timer1.checkAtSeconds(1.8)){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+        }
+
+    }
 }
