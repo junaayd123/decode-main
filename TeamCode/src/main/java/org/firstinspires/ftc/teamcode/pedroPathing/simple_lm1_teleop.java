@@ -12,6 +12,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -23,7 +24,9 @@ public class simple_lm1_teleop extends OpMode {
     private DcMotor intake = null;
     private Deposition depo;
     private lift_three LL;
-    double ourVelo = -1000;
+    Timer timer1;
+    double ourVelo = 1300;
+    boolean shooting = false;
 
     Gamepad g1= new Gamepad();
     Gamepad preG2= new Gamepad();
@@ -38,10 +41,11 @@ public class simple_lm1_teleop extends OpMode {
         LL = new lift_three(hardwareMap);
         depo = new Deposition(hardwareMap);
         intake = hardwareMap.get(DcMotor.class, "intake");
-//        follower = Constants.createFollower(hardwareMap);
-//        follower.setStartingPose(startPose);
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(startPose);
         g1.copy(gamepad1);
         g2.copy(gamepad2);
+        timer1 = new Timer();
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -55,10 +59,12 @@ public class simple_lm1_teleop extends OpMode {
     }
     @Override
     public void start(){
-//        follower.startTeleopDrive();
+        follower.startTeleopDrive();
         depo.setTargetVelocity(0);
         depo.kF = -0.00048;
         LL.allDown();
+        LL.launchAngleServo.setPosition(0);
+        timer1.resetTimer();
     }
 
     @Override
@@ -89,23 +95,56 @@ public class simple_lm1_teleop extends OpMode {
             else LL.leftDown();
         }
         if(g1.triangle && !preG1.triangle){
-            if(depo.getVelocity()<50 && depo.getVelocity()>-50) depo.setTargetVelocity(ourVelo);
-            else depo.setTargetVelocity(0);
+//            if(depo.getVelocity()<50 && depo.getVelocity()>-50) depo.setTargetVelocity(ourVelo);
+//            else depo.setTargetVelocity(0);
+            depo.setTargetVelocity(ourVelo);
+            shooting = true;
         }
+        if(shooting && depo.reachedTarget()){
+            timer1.startTimer();
+            shooting =false;
+        }
+        shoot3x();
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=50;
         }
         else if(g1.dpad_down&& !preG1.dpad_down){
             ourVelo-=50;
         }
+        if(g1.dpad_left&& !preG1.dpad_left){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.03);
+        }
+        else if(g1.dpad_right&& !preG1.dpad_right){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.03);
+        }
 
 
-//        follower.setTeleOpDrive( -gamepad1.left_stick_y, (gamepad1.left_trigger - gamepad1.right_trigger), -gamepad1.right_stick_x, true );
-//        follower.update();
+
+        follower.setTeleOpDrive( -gamepad1.left_stick_y, (gamepad1.left_trigger - gamepad1.right_trigger), -gamepad1.right_stick_x, true );
+        follower.update();
 
         // Telemetry
         telemetry.addData("target velocity", ourVelo);
         telemetry.update();
+    }
+    private void shoot3x(){
+        if(timer1.checkAtSeconds(0)){
+            LL.leftUp();
+        }
+        if(timer1.checkAtSeconds(0.3)){
+            LL.leftDown();
+            LL.rightUp();
+        }
+        if(timer1.checkAtSeconds(0.6)){
+            LL.rightDown();
+            LL.backUp();
+        }
+        if(timer1.checkAtSeconds(0.9)){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+        }
+
     }
 
 }
