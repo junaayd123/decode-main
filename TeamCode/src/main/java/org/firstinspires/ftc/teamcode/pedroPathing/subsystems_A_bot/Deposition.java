@@ -30,12 +30,12 @@ public class Deposition {
     // --- Pre-set powers ---
     public double closePower = 0.56;
     public double farPower   = 0.70;
-    public double farPower2  = 0.70;
-    public double closeVelo = -1300;
-    public double farVelo = -1750;
+//    public double farPower2  = 0.70;
+    public double closeVelo = -1300; //use for old bot
+    public double farVelo = -1750; //use for old bot
 
-    public double closeVelo_auto = 1300;
-    public double farVelo_auto = 1750;
+    public double closeVelo_New = 1150; //use for new bot
+    public double farVelo_New = 1600; //use for new bot
 
     // --- Internal variable for storing last output ---
     private double powerOutput = 0.0;
@@ -84,7 +84,7 @@ public class Deposition {
     // --- Preset shooting powers ---
     public void shootClose() { setPowerBoth(closePower); }
     public void shootFar()   { setPowerBoth(farPower); }
-    public void shootFar2()  { setPowerBoth(farPower2); }
+//    public void shootFar2()  { setPowerBoth(farPower2); }
 
     // --- Stop both motors ---
     public void stop() {

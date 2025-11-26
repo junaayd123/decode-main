@@ -6,15 +6,17 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
-@TeleOp(name = "Lm1TeleOp", group = "TeleOp")
-public class simple_lm1_teleop extends OpMode {
+@TeleOp(name = "Lm2 2 drivers", group = "TeleOp")
+public class teleOplm2 extends OpMode {
     private DcMotor intake = null;
     private Deposition depo;
+    Servo led;
     private lift_three LL;
     boolean direction = false; //false if intake is forward, true if depo;
     double speed;
@@ -44,6 +46,7 @@ public class simple_lm1_teleop extends OpMode {
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        led = hardwareMap.get(Servo.class, "led");
         // Optional: set directions if your motors are mounted opposite each other
         // intake.setDirection(DcMotorSimple.Direction.FORWARD);
         // depo.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -68,9 +71,9 @@ public class simple_lm1_teleop extends OpMode {
         g1.copy(gamepad1);
         g2.copy(gamepad2);
         depo.updatePID();
-        if(g1.right_bumper){
+        if(g2.right_bumper){
             intake.setPower(-1);
-        } else if (g1.left_bumper) {
+        } else if (g2.left_bumper) {
             intake.setPower(1);
         }
         else{
@@ -78,7 +81,7 @@ public class simple_lm1_teleop extends OpMode {
         }
         if(g1.cross) speed = 0.3;
         else speed = 1;
-        if(g1.circle && !preG1.circle){
+        if(g2.cross && !preG2.cross){
             depo.setTargetVelocity(depo.closeVelo_New);
             LL.set_angle_close();
             shooting = true;
@@ -90,7 +93,7 @@ public class simple_lm1_teleop extends OpMode {
 //            else LL.leftDown();
             direction = !direction;
         }
-        if(g1.triangle && !preG1.triangle){
+        if(g2.triangle && !preG2.triangle){
 //            if(depo.getVelocity()<50 && depo.getVelocity()>-50) depo.setTargetVelocity(ourVelo);
 //            else depo.setTargetVelocity(0);
             depo.setTargetVelocity(depo.farVelo_New);
@@ -116,8 +119,14 @@ public class simple_lm1_teleop extends OpMode {
         }
 
 
-        if(direction) follower.setTeleOpDrive( gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true );
-        else follower.setTeleOpDrive( -gamepad1.left_stick_y*speed, (gamepad1.left_trigger - gamepad1.right_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+        if(direction) {
+            led.setPosition(0.388);
+            follower.setTeleOpDrive( gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+        }
+        else {
+            led.setPosition(0);
+            follower.setTeleOpDrive( -gamepad1.left_stick_y*speed, (gamepad1.left_trigger - gamepad1.right_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+        }
         follower.update();
 
         // Telemetry

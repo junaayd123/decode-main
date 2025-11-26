@@ -14,7 +14,6 @@ import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
@@ -110,7 +109,7 @@ public class newBot_farRed extends LinearOpMode {
 
         // Launcher safe start
         LL.allDown();
-        LL.launchAngleServo.setPosition(0);
+        LL.set_angle_min();
         timer1.resetTimer();
         stopShooter();
 
@@ -189,14 +188,14 @@ public class newBot_farRed extends LinearOpMode {
     // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        depo.setTargetVelocity(depo.farVelo_auto);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
 
     private void startCloseShot() {
         sequence = 4;
-        depo.setTargetVelocity(depo.closeVelo_auto);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.closeVelo_New);  // COMMENTED OUT (depo)
 //        LL.close();
 
     }
