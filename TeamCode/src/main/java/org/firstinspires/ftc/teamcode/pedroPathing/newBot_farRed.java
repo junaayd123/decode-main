@@ -40,8 +40,8 @@ public class newBot_farRed extends LinearOpMode {
     private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose start_align_Pose = new Pose(-2.0, 3.0, Math.toRadians(-180));
-    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-202.5));
+    private final Pose start_align_Pose = new Pose(-4.0, 2, Math.toRadians(-180));
+    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201.5));
 
     // Your goal pose (exactly as in your movement program)
     private final Pose firstpickupPose = new Pose(25, -20, Math.toRadians(-90));
@@ -52,8 +52,7 @@ public class newBot_farRed extends LinearOpMode {
     private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
     private final Pose thirdpickupPose = new Pose(74, -20, Math.toRadians(-90));
     private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
-    private final Pose near_shot_Pose  = new Pose(82, -0.5, Math.toRadians(-240.0));
-
+    private final Pose near_shot_Pose  = new Pose(97.5, -17, Math.toRadians(-240.0));
     private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
 
     private static final double SECOND_HOP_IN = 13.5;
@@ -131,8 +130,9 @@ public class newBot_farRed extends LinearOpMode {
         three_close_shots();
         third_line_pickup();
         reset();
-        go_close();
+        go_close_2();
         three_close_shots();
+        reset();
         go_infront();
 
         telemetry.addLine("✅ Done: fired shots + completed paths.");
@@ -201,6 +201,7 @@ public class newBot_farRed extends LinearOpMode {
     }
 
     private void three_far_shots() {
+        LL.set_angle_far_auto();
         startFarShot();
         while (opModeIsActive() && !isFarShotCycleDone()) {
             depo.updatePID();  // COMMENTED OUT (depo)
@@ -216,6 +217,7 @@ public class newBot_farRed extends LinearOpMode {
     }
 
     private void three_close_shots() {
+        LL.set_angle_close();
         startCloseShot();
         while (opModeIsActive() && !isFarShotCycleDone()) {
             depo.updatePID();  // COMMENTED OUT (depo)
@@ -316,6 +318,15 @@ public class newBot_farRed extends LinearOpMode {
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
     }
+    private void go_close_2() {
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, near_shot_Pose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+    }
 
     private boolean isFarShotCycleDone() {
         return (sequence == 0 && timer1.timerIsOff());
@@ -326,15 +337,15 @@ public class newBot_farRed extends LinearOpMode {
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if(timer1.checkAtSeconds(0.3)){
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(1.2)){
+        if(timer1.checkAtSeconds(0.6)){
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.8)){
+        if(timer1.checkAtSeconds(1.1)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();

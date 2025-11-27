@@ -24,6 +24,7 @@ public class lift_three {
     public void backUp(){liftBack.setPosition(0.28);}
     public void set_angle_min(){launchAngleServo.setPosition(0.06);}
     public void set_angle_far(){launchAngleServo.setPosition(0.18);}
+    public void set_angle_far_auto(){launchAngleServo.setPosition(0.16);}
     public void set_angle_close(){launchAngleServo.setPosition(0.06);}
 
     public void allDown(){
