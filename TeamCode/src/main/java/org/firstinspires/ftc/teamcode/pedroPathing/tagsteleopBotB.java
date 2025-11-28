@@ -125,7 +125,18 @@ public class tagsteleopBotB extends OpMode {
             faceAllianceGoal();
         }
 
-
+        if (g1.dpad_down && !preG1.dpad_down) {
+            follower.breakFollowing();      // stops all paths and turns
+            follower.startTeleopDrive();    // force drive mode back
+            aligning = false;              // clear flags
+            telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
+        }
+        // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
+        if (aligning && turnIsBasicallyDone()) {
+            follower.startTeleopDrive();
+            aligning = false;
+            telemetry.addLine("Turn tolerance override: teleop restored");
+        }
         followerstuff();
 
         telemetry.addData("Alliance Blue?", bluealliance);
@@ -196,16 +207,12 @@ public class tagsteleopBotB extends OpMode {
     // ---------- intake + deposition ----------
 
     private void followerstuff() {
-        // Update follower so it progresses along any active path
         follower.update();
-
-        // Telemetry & debug
         telemetry.addData("FollowerBusy", follower.isBusy());
         telemetry.addData("AligningFlag", aligning);
 
-        // If aligning, check if follower is done OR turn is basically done
-        if (aligning && (!follower.isBusy() || turnIsBasicallyDone())) {
-            // Re-enable teleop driving
+        // ONLY exit aligning when Pedro says it's done (NO tolerance here)
+        if (aligning && !follower.isBusy()) {
             follower.startTeleopDrive();
             aligning = false;
             telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
@@ -213,17 +220,17 @@ public class tagsteleopBotB extends OpMode {
             telemetry.addData("AlignStatus", "Running");
         }
 
-        // Only allow manual teleop driving if follower is NOT busy
+        // Manual drive ONLY when idle AND NOT aligning
         if (!follower.isBusy() && !aligning) {
-            // Apply joystick inputs
             follower.setTeleOpDrive(
-                    -gamepad1.left_stick_y * speed,                     // forward/back
-                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed, // strafe
-                    -gamepad1.right_stick_x * speed,                    // rotation
+                    -gamepad1.left_stick_y * speed,
+                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed,
+                    -gamepad1.right_stick_x * speed,
                     true
             );
         }
     }
+
     public void farshoot3x() {
         // shot 1
         if (timer3.checkAtSeconds(0)) {
@@ -260,18 +267,17 @@ public class tagsteleopBotB extends OpMode {
         flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
 
         desiredHeading = flippedAngle;
-
         follower.turnTo(flippedAngle);
-        follower.update();
         aligning = true;
     }
+
     private boolean turnIsBasicallyDone() {
         Pose cur = follower.getPose();
         double error = Math.abs(desiredHeading - cur.getHeading());
-        error = Math.abs((error + Math.PI) % (2 * Math.PI) - Math.PI); // normalize
-
-        return error < Math.toRadians(5);  // 2 degrees tolerance
+        error = Math.abs((error + Math.PI) % (2 * Math.PI) - Math.PI);
+        return error < Math.toRadians(5);  // 5° tolerance → good for unsticking small turns
     }
+
 
 
 
