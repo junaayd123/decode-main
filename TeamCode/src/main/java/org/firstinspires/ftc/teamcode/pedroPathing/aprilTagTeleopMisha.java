@@ -33,16 +33,11 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "TeleOp with tags", group = "TeleOp")
+@TeleOp(name = "TeleOp with tags A", group = "TeleOp")
 public class aprilTagTeleopMisha extends OpMode {
 
     private boolean aligning = false;
     // Coordinates of red/blue speaker tags (meters)
-    private static final double BLUE_SPEAKER_X = 0.36;
-    private static final double BLUE_SPEAKER_Y = 3.27;
-
-    private static final double RED_SPEAKER_X  = 1.22;
-    private static final double RED_SPEAKER_Y  = 0.76;
 
     private DcMotor intake = null;
     private Deposition depo;

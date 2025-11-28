@@ -4,17 +4,45 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 public class lift_three {
+    public ColorSensors sensors;
     public Servo launchAngleServo;
     public Servo liftRight;
     public Servo liftLeft;
     public Servo liftBack;
     public lift_three(HardwareMap hardwareMap){
+        sensors = new ColorSensors(hardwareMap);
         launchAngleServo = hardwareMap.get(Servo.class, "launch_angle");
         liftRight = hardwareMap.get(Servo.class, "lift_right");
         liftBack = hardwareMap.get(Servo.class, "lift_back");
         liftLeft = hardwareMap.get(Servo.class, "lift_left");
         liftLeft.setDirection(Servo.Direction.REVERSE);
         liftBack.setDirection(Servo.Direction.REVERSE);
+    }
+    public void lift_green(){
+        if(sensors.getRight()==1){
+            rightUp();
+        }
+        else if(sensors.getLeft()==1){
+            leftUp();
+        }
+        else if(sensors.getBack()==1){
+            backUp();
+        }
+    }
+    public void lift_purple(){
+        if(sensors.getRight()==2){
+            rightUp();
+        }
+        else if(sensors.getLeft()==2){
+            leftUp();
+        }
+        else if(sensors.getBack()==2){
+            backUp();
+        }
+    }
+    public boolean checkNoBalls(){//false if theres at least one ball true if no balls
+        if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;
+        else return false;
     }
     public void leftDown(){liftLeft.setPosition(0);}
     public void leftUp(){liftLeft.setPosition(0.28);}

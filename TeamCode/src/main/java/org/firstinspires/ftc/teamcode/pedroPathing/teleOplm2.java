@@ -21,8 +21,11 @@ public class teleOplm2 extends OpMode {
     boolean direction = false; //false if intake is forward, true if depo;
     double speed;
     Timer timer1;
+    Timer timer2;
     double ourVelo = 1300;
     boolean shooting = false;
+    boolean shooting2 = false;
+    boolean greenball = false;//false is purp true is geren
 
     Gamepad g1= new Gamepad();
     Gamepad preG2= new Gamepad();
@@ -42,6 +45,7 @@ public class teleOplm2 extends OpMode {
         g1.copy(gamepad1);
         g2.copy(gamepad2);
         timer1 = new Timer();
+        timer2 = new Timer();
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -62,6 +66,8 @@ public class teleOplm2 extends OpMode {
         LL.allDown();
         LL.set_angle_min();
         timer1.resetTimer();
+        timer2.resetTimer();
+
     }
 
     @Override
@@ -81,30 +87,47 @@ public class teleOplm2 extends OpMode {
         }
         if(g1.cross) speed = 0.3;
         else speed = 1;
-        if(g2.cross && !preG2.cross){
+        if(g2.cross && !preG2.cross){//shoot 3 close
+            if(!LL.checkNoBalls()) {
+                depo.setTargetVelocity(depo.closeVelo_New);
+                LL.set_angle_close();
+                shooting = true;
+            }
+        }
+        if(g2.square && !preG2.square){//shoot purp
             depo.setTargetVelocity(depo.closeVelo_New);
             LL.set_angle_close();
-            shooting = true;
-//            if(LL.liftRight.getPosition()<0.1) LL.rightUp();
-//            else LL.rightDown();
+            greenball = false;
+            shooting2 = true;
+        }
+        if(g2.circle && !preG2.circle){//shoot green
+            depo.setTargetVelocity(depo.closeVelo_New);
+            LL.set_angle_close();
+            greenball = true;
+            shooting2 = true;
         }
         if(g1.square && !preG1.square){
-//            if(LL.liftLeft.getPosition()<0.1) LL.leftUp();
-//            else LL.leftDown();
             direction = !direction;
         }
-        if(g2.triangle && !preG2.triangle){
-//            if(depo.getVelocity()<50 && depo.getVelocity()>-50) depo.setTargetVelocity(ourVelo);
-//            else depo.setTargetVelocity(0);
-            depo.setTargetVelocity(depo.farVelo_New);
-            LL.set_angle_far();
-            shooting = true;
+        if(g2.triangle && !preG2.triangle){//shoot far
+            if(!LL.checkNoBalls()) {
+                depo.setTargetVelocity(depo.farVelo_New);
+                LL.set_angle_far();
+                shooting = true;
+            }
         }
-        if(shooting && depo.reachedTarget()){
-            timer1.startTimer();
-            shooting =false;
+        if(depo.reachedTarget()){
+            if(shooting) {
+                timer1.startTimer();//shoot3x function runs
+                shooting = false;
+            }
+            if(shooting2){
+                timer2.startTimer();
+                shooting2 = false;
+            }
         }
         shoot3x();
+        shootoneColored();
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=50;
         }
@@ -137,15 +160,29 @@ public class teleOplm2 extends OpMode {
     }
     private void shoot3x(){
         if(timer1.checkAtSeconds(0)){
-            LL.leftUp();
+            if(LL.sensors.getLeft()!=0) LL.leftUp();
+            else if(LL.sensors.getRight()!=0) LL.rightUp();
+            else if(LL.sensors.getBack()!=0) LL.backUp();
         }
         if(timer1.checkAtSeconds(0.3)){
-            LL.leftDown();
-            LL.rightUp();
+            LL.allDown();
+            if(LL.sensors.getLeft()!=0) LL.leftUp();
+            else if(LL.sensors.getRight()!=0) LL.rightUp();
+            else if(LL.sensors.getBack()!=0) LL.backUp();
+            else{
+                depo.setTargetVelocity(0);
+                timer1.stopTimer();
+            }
         }
         if(timer1.checkAtSeconds(0.6)){
-            LL.rightDown();
-            LL.backUp();
+            LL.allDown();
+            if(LL.sensors.getLeft()!=0) LL.leftUp();
+            else if(LL.sensors.getRight()!=0) LL.rightUp();
+            else if(LL.sensors.getBack()!=0) LL.backUp();
+            else{
+                depo.setTargetVelocity(0);
+                timer1.stopTimer();
+            }
         }
         if(timer1.checkAtSeconds(0.9)){
             LL.allDown();
@@ -153,6 +190,20 @@ public class teleOplm2 extends OpMode {
             timer1.stopTimer();
         }
 
+    }
+
+    private void shootoneColored(){
+        if(timer2.checkAtSeconds(0)){
+            if(greenball){
+                LL.lift_green();
+            }
+            else LL.lift_purple();
+        }
+        if(timer2.checkAtSeconds(0.3)){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+        }
     }
 
 }
