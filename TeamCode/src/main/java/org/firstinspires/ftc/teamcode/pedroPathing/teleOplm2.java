@@ -17,6 +17,8 @@ public class teleOplm2 extends OpMode {
     private DcMotor intake = null;
     private Deposition depo;
     Servo led;
+    int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
+
     private lift_three LL;
     boolean direction = false; //false if intake is forward, true if depo;
     double speed;
@@ -117,8 +119,24 @@ public class teleOplm2 extends OpMode {
             }
         }
         if(depo.reachedTarget()){
-            if(shooting) {
-                timer1.startTimer();//shoot3x function runs
+            if (shooting) {
+                // Decide which slot will actually shoot
+                if (LL.sensors.getLeft() != 0 && lastShotSlot != 0) {
+                    lastShotSlot = 0;
+                } else if (LL.sensors.getRight() != 0 && lastShotSlot != 1) {
+                    lastShotSlot = 1;
+                } else if (LL.sensors.getBack() != 0 && lastShotSlot != 2) {
+                    lastShotSlot = 2;
+                } else {
+                    // No valid new balls → cancel shooting
+                    depo.setTargetVelocity(0);
+                    shooting = false;
+                    lastShotSlot = -1;
+                    return;
+                }
+
+                // Now start timer to shoot the 3 balls
+                timer1.startTimer();
                 shooting = false;
             }
             if(shooting2){
@@ -158,38 +176,61 @@ public class teleOplm2 extends OpMode {
         telemetry.addData("depo is forward",direction);
         telemetry.update();
     }
-    private void shoot3x(){
-        if(timer1.checkAtSeconds(0)){
-            if(LL.sensors.getLeft()!=0) LL.leftUp();
-            else if(LL.sensors.getRight()!=0) LL.rightUp();
-            else if(LL.sensors.getBack()!=0) LL.backUp();
+    private void shoot3x() {
+        if (lastShotSlot == -1) return; // nothing scheduled
+
+        // Shot 1 fire
+        if (timer1.checkAtSeconds(0)) {
+            fireShotFromSlot(lastShotSlot);
         }
-        if(timer1.checkAtSeconds(0.3)){
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.3)) {
             LL.allDown();
-            if(LL.sensors.getLeft()!=0) LL.leftUp();
-            else if(LL.sensors.getRight()!=0) LL.rightUp();
-            else if(LL.sensors.getBack()!=0) LL.backUp();
-            else{
-                depo.setTargetVelocity(0);
-                timer1.stopTimer();
-            }
+            fireNextAvailableShot();
         }
-        if(timer1.checkAtSeconds(0.6)){
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.6)) {
             LL.allDown();
-            if(LL.sensors.getLeft()!=0) LL.leftUp();
-            else if(LL.sensors.getRight()!=0) LL.rightUp();
-            else if(LL.sensors.getBack()!=0) LL.backUp();
-            else{
-                depo.setTargetVelocity(0);
-                timer1.stopTimer();
-            }
+            fireNextAvailableShot();
         }
-        if(timer1.checkAtSeconds(0.9)){
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.9)) {
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
+            lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
         }
+    }
+    private void fireShotFromSlot(int slot) {
+        if (slot == 0) LL.leftUp();
+        if (slot == 1) LL.rightUp();
+        if (slot == 2) LL.backUp();
+    }
 
+    private void fireNextAvailableShot() {
+        // pick a NEW slot that still has balls and wasn't already shot
+        if (LL.sensors.getLeft() != 0 && lastShotSlot != 0) {
+            LL.leftUp();
+            lastShotSlot = 0;
+        }
+        else if (LL.sensors.getRight() != 0 && lastShotSlot != 1) {
+            LL.rightUp();
+            lastShotSlot = 1;
+        }
+        else if (LL.sensors.getBack() != 0 && lastShotSlot != 2) {
+            LL.backUp();
+            lastShotSlot = 2;
+        }
+        else {
+            // no other balls → end cycle early
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            LL.allDown();
+            lastShotSlot = -1;
+        }
     }
 
     private void shootoneColored(){
