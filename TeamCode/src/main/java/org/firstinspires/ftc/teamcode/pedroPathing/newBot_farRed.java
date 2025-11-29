@@ -44,13 +44,13 @@ public class newBot_farRed extends LinearOpMode {
     private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201.5));
 
     // Your goal pose (exactly as in your movement program)
-    private final Pose firstpickupPose = new Pose(25, -20, Math.toRadians(-90));
+    private final Pose firstpickupPose = new Pose(24, -20, Math.toRadians(-90));
 
     private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
-    private final Pose secondpickupPose = new Pose(48, -17, Math.toRadians(-90));
+    private final Pose secondpickupPose = new Pose(47, -17, Math.toRadians(-90));
 
     private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
-    private final Pose thirdpickupPose = new Pose(74, -20, Math.toRadians(-90));
+    private final Pose thirdpickupPose = new Pose(73, -20, Math.toRadians(-90));
     private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
     private final Pose near_shot_Pose  = new Pose(97.5, -17, Math.toRadians(-240.0));
     private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
@@ -233,7 +233,7 @@ public class newBot_farRed extends LinearOpMode {
     }
 
     private void first_line_pickup() {
-         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         // path 1
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(startPose, firstpickupPose)))
@@ -246,7 +246,7 @@ public class newBot_farRed extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 13) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 23) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
         follower.setMaxPower(0.5);
@@ -257,11 +257,11 @@ public class newBot_farRed extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         follower.setMaxPower(1.0);
-         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void second_line_pickup() {
-         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(startPose, midPoint1, secondpickupPose)))
                 .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
@@ -272,7 +272,7 @@ public class newBot_farRed extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 15.5) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 25.5) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
         PathChain second = follower.pathBuilder()
@@ -281,11 +281,11 @@ public class newBot_farRed extends LinearOpMode {
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void third_line_pickup() {
-         if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         Pose cur = follower.getPose();
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midPoint3, thirdpickupPose)))
@@ -297,7 +297,7 @@ public class newBot_farRed extends LinearOpMode {
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
         double dx = SECOND_HOP_IN * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 9) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 19) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
 
         PathChain second = follower.pathBuilder()
@@ -306,7 +306,7 @@ public class newBot_farRed extends LinearOpMode {
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     private void go_close() {
