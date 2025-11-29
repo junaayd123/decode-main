@@ -1,3 +1,5 @@
+package org.firstinspires.ftc.teamcode.pedroPathing;
+
 /*
  * Copyright (c) 2024 Phil Malone
  *
@@ -19,8 +21,6 @@
  * SOFTWARE.
  */
 
-package org.firstinspires.ftc.robotcontroller.external.samples;
-
 import android.graphics.Color;
 import android.util.Size;
 
@@ -34,7 +34,10 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.opencv.Circle;
 import org.firstinspires.ftc.vision.opencv.ColorBlobLocatorProcessor;
 import org.firstinspires.ftc.vision.opencv.ColorRange;
+import org.firstinspires.ftc.vision.opencv.ColorSpace;
 import org.firstinspires.ftc.vision.opencv.ImageRegion;
+
+import org.opencv.core.Scalar;
 
 import java.util.List;
 
@@ -68,8 +71,28 @@ import java.util.List;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name = "Concept: Vision Color-Locator (Circle)", group = "Concept")
-public class ConceptVisionColorLocator_Circle extends LinearOpMode {
+@TeleOp(name = "OpenCV DEVELOPMENT FILE")
+public class OpenCVWorkFile extends LinearOpMode {
+    // ===== PURPLE HSV RANGE =====
+    public static int P_H_MIN = 130;
+    public static int P_S_MIN = 80;
+    public static int P_V_MIN = 80;
+
+    public static int P_H_MAX = 170;
+    public static int P_S_MAX = 255;
+    public static int P_V_MAX = 255;
+
+    // ===== GREEN HSV RANGE =====
+    public static int G_H_MIN = 40;
+    public static int G_S_MIN = 60;
+    public static int G_V_MIN = 60;
+
+    public static int G_H_MAX = 90;
+    public static int G_S_MAX = 255;
+    public static int G_V_MAX = 255;
+
+    // ====== DEBUG OPTIONS ======
+    public static boolean SHOW_MASK = false;  // Show mask instead of normal image
     @Override
     public void runOpMode() {
         /* Build a "Color Locator" vision processor based on the ColorBlobLocatorProcessor class.
@@ -128,8 +151,9 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
          *        OPENING:    Will Erode and then Dilate which will make small noise blobs go away
          *        CLOSING:    Will Dilate and then Erode which will tend to fill in any small holes in blob edges.
          */
-        ColorBlobLocatorProcessor colorLocator = new ColorBlobLocatorProcessor.Builder()
-                .setTargetColorRange(ColorRange.ARTIFACT_PURPLE)   // Use a predefined color match
+
+        ColorBlobLocatorProcessor purpleLocator = new ColorBlobLocatorProcessor.Builder()
+                .setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(P_H_MIN, P_S_MIN, P_V_MIN), new Scalar(P_H_MAX, P_S_MAX, P_V_MAX)))   // Not using Predefined.
                 .setContourMode(ColorBlobLocatorProcessor.ContourMode.EXTERNAL_ONLY)
                 .setRoi(ImageRegion.asUnityCenterCoordinates(-0.75, 0.75, 0.75, -0.75))
                 .setDrawContours(true)   // Show contours on the Stream Preview
@@ -143,6 +167,22 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
                 .setMorphOperationType(ColorBlobLocatorProcessor.MorphOperationType.CLOSING)
 
                 .build();
+        ColorBlobLocatorProcessor greenLocator = new ColorBlobLocatorProcessor.Builder()
+                .setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(G_H_MIN, G_S_MIN, G_V_MIN), new Scalar(G_H_MAX, G_S_MAX, G_V_MAX)))   // Use a predefined color match
+                .setContourMode(ColorBlobLocatorProcessor.ContourMode.EXTERNAL_ONLY)
+                .setRoi(ImageRegion.asUnityCenterCoordinates(-0.75, 0.75, 0.75, -0.75))
+                .setDrawContours(true)   // Show contours on the Stream Preview
+                .setBoxFitColor(0)       // Disable the drawing of rectangles
+                .setCircleFitColor(Color.rgb(255, 255, 0)) // Draw a circle
+                .setBlurSize(5)          // Smooth the transitions between different colors in image
+
+                // the following options have been added to fill in perimeter holes.
+                .setDilateSize(15)       // Expand blobs to fill any divots on the edges
+                .setErodeSize(15)        // Shrink blobs back to original size
+                .setMorphOperationType(ColorBlobLocatorProcessor.MorphOperationType.CLOSING)
+
+                .build();
+
         /*
          * Build a vision portal to run the Color Locator process.
          *
@@ -157,7 +197,7 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
          *      .setCamera(BuiltinCameraDirection.BACK)    ... for a Phone Camera
          */
         VisionPortal portal = new VisionPortal.Builder()
-                .addProcessor(colorLocator)
+                .addProcessors(purpleLocator, greenLocator)
                 .setCameraResolution(new Size(320, 240))
                 .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
                 .build();
@@ -170,7 +210,8 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
             telemetry.addData("preview on/off", "... Camera Stream\n");
 
             // Read the current list
-            List<ColorBlobLocatorProcessor.Blob> blobs = colorLocator.getBlobs();
+            List<ColorBlobLocatorProcessor.Blob> purpleBlobs = purpleLocator.getBlobs();
+            List<ColorBlobLocatorProcessor.Blob> greenBlobs  = greenLocator.getBlobs();
 
             /*
              * The list of Blobs can be filtered to remove unwanted Blobs.
@@ -205,19 +246,31 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
              *   A blob's circularity is how circular it is based on the known area and arc length.
              *   A perfect circle has a circularity of 1.  All others are < 1
              */
+            // ---- PURPLE ----
             ColorBlobLocatorProcessor.Util.filterByCriteria(
                     ColorBlobLocatorProcessor.BlobCriteria.BY_CONTOUR_AREA,
-                    50, 20000, blobs);  // filter out very small blobs.
+                    50, 20000, purpleBlobs);
 
             ColorBlobLocatorProcessor.Util.filterByCriteria(
                     ColorBlobLocatorProcessor.BlobCriteria.BY_CIRCULARITY,
-                    0.6, 1, blobs);     /* filter out non-circular blobs.
-                    * NOTE: You may want to adjust the minimum value depending on your use case.
-                    * Circularity values will be affected by shadows, and will therefore vary based
-                    * on the location of the camera on your robot and venue lighting. It is strongly
-                    * encouraged to test your vision on the competition field if your event allows
-                    * sensor calibration time.
-                    */
+                    0.6, 1, purpleBlobs);
+
+
+// ---- GREEN ----
+            ColorBlobLocatorProcessor.Util.filterByCriteria(
+                    ColorBlobLocatorProcessor.BlobCriteria.BY_CONTOUR_AREA,
+                    50, 20000, greenBlobs);
+
+            ColorBlobLocatorProcessor.Util.filterByCriteria(
+                    ColorBlobLocatorProcessor.BlobCriteria.BY_CIRCULARITY,
+                    0.6, 1, greenBlobs);
+            /* filter out non-circular blobs.
+             * NOTE: You may want to adjust the minimum value depending on your use case.
+             * Circularity values will be affected by shadows, and will therefore vary based
+             * on the location of the camera on your robot and venue lighting. It is strongly
+             * encouraged to test your vision on the competition field if your event allows
+             * sensor calibration time.
+             */
 
             /*
              * The list of Blobs can be sorted using the same Blob attributes as listed above.
@@ -230,11 +283,18 @@ public class ConceptVisionColorLocator_Circle extends LinearOpMode {
             telemetry.addLine("Circularity Radius Center");
 
             // Display the Blob's circularity, and the size (radius) and center location of its circleFit.
-            for (ColorBlobLocatorProcessor.Blob b : blobs) {
+            for (ColorBlobLocatorProcessor.Blob b : purpleBlobs) {
 
                 Circle circleFit = b.getCircle();
                 telemetry.addLine(String.format("%5.3f      %3d     (%3d,%3d)",
-                           b.getCircularity(), (int) circleFit.getRadius(), (int) circleFit.getX(), (int) circleFit.getY()));
+                        b.getCircularity(), (int) circleFit.getRadius(), (int) circleFit.getX(), (int) circleFit.getY()));
+            }
+
+            for (ColorBlobLocatorProcessor.Blob b : greenBlobs) {
+
+                Circle circleFit = b.getCircle();
+                telemetry.addLine(String.format("%5.3f      %3d     (%3d,%3d)",
+                        b.getCircularity(), (int) circleFit.getRadius(), (int) circleFit.getX(), (int) circleFit.getY()));
             }
 
             telemetry.update();
