@@ -31,7 +31,7 @@ public class newBot_farRed extends LinearOpMode {
     private DcMotor d2 = null;   // left shooter motor  (example)
 
     // ---------- Pedro ----------
-    private Follower follower;
+    private Follower follower; //hi
 
     // ----- Voltage-comp power (tune these once around ~12.35V) -----
     private static final double FAR_BASE_POWER_12V   = 0.67;   // what worked for FAR at ~12.0V
