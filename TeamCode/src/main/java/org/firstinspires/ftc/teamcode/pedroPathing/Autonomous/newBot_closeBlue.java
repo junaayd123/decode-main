@@ -51,7 +51,7 @@ public class newBot_closeBlue extends LinearOpMode {
     );
 
     // Poses
-    private final Pose nearshotpose     = new Pose(90,  8.5, Math.toRadians(-135));
+    private final Pose nearshotpose     = new Pose(90,  8.5, Math.toRadians(-133.5));
     private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
     private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
     private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));

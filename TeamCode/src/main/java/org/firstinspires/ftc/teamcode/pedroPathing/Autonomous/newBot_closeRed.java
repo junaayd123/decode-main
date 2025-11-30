@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
 
-//hi
+//hi..
 @Autonomous(name = "newBot_closeRed", group = "Pedro")
 public class newBot_closeRed extends LinearOpMode {
 
