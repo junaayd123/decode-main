@@ -38,6 +38,8 @@ import java.util.List;
 public class tagsteleopBotB extends OpMode {
 
     private boolean aligning = false;
+    private boolean aligning2 = false;
+    private double distanceToGoal;
     // Coordinates of red/blue speaker tags (meters)
 
     private DcMotor intake = null;
@@ -56,10 +58,12 @@ public class tagsteleopBotB extends OpMode {
 
     private Follower follower;
     private final Pose startPose = new Pose(0,0,0.0);
-    private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(140.0));
-    private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(40.0));
+    private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(320.0));
+    private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
     private final Pose redGoal  = new Pose(144, 144, 0);
     private final Pose blueGoal  = new Pose(0, 144,0);
+    private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
+    private final Pose blueHP  = new Pose(115, 25,0); // blue human player
 
     private static final boolean USE_WEBCAM = true;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
@@ -115,10 +119,11 @@ public class tagsteleopBotB extends OpMode {
             }
         }
 
+
         // ========= WHEN SQUARE PRESSED → DRIVE TO SHOOTING POSE =========
         if (g1.square && !preG1.square) {
             if (!follower.isBusy()) {
-                goToAllianceShootingPose();
+                goToHumanPlayer();
             }
         }
         if (g1.circle && !preG1.circle && !follower.isBusy()) {
@@ -137,11 +142,16 @@ public class tagsteleopBotB extends OpMode {
             aligning = false;
             telemetry.addLine("Turn tolerance override: teleop restored");
         }
-        followerstuff();
 
+        followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
+
         Pose cur = follower.getPose();
-        telemetry.addData("follower heading",Math.toDegrees(cur.getHeading()));
+        distanceToGoal = getDistance();
+        telemetry.addData("distance to goal",distanceToGoal);
+        telemetry.addData("X", cur.getX());
+        telemetry.addData("y", cur.getY());
+        telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
         telemetry.update();
     }
@@ -163,6 +173,15 @@ public class tagsteleopBotB extends OpMode {
         }
         builder.addProcessor(aprilTag);
         visionPortal = builder.build();
+    }
+    private double getDistance(){
+        Pose cur = follower.getPose();
+        Pose target = bluealliance ? blueGoal : redGoal;
+        double hypotenuse,x,y;
+        x = target.getX()-cur.getX();
+        y= target.getY()-cur.getY();
+        hypotenuse = Math.pow(x,2)+Math.pow(y,2);
+        return Math.sqrt(hypotenuse);
     }
 
     // ---------- APRILTAG UPDATE (for triangle-held localization) ----------
@@ -201,10 +220,35 @@ public class tagsteleopBotB extends OpMode {
                 .build();
 
         follower.followPath(chain);
+        aligning2 = true;
+    }
+    private void goToHumanPlayer() {
+        Pose target = bluealliance ? blueHP : redHP;
+
+        if (pedroPose == null) return;
+
+        PathChain chain = follower.pathBuilder()
+                .addPath(new BezierLine(pedroPose, target))
+                .setLinearHeadingInterpolation(pedroPose.getHeading(), target.getHeading())
+                .build();
+
+        follower.followPath(chain);
+        aligning2 = true;
+    }
+    private void faceAllianceGoal() {
+        Pose cur = follower.getPose();
+        Pose target = bluealliance ? blueGoal : redGoal;
+        if (pedroPose == null) return;
+
+        double rawAngle = Math.atan2(target.getY() - cur.getY(), target.getX() - cur.getX());
+
+        double flippedAngle = rawAngle + Math.PI;
+        flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+        desiredHeading = flippedAngle;
+        follower.turnTo(flippedAngle);
         aligning = true;
     }
-
-    // ---------- intake + deposition ----------
 
     private void followerstuff() {
         follower.update();
@@ -212,9 +256,9 @@ public class tagsteleopBotB extends OpMode {
         telemetry.addData("AligningFlag", aligning);
 
         // ONLY exit aligning when Pedro says it's done (NO tolerance here)
-        if (aligning && !follower.isBusy()) {
+        if (!follower.isBusy() && aligning2) {
             follower.startTeleopDrive();
-            aligning = false;
+            aligning2 = false;
             telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
         } else if (aligning) {
             telemetry.addData("AlignStatus", "Running");
@@ -231,45 +275,9 @@ public class tagsteleopBotB extends OpMode {
         }
     }
 
-    public void farshoot3x() {
-        // shot 1
-        if (timer3.checkAtSeconds(0)) {
-            LL.up();
-            if (intake != null) intake.setPower(-1);
-        }
-        if(timer3.checkAtSeconds(0.3)){
-            LL.down();
-        }
-        if(timer3.checkAtSeconds(0.7)){
-            LL.up();
-        }
-        if(timer3.checkAtSeconds(1.0)){
-            LL.down();
-        }
-        if(timer3.checkAtSeconds(1.4)){
-            LL.up();
-        }
-        if (timer3.checkAtSeconds(1.7)) {
-            LL.down();
-            depo.setTargetVelocity(0);
-            if (intake != null) intake.setPower(0);
-            timer3.stopTimer();
-        }
-    }
 
-    private void faceAllianceGoal() {
-        Pose cur = follower.getPose();
-        Pose target = bluealliance ? blueGoal : redGoal;
 
-        double rawAngle = Math.atan2(target.getY() - cur.getY(), target.getX() - cur.getX());
 
-        double flippedAngle = rawAngle + Math.PI;
-        flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-
-        desiredHeading = flippedAngle;
-        follower.turnTo(flippedAngle);
-        aligning = true;
-    }
 
     private boolean turnIsBasicallyDone() {
         Pose cur = follower.getPose();
