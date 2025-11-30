@@ -37,6 +37,7 @@ public class teleOplm2 extends OpMode {
 
     private boolean bluealliance = false;
     private double desiredHeading = 0;
+    String motif = "gpp";
 
 
 
@@ -60,6 +61,7 @@ public class teleOplm2 extends OpMode {
     Pose pedroPose, ftcPose;
     private DcMotor intake = null;
     private Deposition depo;
+    boolean shootingTest =false;
     Servo led;
     int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
 
@@ -71,6 +73,7 @@ public class teleOplm2 extends OpMode {
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
+    boolean shootingHasWorked = true;
     boolean greenball = false;//false is purp true is geren
 
     Gamepad g1= new Gamepad();
@@ -134,21 +137,33 @@ public class teleOplm2 extends OpMode {
         }
         if(g1.cross) speed = 0.3;
         else speed = 1;
+        if(g2.dpad_down && !preG2.dpad_down){
+            shootingTest = !shootingTest;
+        }
         if(g2.cross && !preG2.cross){//shoot 3 close
             if(!LL.checkNoBalls()) {
-//                depo.setTargetVelocity(depo.closeVelo_New);
-//                LL.set_angle_close();
-                depo.setTargetVelocity(ourVelo);
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    if (distanceToGoal > 120) LL.set_angle_far();
+                    else LL.set_angle_close();
+                }
                 shooting = true;
+
             }
         }
-        if(g2.square && !preG2.square){//shoot purp
+        if(g2.square && !preG2.square){//gpp
             depo.setTargetVelocity(depo.closeVelo_New);
             LL.set_angle_close();
             greenball = false;
             shooting2 = true;
         }
-        if(g2.circle && !preG2.circle){//shoot green
+        if(g2.triangle && !preG2.triangle){//pgp
+
+        }
+        if(g2.circle && !preG2.circle){//ppg
             depo.setTargetVelocity(depo.closeVelo_New);
             LL.set_angle_close();
             greenball = true;
@@ -195,14 +210,6 @@ public class teleOplm2 extends OpMode {
         telemetry.addData("y", cur.getY());
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
-        if(g2.triangle && !preG2.triangle){//shoot far
-            if(!LL.checkNoBalls()) {
-                depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                if(distanceToGoal>120) LL.set_angle_far();
-                else LL.set_angle_close();
-                shooting = true;
-            }
-        }
         if(depo.reachedTarget()){
             if (shooting) {
                 // Decide which slot will actually shoot
@@ -230,7 +237,7 @@ public class teleOplm2 extends OpMode {
             }
         }
         shoot3x();
-        shootoneColored();
+//        shootoneColored();
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=50;
         }
@@ -385,6 +392,7 @@ public class teleOplm2 extends OpMode {
         error = Math.abs((error + Math.PI) % (2 * Math.PI) - Math.PI);
         return error < Math.toRadians(2);  // 5° tolerance → good for unsticking small turns
     }
+
     private void shoot3x() {
         if (lastShotSlot == -1) return; // nothing scheduled
 
@@ -394,19 +402,19 @@ public class teleOplm2 extends OpMode {
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.3)) {
+        if (timer1.checkAtSeconds(0.4)) {
             LL.allDown();
             fireNextAvailableShot();
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.6)) {
+        if (timer1.checkAtSeconds(0.8)) {
             LL.allDown();
             fireNextAvailableShot();
         }
 
         // Finish cycle
-        if (timer1.checkAtSeconds(0.9)) {
+        if (timer1.checkAtSeconds(1.2)) {
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -439,6 +447,37 @@ public class teleOplm2 extends OpMode {
             timer1.stopTimer();
             LL.allDown();
             lastShotSlot = -1;
+        }
+    }
+    private void shootMotif(String seq){
+        if(timer2.checkAtSeconds(0)) {//first shot
+            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if(timer2.checkAtSeconds(0.4)) {//second shot
+            LL.allDown();
+            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if(timer2.checkAtSeconds(0.8)) {//third shot
+            LL.allDown();
+            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if(timer2.checkAtSeconds(1.2)) {//tunr off depo
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+        }
+    }
+    private void checkShot(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorked) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
         }
     }
 
