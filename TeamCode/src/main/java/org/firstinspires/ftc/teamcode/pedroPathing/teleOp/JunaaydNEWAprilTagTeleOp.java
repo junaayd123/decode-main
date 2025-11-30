@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 
 /* Copyright (c) 2024 Dryw Wade. All rights reserved.
  *
