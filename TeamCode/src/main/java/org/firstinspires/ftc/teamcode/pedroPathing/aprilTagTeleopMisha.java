@@ -43,7 +43,6 @@ public class aprilTagTeleopMisha extends OpMode {
     private Deposition depo;
     private boolean bluealliance = false;
     private double desiredHeading = 0;
-
     Gamepad preG1 = new Gamepad();
     Timer timer1, timer2, timer3, timer4, timer5;
 
