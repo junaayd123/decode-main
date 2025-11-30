@@ -170,6 +170,7 @@ public class newBot_farRed extends LinearOpMode {
         depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
     }
 
+    //ss
     private void go_home() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()

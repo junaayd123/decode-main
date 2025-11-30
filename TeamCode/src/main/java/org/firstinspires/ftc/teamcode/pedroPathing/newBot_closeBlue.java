@@ -284,6 +284,7 @@ public class newBot_closeBlue extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         intake.setPower(0);
     }
+    //ss
 
     private void third_line_pickup(){
         if (intake != null) intake.setPower(-1);

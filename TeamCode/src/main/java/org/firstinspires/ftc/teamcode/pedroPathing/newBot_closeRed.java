@@ -204,6 +204,7 @@ public class newBot_closeRed extends LinearOpMode {
 //        LL.close();
 
     }
+    //ss
     private void three_far_shots() {
         LL.set_angle_far_auto();
         startFarShot();
