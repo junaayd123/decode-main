@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing; // make sure this aligns with class location
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
 
 import com.pedropathing.geometry.BezierCurve;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -17,12 +17,11 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
+@Autonomous(name = "newBot_farRed", group = "Pedro")
+public class newBot_farRed extends LinearOpMode {
 
-//hi
-@Autonomous(name = "newBot_closeRed", group = "Pedro")
-public class newBot_closeRed extends LinearOpMode {
-
-    // ---------- Shooter subsystems ----------
+    // ---------- Shooter subsystems -------------
+    // Commented out: depo usage will be removed
     private Deposition depo;
     private lift_three LL;
     private DcMotor intake = null;
@@ -34,54 +33,36 @@ public class newBot_closeRed extends LinearOpMode {
     // ---------- Pedro ----------
     private Follower follower;
 
+    // ----- Voltage-comp power (tune these once around ~12.35V) -----
+    private static final double FAR_BASE_POWER_12V   = 0.67;   // what worked for FAR at ~12.0V
+    private static final double FAR_BASE_POWER2_12V  = 0.675;  // a touch hotter between shots (optional)
+    private static final double CLOSE_BASE_POWER_12V = 0.55;   // what worked for CLOSE at ~12.0V
+    private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
+
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose startPose = new Pose(
-            110,                // x inches
-            -27,                     // y inches og:32
-            Math.toRadians(-225)    // heading (rad)
-    );
+    private final Pose start_align_Pose = new Pose(-4.0, 2, Math.toRadians(-180));
+    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201.5));
 
     // Your goal pose (exactly as in your movement program)
-    private final Pose nearshotpose = new Pose(
-            90,                    // x inches (forward) og: 72
-            -8.5,                   // y inches (left)
-            Math.toRadians(-223)    // heading (rad) at finish
-    );
-    private final Pose firstpickupPose = new Pose(
-            66.5,                    // x inches (forward) og 71.5
-            -6.5,                   // y inches (left) og: 22.5
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose secondpickupPose = new Pose(
-            43.25,                    // x inches (forward) og 41.25
-            -8,                   // y inches (left) og: 21
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose midpoint1     = new Pose(43.25,-2,  Math.toRadians(90.0));
+    private final Pose firstpickupPose = new Pose(22.5, -20, Math.toRadians(-90));
 
-    private final Pose thirdpickupPose = new Pose(
-            20,                    // x inches (forward) og 16
-            -9.5,                   // y inches (left) og: 22
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose homePose = new Pose(
-            0.0,                    // x inches (forward)
-            0.0,            // y inches (left)
-            Math.toRadians(-25.0)    // heading (rad) at finish
-    );
+    private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
+    private final Pose secondpickupPose = new Pose(45.5, -17, Math.toRadians(-90));
 
+    private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
+    private final Pose thirdpickupPose = new Pose(71.5, -20, Math.toRadians(-90));
+    private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
+    private final Pose near_shot_Pose  = new Pose(97.5, -17, Math.toRadians(-240.0));
     private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
 
+    private static final double SECOND_HOP_IN = 13.5;
+    private static final double SHOT_DELAY_S  = 0.75;  // delay between shots (you already use timing windows below)
 
-
-    private static final double SECOND_HOP_IN = 20.0;
-    private static final double SHOT_DELAY_S = 0.75;  // 🔹 delay between shots (tunable)
-
-    // ---------- Timing for far shots ----------
+    // ---------- Upgraded shooter timing ----------
     private Timer timer1;
     private int sequence = 0;
 
-
+    // --------- Voltage-comp helpers (kept) ---------
     private double getBatteryVoltage() {
         double v = 0.0;
         for (com.qualcomm.robotcore.hardware.VoltageSensor vs : hardwareMap.voltageSensor) {
@@ -123,7 +104,7 @@ public class newBot_closeRed extends LinearOpMode {
 
         // Pedro follower (this is fine for Pedro 2.0)
         follower = B_Bot_Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startPose);
+        follower.setStartingPose(start_align_Pose);
 
         // Launcher safe start
         LL.allDown();
@@ -131,52 +112,53 @@ public class newBot_closeRed extends LinearOpMode {
         timer1.resetTimer();
         stopShooter();
 
-        telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
+        telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
 
         waitForStart();
         if (isStopRequested()) return;
 
-        go_back();
-        sleep(450);
-        three_close_shots();
+        first_align_movement();
+        three_far_shots();
         first_line_pickup();
         reset();
-        go_close();
-        three_close_shots();
+        go_home();
+        three_far_shots();
         second_line_pickup();
         reset();
         go_close();
         three_close_shots();
         third_line_pickup();
         reset();
-        go_close();
+        go_close_2();
         three_close_shots();
+        reset();
         go_infront();
 
-
-        telemetry.addLine("ADITI WAD HEREEEEEEE");
+        telemetry.addLine("✅ Done: fired shots + completed paths.");
         telemetry.update();
         sleep(500);
-
     }
-    private void go_infront(){
+
+    private void first_align_movement() {
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(start_align_Pose, startPose)))
+                .setLinearHeadingInterpolation(start_align_Pose.getHeading(), startPose.getHeading())
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+    }
+
+    private void go_infront() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, infront_of_lever)))
-                .setLinearHeadingInterpolation(cur.getHeading(), homePose.getHeading())
+                .addPath(new Path(new BezierLine(cur,infront_of_lever)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-    }
-    private void go_back(){
-
-        Pose cur = follower.getPose();
-        PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
-                .build();
-        follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
@@ -186,11 +168,23 @@ public class newBot_closeRed extends LinearOpMode {
     private void reset() {
         stopShooter();
         depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
-
     }
 
+    //ss
+    private void go_home() {
+        Pose cur = follower.getPose();
+        PathChain home = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, startPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), startPose.getHeading())
+                .build();
+        follower.followPath(home, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+    }
 
-    // ===== Far shot logic (exact from your teleOp) =====
+    // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
         depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
@@ -204,7 +198,7 @@ public class newBot_closeRed extends LinearOpMode {
 //        LL.close();
 
     }
-    //ss
+
     private void three_far_shots() {
         LL.set_angle_far_auto();
         startFarShot();
@@ -237,122 +231,109 @@ public class newBot_closeRed extends LinearOpMode {
         }
     }
 
-
-    private void first_line_pickup(){
-        intake.setPower(-1);
-        // ===== 2) Movement: your two-hop Pedro path =====
+    private void first_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        // path 1
         PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(nearshotpose, firstpickupPose)))
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .addPath(new Path(new BezierLine(startPose, firstpickupPose)))
+                .setLinearHeadingInterpolation(startPose.getHeading(), firstpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
-        // calculations to move forward
+        // path 2 (forward hop)
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+7.5) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 15) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-        Path p2 = new Path(new BezierLine(cur, secondGoal));
 
         follower.setMaxPower(0.5);
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(p2)
-                .setConstantHeadingInterpolation(heading)
-                .build();
-        follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-        follower.setMaxPower(1);
-    }
-    private void second_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(nearshotpose,secondpickupPose))) //add the midpoint
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(),secondpickupPose.getHeading())
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-
-        // calculations to move forward
-        Pose cur = follower.getPose();
-        double heading = cur.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15) * Math.sin(heading);
-        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-
-        // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        follower.setMaxPower(1.0);
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
-    private void third_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        Pose cur = follower.getPose();
+
+    private void second_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
+                .addPath(new Path(new BezierCurve(startPose, midPoint1, secondpickupPose)))
+                .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
-        // calculations to move forward
+        Pose cur = follower.getPose();
+        double heading = cur.getHeading();
+        double dx = (SECOND_HOP_IN) * Math.cos(heading);
+        double dy = (SECOND_HOP_IN + 22) * Math.sin(heading);
+        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
+
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, secondGoal)))
+                .setConstantHeadingInterpolation(heading)
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+    }
+
+    private void third_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        Pose cur = follower.getPose();
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midPoint3, thirdpickupPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
+        double dx = SECOND_HOP_IN * Math.cos(heading);
+        double dy = (SECOND_HOP_IN + 14) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
 
-        // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur1, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
-    private void go_close(){
+    private void go_close() {
+
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
+                .addPath(new Path(new BezierCurve(cur, midPoint2, near_shot_Pose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         intake.setPower(0);
+    }
+    private void go_close_2() {
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, near_shot_Pose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
     }
 
     private boolean isFarShotCycleDone() {
         return (sequence == 0 && timer1.timerIsOff());
     }
+
+    // unified shooting timing (copied from far-blue)
     private void shoot3x(){
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();

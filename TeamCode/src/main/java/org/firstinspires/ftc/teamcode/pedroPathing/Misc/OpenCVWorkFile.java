@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.Misc;
 
 /*
  * Copyright (c) 2024 Phil Malone
@@ -24,7 +24,6 @@ package org.firstinspires.ftc.teamcode.pedroPathing;
 import android.graphics.Color;
 import android.util.Size;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -34,10 +33,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.opencv.Circle;
 import org.firstinspires.ftc.vision.opencv.ColorBlobLocatorProcessor;
 import org.firstinspires.ftc.vision.opencv.ColorRange;
-import org.firstinspires.ftc.vision.opencv.ColorSpace;
 import org.firstinspires.ftc.vision.opencv.ImageRegion;
-
-import org.opencv.core.Scalar;
 
 import java.util.List;
 
@@ -153,7 +149,8 @@ public class OpenCVWorkFile extends LinearOpMode {
          */
 
         ColorBlobLocatorProcessor purpleLocator = new ColorBlobLocatorProcessor.Builder()
-                .setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(P_H_MIN, P_S_MIN, P_V_MIN), new Scalar(P_H_MAX, P_S_MAX, P_V_MAX)))   // Not using Predefined.
+                //.setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(P_H_MIN, P_S_MIN, P_V_MIN), new Scalar(P_H_MAX, P_S_MAX, P_V_MAX)))   // Not using Predefined.
+                .setTargetColorRange(ColorRange.ARTIFACT_PURPLE)
                 .setContourMode(ColorBlobLocatorProcessor.ContourMode.EXTERNAL_ONLY)
                 .setRoi(ImageRegion.asUnityCenterCoordinates(-0.75, 0.75, 0.75, -0.75))
                 .setDrawContours(true)   // Show contours on the Stream Preview
@@ -168,7 +165,8 @@ public class OpenCVWorkFile extends LinearOpMode {
 
                 .build();
         ColorBlobLocatorProcessor greenLocator = new ColorBlobLocatorProcessor.Builder()
-                .setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(G_H_MIN, G_S_MIN, G_V_MIN), new Scalar(G_H_MAX, G_S_MAX, G_V_MAX)))   // Use a predefined color match
+                //.setTargetColorRange(new ColorRange(ColorSpace.HSV, new Scalar(G_H_MIN, G_S_MIN, G_V_MIN), new Scalar(G_H_MAX, G_S_MAX, G_V_MAX)))   // Use a predefined color match
+                .setTargetColorRange(ColorRange.ARTIFACT_GREEN)
                 .setContourMode(ColorBlobLocatorProcessor.ContourMode.EXTERNAL_ONLY)
                 .setRoi(ImageRegion.asUnityCenterCoordinates(-0.75, 0.75, 0.75, -0.75))
                 .setDrawContours(true)   // Show contours on the Stream Preview

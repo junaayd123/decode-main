@@ -18,27 +18,35 @@ public class lift_three {
         liftLeft.setDirection(Servo.Direction.REVERSE);
         liftBack.setDirection(Servo.Direction.REVERSE);
     }
-    public void lift_green(){
+    public boolean lift_green(){
         if(sensors.getRight()==1){
             rightUp();
+            return true;
         }
         else if(sensors.getLeft()==1){
             leftUp();
+            return true;
         }
         else if(sensors.getBack()==1){
             backUp();
+            return true;
         }
+        else return false;
     }
-    public void lift_purple(){
+    public boolean lift_purple(){
         if(sensors.getRight()==2){
             rightUp();
+            return true;
         }
         else if(sensors.getLeft()==2){
             leftUp();
+            return true;
         }
         else if(sensors.getBack()==2){
             backUp();
+            return true;
         }
+        else return false;
     }
     public boolean checkNoBalls(){//false if theres at least one ball true if no balls
         if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;

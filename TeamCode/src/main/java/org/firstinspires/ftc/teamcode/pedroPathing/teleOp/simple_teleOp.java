@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 
 import android.util.Size;
 
@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 import org.firstinspires.ftc.vision.VisionPortal;

@@ -1,11 +1,11 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name = "LM2 Square Test", group = "Testing")
 public class newRobotAuto extends LinearOpMode {

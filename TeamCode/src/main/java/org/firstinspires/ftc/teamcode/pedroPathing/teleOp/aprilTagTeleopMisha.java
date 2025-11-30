@@ -2,14 +2,11 @@
 // Triangle HELD -> continuous AprilTag localization
 // Square PRESSED -> auto path to red/blue shooting pose, then returns to teleop
 
-package org.firstinspires.ftc.teamcode.pedroPathing;
-
-import android.util.Size;
+package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -43,7 +40,6 @@ public class aprilTagTeleopMisha extends OpMode {
     private Deposition depo;
     private boolean bluealliance = false;
     private double desiredHeading = 0;
-
     Gamepad preG1 = new Gamepad();
     Timer timer1, timer2, timer3, timer4, timer5;
 
