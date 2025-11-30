@@ -154,19 +154,25 @@ public class teleOplm2 extends OpMode {
             }
         }
         if(g2.square && !preG2.square){//gpp
-            depo.setTargetVelocity(depo.closeVelo_New);
-            LL.set_angle_close();
-            greenball = false;
+            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+            if (distanceToGoal > 120) LL.set_angle_far();
+            else LL.set_angle_close();
             shooting2 = true;
+            motif = "gpp";
         }
         if(g2.triangle && !preG2.triangle){//pgp
-
+            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+            if (distanceToGoal > 120) LL.set_angle_far();
+            else LL.set_angle_close();
+            shooting2 = true;
+            motif = "pgp";
         }
         if(g2.circle && !preG2.circle){//ppg
-            depo.setTargetVelocity(depo.closeVelo_New);
-            LL.set_angle_close();
-            greenball = true;
+            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+            if (distanceToGoal > 120) LL.set_angle_far();
+            else LL.set_angle_close();
             shooting2 = true;
+            motif = "ppg";
         }
         if (g1.triangle) {
             updateAprilTagLocalization();
@@ -237,6 +243,7 @@ public class teleOplm2 extends OpMode {
         }
         shoot3x();
 //        shootoneColored();
+        shootMotif(motif);
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=50;
         }
