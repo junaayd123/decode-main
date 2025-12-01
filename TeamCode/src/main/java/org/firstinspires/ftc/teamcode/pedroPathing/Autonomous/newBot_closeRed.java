@@ -24,7 +24,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 
-//hi
+//hi..
 @Autonomous(name = "newBot_closeRed", group = "Pedro")
 public class newBot_closeRed extends LinearOpMode {
 
@@ -210,6 +210,7 @@ public class newBot_closeRed extends LinearOpMode {
 //        LL.close();
 
     }
+    //ss
     private void three_far_shots() {
         LL.set_angle_far_auto();
         startFarShot();
