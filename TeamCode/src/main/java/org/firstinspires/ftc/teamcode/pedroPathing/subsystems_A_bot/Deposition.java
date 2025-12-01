@@ -35,8 +35,9 @@ public class Deposition {
     public double farVelo = -1750; //use for old bot
 
     public double closeVelo_New = 1150; //use for new bot
+    public double closeVelo_New_auto = 1180; //use for new bot
     public double farVelo_New = 1650; //use for new bot
-
+    public double farVelo_New_auto = 1680; //use for new bot
     // --- Internal variable for storing last output ---
     private double powerOutput = 0.0;
 
