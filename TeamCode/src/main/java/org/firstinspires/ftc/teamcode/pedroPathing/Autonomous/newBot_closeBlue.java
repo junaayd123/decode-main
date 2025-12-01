@@ -51,7 +51,7 @@ public class newBot_closeBlue extends LinearOpMode {
     );
 
     // Poses
-    private final Pose nearshotpose     = new Pose(90,  8.5, Math.toRadians(-133.5));
+    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-131.5));
     private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
     private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
     private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));
@@ -198,7 +198,7 @@ public class newBot_closeBlue extends LinearOpMode {
 
     private void startCloseShot() {
         sequence = 4;
-        depo.setTargetVelocity(depo.closeVelo_New);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.closeVelo_New_auto);  // COMMENTED OUT (depo)
 //        LL.close();
 
     }
@@ -246,7 +246,7 @@ public class newBot_closeBlue extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+7) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN+7.5) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
         Path p2 = new Path(new BezierLine(cur, secondGoal));
 
@@ -273,7 +273,7 @@ public class newBot_closeBlue extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN+16.5) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
         PathChain second = follower.pathBuilder()
@@ -299,7 +299,7 @@ public class newBot_closeBlue extends LinearOpMode {
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15.5) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
 
         PathChain second = follower.pathBuilder()
@@ -329,15 +329,15 @@ public class newBot_closeBlue extends LinearOpMode {
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if(timer1.checkAtSeconds(0.4)){
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if(timer1.checkAtSeconds(0.8)){
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if(timer1.checkAtSeconds(1.2)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
