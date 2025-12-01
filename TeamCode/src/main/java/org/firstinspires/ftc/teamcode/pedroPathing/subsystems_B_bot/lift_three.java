@@ -48,6 +48,7 @@ public class lift_three {
         }
         else return false;
     }
+
     public boolean checkNoBalls(){//false if theres at least one ball true if no balls
         if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;
         else return false;
