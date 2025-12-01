@@ -17,8 +17,15 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
 @Autonomous(name = "newBot_closeBlue", group = "Pedro")
 public class newBot_closeBlue extends LinearOpMode {
+    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
     // ---------- Shooter subsystems ----------
     private Deposition depo;
@@ -343,5 +350,10 @@ public class newBot_closeBlue extends LinearOpMode {
         }
 
     }
+
+    private void checkMotif() {
+
+    }
+
 
 }

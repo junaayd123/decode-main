@@ -24,6 +24,7 @@ public class ColorSensors {
         SensorRight2 = hardwareMap.get(NormalizedColorSensor.class, "color_right2");
     }
     public int getColor(NormalizedColorSensor colorSensor){
+        // 1 is green, 2 is purple
 
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 

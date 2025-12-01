@@ -11,14 +11,35 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
-//...
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.List;
+
 @Autonomous(name = "newBot_farRed", group = "Pedro")
-public class newBot_farRed extends LinearOpMode {
+public class newBot_farRedMotif extends LinearOpMode {
+    private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
+    private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
+    String motif = null;
+    private boolean shootingHasWorked = true;
 
     // ---------- Shooter subsystems -------------
     // Commented out: depo usage will be removed
@@ -34,8 +55,8 @@ public class newBot_farRed extends LinearOpMode {
     private Follower follower;
 
     // ----- Voltage-comp power (tune these once around ~12.35V) -----
-    private static final double FAR_BASE_POWER_12V   = 0.67;   // what worked for FAR at ~12.0V
-    private static final double FAR_BASE_POWER2_12V  = 0.675;  // a touch hotter between shots (optional)
+    private static final double FAR_BASE_POWER_12V = 0.67;   // what worked for FAR at ~12.0V
+    private static final double FAR_BASE_POWER2_12V = 0.675;  // a touch hotter between shots (optional)
     private static final double CLOSE_BASE_POWER_12V = 0.55;   // what worked for CLOSE at ~12.0V
     private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
@@ -52,14 +73,15 @@ public class newBot_farRed extends LinearOpMode {
     private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
     private final Pose thirdpickupPose = new Pose(71.5, -20, Math.toRadians(-90));
     private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
-    private final Pose near_shot_Pose  = new Pose(97.5, -17, Math.toRadians(-240.0));
-    private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
+    private final Pose near_shot_Pose = new Pose(97.5, -17, Math.toRadians(-240.0));
+    private final Pose infront_of_lever = new Pose(61.5, -37.5, Math.toRadians(0));
 
     private static final double SECOND_HOP_IN = 13.5;
-    private static final double SHOT_DELAY_S  = 0.75;  // delay between shots (you already use timing windows below)
+    private static final double SHOT_DELAY_S = 0.75;  // delay between shots (you already use timing windows below)
 
     // ---------- Upgraded shooter timing ----------
     private Timer timer1;
+    private Timer timer2;
     private int sequence = 0;
 
     // --------- Voltage-comp helpers (kept) ---------
@@ -72,7 +94,9 @@ public class newBot_farRed extends LinearOpMode {
         return (v > 0) ? v : 12.35;
     }
 
-    /** Set both shooter motors with voltage compensation (base power is what you'd use at 12.0V). */
+    /**
+     * Set both shooter motors with voltage compensation (base power is what you'd use at 12.0V).
+     */
     private void setShooterPowerVoltageComp(double basePowerAt12V) {
         double v = getBatteryVoltage();          // e.g., 13.2V fresh, 12.0V nominal, 11.5V lower
         double compensated = basePowerAt12V * (12.35 / v);
@@ -91,13 +115,14 @@ public class newBot_farRed extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Init subsystems
-        depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
-        LL      = new lift_three(hardwareMap);
-        timer1  = new Timer();
+        depo = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
+        LL = new lift_three(hardwareMap);
+        timer1 = new Timer();
+        timer2 = new Timer();
 
-        intake  = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
-        d1      = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
-        d2      = hardwareMap.get(DcMotor.class, "depo1");
+        intake = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
+        d1 = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
+        d2 = hardwareMap.get(DcMotor.class, "depo1");
 
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -106,6 +131,8 @@ public class newBot_farRed extends LinearOpMode {
         follower = B_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(start_align_Pose);
 
+        initAprilTag();
+
         // Launcher safe start
         LL.allDown();
         LL.set_angle_min();
@@ -113,6 +140,12 @@ public class newBot_farRed extends LinearOpMode {
         stopShooter();
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
+        telemetry.update();
+
+        while (motif == null) {
+            InitialFindMotif();
+        }
+        telemetry.addData("Motif Pattern:", motif);
         telemetry.update();
 
         waitForStart();
@@ -155,7 +188,7 @@ public class newBot_farRed extends LinearOpMode {
     private void go_infront() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur,infront_of_lever)))
+                .addPath(new Path(new BezierLine(cur, infront_of_lever)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
@@ -170,7 +203,6 @@ public class newBot_farRed extends LinearOpMode {
         depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
     }
 
-    //ss
     private void go_home() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
@@ -239,7 +271,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), firstpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
 
         // path 2 (forward hop)
         Pose cur = follower.getPose();
@@ -254,7 +289,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
         follower.setMaxPower(1.0);
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
@@ -266,7 +304,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
 
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
@@ -279,7 +320,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
@@ -291,7 +335,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
 
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
@@ -304,7 +351,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
@@ -316,9 +366,13 @@ public class newBot_farRed extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
         intake.setPower(0);
     }
+
     private void go_close_2() {
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
@@ -326,7 +380,10 @@ public class newBot_farRed extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
     }
 
     private boolean isFarShotCycleDone() {
@@ -334,23 +391,107 @@ public class newBot_farRed extends LinearOpMode {
     }
 
     // unified shooting timing (copied from far-blue)
-    private void shoot3x(){
-        if(timer1.checkAtSeconds(0)){
+    private void shoot3x() {
+        if (timer1.checkAtSeconds(0)) {
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if (timer1.checkAtSeconds(0.3)) {
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if (timer1.checkAtSeconds(0.6)) {
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if (timer1.checkAtSeconds(1.1)) {
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
         }
 
+    }
+
+    private void shootMotif(String seq) {
+        if (timer2.checkAtSeconds(0)) {//first shot
+            if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if (timer2.checkAtSeconds(0.4)) {//second shot
+            LL.allDown();
+            if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if (timer2.checkAtSeconds(0.8)) {//third shot
+            LL.allDown();
+            if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
+        }
+        if (timer2.checkAtSeconds(1.2)) {//tunr off depo
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+        }
+    }
+
+    private void checkShot() {
+        if (!shootingHasWorked) {
+            LL.allDown();
+            shootingHasWorked = true;
+        }
+    }
+
+    private void initAprilTag() {
+        aprilTag = new AprilTagProcessor.Builder()
+                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+                .setCameraPose(cameraPosition, cameraOrientation)
+                .build();
+
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        if (USE_WEBCAM) {
+            try {
+                builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+            } catch (Exception e) {
+                telemetry.addLine("Warning: Webcam not found");
+            }
+        } else {
+            builder.setCamera(BuiltinCameraDirection.BACK);
+        }
+        builder.addProcessor(aprilTag);
+        visionPortal = builder.build();
+    }
+
+    private void initOpenCV() {
+        // LEAVE BLANK
+    }
+
+    private void InitialFindMotif() {
+        try {
+            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+            telemetry.addData("# AprilTags Detected", currentDetections.size());
+
+            // Step through the list of detections and display info for each one.
+            for (AprilTagDetection detection : currentDetections) {
+                if (detection.metadata != null) {
+
+                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                    // Only use tags that don't have Obelisk in them
+                    if (detection.metadata.name.contains("Obelisk")) {
+                        motif = (detection.id == 21) ? "gpp" : (detection.id == 22) ? "pgp" : "ppg";
+                        telemetry.addData("motif: ", motif);
+                    }   // end for() loop
+
+                    // Add "key" information to telemetry
+                    telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
+                    telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
+
+                }
+            }
+        } catch (Exception e) {
+            telemetry.addData("Exception:", e);
+        }
     }
 }
