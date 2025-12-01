@@ -31,7 +31,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "newBot_farRed", group = "Pedro")
+@Autonomous(name = "newBot_farRedMotif", group = "Pedro")
 public class newBot_farRedMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
@@ -137,6 +137,7 @@ public class newBot_farRedMotif extends LinearOpMode {
         LL.allDown();
         LL.set_angle_min();
         timer1.resetTimer();
+        timer2.resetTimer();
         stopShooter();
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
@@ -188,7 +189,7 @@ public class newBot_farRedMotif extends LinearOpMode {
     private void go_infront() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, infront_of_lever)))
+                .addPath(new Path(new BezierLine(cur,infront_of_lever)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
@@ -203,6 +204,7 @@ public class newBot_farRedMotif extends LinearOpMode {
         depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
     }
 
+    //ss
     private void go_home() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
@@ -239,10 +241,11 @@ public class newBot_farRedMotif extends LinearOpMode {
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
                     timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
-            shoot3x();
+            shootMotif(motif);
             follower.update();
         }
     }
@@ -255,10 +258,11 @@ public class newBot_farRedMotif extends LinearOpMode {
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
                     timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
-            shoot3x();
+            shootMotif(motif);
             follower.update();
         }
     }
@@ -271,10 +275,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), firstpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
         // path 2 (forward hop)
         Pose cur = follower.getPose();
@@ -289,10 +290,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         follower.setMaxPower(1.0);
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
@@ -304,10 +302,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
@@ -320,10 +315,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
@@ -335,10 +327,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
@@ -351,10 +340,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
@@ -366,13 +352,9 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         intake.setPower(0);
     }
-
     private void go_close_2() {
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
@@ -380,10 +362,7 @@ public class newBot_farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
     }
 
     private boolean isFarShotCycleDone() {
@@ -391,19 +370,19 @@ public class newBot_farRedMotif extends LinearOpMode {
     }
 
     // unified shooting timing (copied from far-blue)
-    private void shoot3x() {
-        if (timer1.checkAtSeconds(0)) {
+    private void shoot3x(){
+        if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if (timer1.checkAtSeconds(0.3)) {
+        if(timer1.checkAtSeconds(0.3)){
             LL.leftDown();
             LL.rightUp();
         }
-        if (timer1.checkAtSeconds(0.6)) {
+        if(timer1.checkAtSeconds(0.6)){
             LL.rightDown();
             LL.backUp();
         }
-        if (timer1.checkAtSeconds(1.1)) {
+        if(timer1.checkAtSeconds(1.1)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
