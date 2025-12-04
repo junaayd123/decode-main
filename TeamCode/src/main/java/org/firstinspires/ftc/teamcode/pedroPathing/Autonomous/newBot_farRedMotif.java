@@ -240,7 +240,6 @@ public class newBot_farRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
                     timer2.startTimer();
                     sequence = 0;
                 }
@@ -257,7 +256,6 @@ public class newBot_farRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
                     timer2.startTimer();
                     sequence = 0;
                 }
@@ -281,10 +279,10 @@ public class newBot_farRedMotif extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 15) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 18) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
-        follower.setMaxPower(0.5);
+        follower.setMaxPower(0.75);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
@@ -366,7 +364,7 @@ public class newBot_farRedMotif extends LinearOpMode {
     }
 
     private boolean isFarShotCycleDone() {
-        return (sequence == 0 && timer1.timerIsOff());
+        return (sequence == 0 && timer2.timerIsOff());
     }
 
     // unified shooting timing (copied from far-blue)
@@ -412,6 +410,7 @@ public class newBot_farRedMotif extends LinearOpMode {
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
+
         }
     }
 
