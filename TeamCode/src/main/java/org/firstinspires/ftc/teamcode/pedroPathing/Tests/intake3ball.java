@@ -2,8 +2,6 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Tests;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
@@ -14,7 +12,7 @@ public class intake3ball extends LinearOpMode {
     lift_three LL;
     DcMotor intake;
 
-    Timer timer1;
+    Timer timer3;
     boolean intakeRunning;
 
 
@@ -22,10 +20,10 @@ public class intake3ball extends LinearOpMode {
     public void runOpMode() {
         LL = new lift_three(hardwareMap);
         intake = hardwareMap.get(DcMotor.class, "intake");
-        timer1 = new Timer();
+        timer3 = new Timer();
 
         waitForStart();
-        timer1.resetTimer();
+        timer3.resetTimer();
 
         while (opModeIsActive()) {
 
@@ -41,7 +39,7 @@ public class intake3ball extends LinearOpMode {
 
             if (intakeRunning) {
                 if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
-                    timer1.startTimer();
+                    timer3.startTimer();
                     intakeRunning = false;
                 }
             }
@@ -58,12 +56,12 @@ public class intake3ball extends LinearOpMode {
     }
 
     private void reverseIntake() {
-        if (timer1.checkAtSeconds(0)) {
+        if (timer3.checkAtSeconds(0)) {
             intake.setPower(1);
         }
-        if (timer1.checkAtSeconds(0.5)) {
+        if (timer3.checkAtSeconds(0.5)) {
             intake.setPower(0);
-            timer1.stopTimer();
+            timer3.stopTimer();
         }
     }
 

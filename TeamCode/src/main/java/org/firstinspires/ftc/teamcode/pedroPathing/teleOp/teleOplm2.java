@@ -31,6 +31,7 @@ import java.util.List;
 public class teleOplm2 extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
+    Timer timer3;
     private double distanceToGoal;
     // Coordinates of red/blue speaker tags (meters)
 
@@ -61,9 +62,9 @@ public class teleOplm2 extends OpMode {
     private DcMotor intake = null;
     private Deposition depo;
     boolean shootingTest =false;
+    boolean intakeRunning;
     Servo led;
     int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
-
     private lift_three LL;
     boolean direction = false; //false if intake is forward, true if depo;
     double speed;
@@ -85,6 +86,7 @@ public class teleOplm2 extends OpMode {
     private final Pose startPose = new Pose(0,0,0);
     @Override
     public void init() {
+
         LL = new lift_three(hardwareMap);
         depo = new Deposition(hardwareMap);
         intake = hardwareMap.get(DcMotor.class, "intake");
@@ -94,6 +96,7 @@ public class teleOplm2 extends OpMode {
         g2.copy(gamepad2);
         timer1 = new Timer();
         timer2 = new Timer();
+        timer3 = new Timer();
         initAprilTag();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -115,6 +118,7 @@ public class teleOplm2 extends OpMode {
         LL.set_angle_min();
         timer1.resetTimer();
         timer2.resetTimer();
+        timer3.resetTimer();
 
     }
 
@@ -126,14 +130,35 @@ public class teleOplm2 extends OpMode {
         g2.copy(gamepad2);
         depo.updatePID();
         if(g1.psWasPressed()) bluealliance = !bluealliance;
-        if(g2.right_bumper){
-            intake.setPower(-1);
-        } else if (g2.left_bumper) {
-            intake.setPower(1);
+//        if(g2.right_bumper){
+//            intake.setPower(-1);
+//        } else if (g2.left_bumper) {
+//            intake.setPower(1);
+//        }
+//        else{
+//            intake.setPower(0);
+//        }
+
+        if (gamepad2.rightBumperWasPressed()) {
+            if (intake.getPower() < -0.5) {
+                intake.setPower(0);
+                intakeRunning = false;
+            } else {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
         }
-        else{
-            intake.setPower(0);
+
+        if (intakeRunning) {
+            if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
+                timer3.startTimer();
+                intakeRunning = false;
+            }
         }
+
+
+
+        reverseIntake();
         if(g1.cross) speed = 0.3;
         else speed = 1;
         if(g2.dpad_down && !preG2.dpad_down){
@@ -269,6 +294,15 @@ public class teleOplm2 extends OpMode {
         else if(dist<110) return 1350;
         else if(dist<140) return 1600;
         else return 1650;
+    }
+    private void reverseIntake() {
+        if (timer3.checkAtSeconds(0)) {
+            intake.setPower(1);
+        }
+        if (timer3.checkAtSeconds(0.5)) {
+            intake.setPower(0);
+            timer3.stopTimer();
+        }
     }
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
