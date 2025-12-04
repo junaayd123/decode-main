@@ -235,7 +235,10 @@ public class teleOplm2 extends OpMode {
 
         Pose cur = follower.getPose();
         distanceToGoal = getDistance();
+        telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
         telemetry.addData("distance to goal",distanceToGoal);
+        telemetry.addData("target velocity", ourVelo);
+        telemetry.addData("curent angle", LL.launchAngleServo.getPosition());
         telemetry.addData("X", cur.getX());
         telemetry.addData("y", cur.getY());
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
@@ -270,10 +273,10 @@ public class teleOplm2 extends OpMode {
 //        shootoneColored();
         shootMotif(motif);
         if(g1.dpad_up&& !preG1.dpad_up){
-            ourVelo+=50;
+            ourVelo+=25;
         }
         else if(g1.dpad_down&& !preG1.dpad_down){
-            ourVelo-=50;
+            ourVelo-=25;
         }
         if(g1.dpad_left&& !preG1.dpad_left){
             LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.03);
@@ -283,8 +286,7 @@ public class teleOplm2 extends OpMode {
         }
 
         // Telemetry
-        telemetry.addData("target velocity", ourVelo);
-        telemetry.addData("curent angle", LL.launchAngleServo.getPosition());
+
         telemetry.update();
     }
     private int veloBasedOnDistance(double dist){
