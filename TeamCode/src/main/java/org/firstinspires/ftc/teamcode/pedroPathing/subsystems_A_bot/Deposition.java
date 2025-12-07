@@ -60,6 +60,9 @@ public class Deposition {
     public boolean reachedTarget(){
         return targetVelocity != 0 && getVelocity() >= targetVelocity - 20 && getVelocity() <= targetVelocity + 20;
     }
+    public boolean reachedTargetHighTolerance(){
+        return targetVelocity != 0 && getVelocity() >= targetVelocity;
+    }
 
     // --- PID velocity update (call periodically in your loop) ---
     public void updatePID() {
