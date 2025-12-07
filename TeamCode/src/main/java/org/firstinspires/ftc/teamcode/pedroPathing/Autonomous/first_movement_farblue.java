@@ -36,6 +36,7 @@ public class first_movement_farblue extends LinearOpMode {
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
 
     private final Pose start_align_Pose = new Pose(-4.0, -3.0, Math.toRadians(0.0));
+    // vihaan said hi
     private final Pose startPose = new Pose(
             0.0,                     // x inches
             0.0,                     // y inches
