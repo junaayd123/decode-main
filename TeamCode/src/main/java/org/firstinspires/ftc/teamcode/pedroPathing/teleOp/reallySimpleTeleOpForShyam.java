@@ -52,7 +52,7 @@ public class reallySimpleTeleOpForShyam extends OpMode {
 
         telemetry.addData("x:", follower.getPose().getX());
         telemetry.addData("y:",  follower.getPose().getY());
-        telemetry.addData("heading:",  follower.getPose().getHeading());
+        telemetry.addData("heading:",  Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("total heading:",  follower.getTotalHeading());
         telemetry.update();
 

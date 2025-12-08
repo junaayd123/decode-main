@@ -124,7 +124,7 @@ public class B_Bot_Constants {
     public static PathConstraints pathConstraints = new PathConstraints(
             0.995,
             500,
-            0.700, // original val: 0.875
+            0.700, // original val:  0.875
             1
     );
 

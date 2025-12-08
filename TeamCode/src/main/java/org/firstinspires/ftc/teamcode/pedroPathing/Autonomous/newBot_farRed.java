@@ -338,15 +338,15 @@ public class newBot_farRed extends LinearOpMode {
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if(timer1.checkAtSeconds(0.4)){
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if(timer1.checkAtSeconds(0.8)){
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if(timer1.checkAtSeconds(1.2)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();

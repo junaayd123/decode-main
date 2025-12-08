@@ -64,14 +64,13 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose start_align_Pose = new Pose(-4.0, -2, Math.toRadians(-180));
-    private final Pose startPose        = new Pose( 0.0,  0, Math.toRadians(-157));
-
+    private final Pose startPose        = new Pose( 0.0,  0, Math.toRadians(-156));
     private final Pose firstpickupPose  = new Pose(22.5, 20, Math.toRadians(90));
     private final Pose midPoint1        = new Pose(37,   14, Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(45.5, 17, Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(45, 17, Math.toRadians(90));
 
     private final Pose midPoint2        = new Pose(44,   4, Math.toRadians(90));
-    private final Pose thirdpickupPose  = new Pose(71.5, 20, Math.toRadians(90));
+    private final Pose thirdpickupPose  = new Pose(71, 20, Math.toRadians(90));
     private final Pose midPoint3        = new Pose(76,   4, Math.toRadians(90));
 
     private final Pose near_shot_Pose   = new Pose(97.5, 17, Math.toRadians(-120));
@@ -146,8 +145,12 @@ public class newBot_farBlueMotif extends LinearOpMode {
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
 
-        while (motif == null) {
+        while (motif == null && !isStopRequested()) {
             InitialFindMotif();
+            telemetry.addData("Looking for motif...", "");
+            telemetry.update();
+            idle();
+            sleep(10);
         }
         telemetry.addData("Motif Pattern:", motif);
         telemetry.update();
@@ -224,7 +227,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
     // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_New_auto);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
@@ -282,16 +285,25 @@ public class newBot_farBlueMotif extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 18) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 18.5) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
-        follower.setMaxPower(0.75);
+        follower.setMaxPower(0.8);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
+            idle();
+        }
+        intake.setPower(1);
         follower.setMaxPower(1.0);
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
@@ -310,14 +322,24 @@ public class newBot_farBlueMotif extends LinearOpMode {
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
         double dy = (SECOND_HOP_IN + 22) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-
+        follower.setMaxPower(0.8);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+            idle();
+        }
+        intake.setPower(1);
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        follower.setMaxPower(1.0);
+
     }
 
     private void third_line_pickup() {
@@ -335,14 +357,24 @@ public class newBot_farBlueMotif extends LinearOpMode {
         double dx = SECOND_HOP_IN * Math.cos(heading);
         double dy = (SECOND_HOP_IN + 14) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
-
+        follower.setMaxPower(0.8);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur1, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
                 .build();
         follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+            idle();
+        }
+        intake.setPower(1);
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        follower.setMaxPower(1.0);
+
     }
 
     private void go_close() {
@@ -375,15 +407,15 @@ public class newBot_farBlueMotif extends LinearOpMode {
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if(timer1.checkAtSeconds(0.4)){
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if(timer1.checkAtSeconds(0.8)){
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if(timer1.checkAtSeconds(1.2)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -391,25 +423,54 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     }
 
+    /**
+     * Manages intake during the second hop.
+     * If robot already has 1–2 balls in storage, spit out any new ones.
+     * If robot already has 3, completely stop intake.
+     * If robot has 0, intake normally.
+     */
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || LL.sensors == null) return;
+
+        boolean rightFull = (LL.sensors.getRight() != 0);
+        boolean backFull  = (LL.sensors.getBack()  != 0);
+        boolean leftFull  = (LL.sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            intake.setPower(1);     // spit out / reverse
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        intake.setPower(-1);        // normal intake
+    }
+
+
     private void shootMotif(String seq) {
         if (timer2.checkAtSeconds(0)) {//first shot
             if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
             else shootingHasWorked = LL.lift_purple();
             checkShot();
         }
-        if (timer2.checkAtSeconds(0.4)) {//second shot
+        if (timer2.checkAtSeconds(0.3)) {//second shot
             LL.allDown();
             if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
             else shootingHasWorked = LL.lift_purple();
             checkShot();
         }
-        if (timer2.checkAtSeconds(0.8)) {//third shot
+        if (timer2.checkAtSeconds(0.6)) {//third shot
             LL.allDown();
             if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
             else shootingHasWorked = LL.lift_purple();
             checkShot();
         }
-        if (timer2.checkAtSeconds(1.2)) {//tunr off depo
+        if (timer2.checkAtSeconds(1.3)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();

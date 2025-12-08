@@ -153,6 +153,7 @@ public class newBot_farBlue extends LinearOpMode {
         }
     }
 
+
     private void go_infront() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
@@ -188,7 +189,7 @@ public class newBot_farBlue extends LinearOpMode {
     // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_New_auto);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
@@ -246,10 +247,10 @@ public class newBot_farBlue extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 15) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 18.5) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
-        follower.setMaxPower(0.5);
+        follower.setMaxPower(0.8);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
@@ -274,6 +275,7 @@ public class newBot_farBlue extends LinearOpMode {
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
         double dy = (SECOND_HOP_IN + 22) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
+        follower.setMaxPower(0.8);
 
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
@@ -282,6 +284,8 @@ public class newBot_farBlue extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        follower.setMaxPower(1);
+
     }
 
     private void third_line_pickup() {
@@ -299,6 +303,7 @@ public class newBot_farBlue extends LinearOpMode {
         double dx = SECOND_HOP_IN * Math.cos(heading);
         double dy = (SECOND_HOP_IN + 14) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
+        follower.setMaxPower(0.8);
 
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur1, secondGoal)))
@@ -307,6 +312,8 @@ public class newBot_farBlue extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        follower.setMaxPower(1);
+
     }
 
     private void go_close() {
@@ -339,15 +346,15 @@ public class newBot_farBlue extends LinearOpMode {
         if(timer1.checkAtSeconds(0)){
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if(timer1.checkAtSeconds(0.4)){
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if(timer1.checkAtSeconds(0.8)){
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if(timer1.checkAtSeconds(1.2)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
