@@ -31,7 +31,7 @@ import java.util.List;
 public class teleOplm2 extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
-    Timer timer3;
+    private boolean alignForFar = false;
     private double distanceToGoal;
     // Coordinates of red/blue speaker tags (meters)
 
@@ -43,8 +43,10 @@ public class teleOplm2 extends OpMode {
 
     private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(320.0));
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
-    private final Pose redGoal  = new Pose(130, 130, 0);
-    private final Pose blueGoal  = new Pose(14, 130,0);
+    private final Pose blueFarShootPose = new Pose(80, 25, Math.toRadians(-57));
+    private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-114));
+    private final Pose redGoal  = new Pose(144, 155, 0);
+    private final Pose blueGoal  = new Pose(0, 155,0);
     private final Pose redGoal2  = new Pose(144, 144, 0);
     private final Pose blueGoal2  = new Pose(0, 144,0);
     private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
@@ -70,9 +72,14 @@ public class teleOplm2 extends OpMode {
     double speed;
     Timer timer1;
     Timer timer2;
+    Timer timer3;
+    Timer timer4;
+    Timer timer5;
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
+    int shooterSequence;
+    double timeOfSecondShot;
     boolean shootingHasWorked = true;
     boolean greenball = false;//false is purp true is geren
 
@@ -97,6 +104,8 @@ public class teleOplm2 extends OpMode {
         timer1 = new Timer();
         timer2 = new Timer();
         timer3 = new Timer();
+        timer4 = new Timer();
+        timer5 = new Timer();
         initAprilTag();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -119,6 +128,8 @@ public class teleOplm2 extends OpMode {
         timer1.resetTimer();
         timer2.resetTimer();
         timer3.resetTimer();
+        timer4.resetTimer();
+        timer5.resetTimer();
 
     }
 
@@ -171,8 +182,7 @@ public class teleOplm2 extends OpMode {
                 }
                 else {
                     depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                    if (distanceToGoal > 120) LL.set_angle_far();
-                    else LL.set_angle_close();
+                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
 
@@ -180,22 +190,19 @@ public class teleOplm2 extends OpMode {
         }
         if(g2.square && !preG2.square){//gpp
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            if (distanceToGoal > 120) LL.set_angle_far();
-            else LL.set_angle_close();
+            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "gpp";
         }
         if(g2.triangle && !preG2.triangle){//pgp
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            if (distanceToGoal > 120) LL.set_angle_far();
-            else LL.set_angle_close();
+            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "pgp";
         }
         if(g2.circle && !preG2.circle){//ppg
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            if (distanceToGoal > 120) LL.set_angle_far();
-            else LL.set_angle_close();
+            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "ppg";
         }
@@ -209,14 +216,26 @@ public class teleOplm2 extends OpMode {
 
         // ========= WHEN SQUARE PRESSED → DRIVE TO SHOOTING POSE =========
         if (g1.square && !preG1.square) {
-            if (!follower.isBusy()) {
-                goToHumanPlayer();
-            }
+//            if (!follower.isBusy()) {
+//                goToHumanPlayer();
+//            }
+            direction = !direction;
         }
         if (g1.circle && !preG1.circle && !follower.isBusy()) {
-            faceAllianceGoal();
+            if(distanceToGoal<115) {
+                faceAllianceGoal();
+                timer4.startTimer();//lets allignment run for 1 sec
+            }
+            else{
+                goToFarPose();
+                alignForFar=true;
+            }
         }
-
+        if(alignForFar && !follower.isBusy()){
+            timer4.startTimer();
+            alignForFar = false;
+        }
+        quitCorrectingAngle();
         if (g1.dpad_down && !preG1.dpad_down) {
             follower.breakFollowing();      // stops all paths and turns
             follower.startTeleopDrive();    // force drive mode back
@@ -224,17 +243,14 @@ public class teleOplm2 extends OpMode {
             telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
         }
         // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
-        if (aligning && turnIsBasicallyDone()) {
-            follower.startTeleopDrive();
-            aligning = false;
-            telemetry.addLine("Turn tolerance override: teleop restored");
-        }
 
         followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
 
         Pose cur = follower.getPose();
         distanceToGoal = getDistance();
+        telemetry.addData("shooter sequence",shooterSequence);
+        telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
         telemetry.addData("distance to goal",distanceToGoal);
         telemetry.addData("target velocity", ourVelo);
@@ -243,22 +259,22 @@ public class teleOplm2 extends OpMode {
         telemetry.addData("y", cur.getY());
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
-        if(depo.reachedTarget()){
+        if(depo.reachedTargetHighTolerance()){
             if (shooting) {
                 // Decide which slot will actually shoot
-                if (LL.sensors.getLeft() != 0 && lastShotSlot != 0) {
-                    lastShotSlot = 0;
-                } else if (LL.sensors.getRight() != 0 && lastShotSlot != 1) {
-                    lastShotSlot = 1;
-                } else if (LL.sensors.getBack() != 0 && lastShotSlot != 2) {
-                    lastShotSlot = 2;
-                } else {
-                    // No valid new balls → cancel shooting
-                    depo.setTargetVelocity(0);
-                    shooting = false;
-                    lastShotSlot = -1;
-                    return;
-                }
+//                if (LL.sensors.getLeft() != 0 && lastShotSlot != 0) {
+//                    lastShotSlot = 0;
+//                } else if (LL.sensors.getRight() != 0 && lastShotSlot != 1) {
+//                    lastShotSlot = 1;
+//                } else if (LL.sensors.getBack() != 0 && lastShotSlot != 2) {
+//                    lastShotSlot = 2;
+//                } else {
+//                    // No valid new balls → cancel shooting
+//                    depo.setTargetVelocity(0);
+//                    shooting = false;
+//                    lastShotSlot = -1;
+//                    return;
+//                }
 
                 // Now start timer to shoot the 3 balls
                 timer1.startTimer();
@@ -290,12 +306,21 @@ public class teleOplm2 extends OpMode {
         telemetry.update();
     }
     private int veloBasedOnDistance(double dist){
-        if(dist<55) return 1100;
+        if(dist<60) return 1150; //close distance
         else if(dist<70) return 1150;
-        else if(dist<80) return 1230;
-        else if(dist<110) return 1350;
-        else if(dist<140) return 1600;
-        else return 1650;
+        else if(dist<75) return 1175;
+        else if(dist<80) return 1200;
+        else if(dist<87) return 1225;
+        else if(dist<110) return 1300;
+        else if(dist>115 && dist<150) return 1575;//far distance
+        else return 0;//didnt localize the tag
+    }
+    private double angleBasedOnDistance(double dist){
+        if(dist<70) return 0.06; //close distance
+        else if(dist<87) return 0.09; //close distance
+        else if(dist<110) return 0.12; //close distance
+        else if(dist>115 && dist<150) return 0.18;//far distance
+        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {
@@ -371,6 +396,19 @@ public class teleOplm2 extends OpMode {
         follower.followPath(chain);
         aligning2 = true;
     }
+    private void goToFarPose() {
+        Pose target = bluealliance ? blueFarShootPose : redFarShootPose;
+        Pose cur = follower.getPose();
+
+        if (pedroPose == null) return;
+
+        PathChain chain = follower.pathBuilder()
+                .addPath(new BezierLine(cur, target))
+                .setLinearHeadingInterpolation(cur.getHeading(), target.getHeading())
+                .build();
+
+        follower.followPath(chain);
+    }
     private void goToHumanPlayer() {
         Pose target = bluealliance ? blueHP : redHP;
 
@@ -386,7 +424,7 @@ public class teleOplm2 extends OpMode {
     }
     private void faceAllianceGoal() {
         Pose cur = follower.getPose();
-        Pose target = bluealliance ? blueGoal : redGoal;
+        Pose target = bluealliance ? blueGoal : redGoal;//faces the goal plus 10 inches on y to align better
         if (pedroPose == null) return;
 
         double rawAngle = Math.atan2(target.getY() - cur.getY(), target.getX() - cur.getX());
@@ -397,6 +435,15 @@ public class teleOplm2 extends OpMode {
         desiredHeading = flippedAngle;
         follower.turnTo(flippedAngle);
         aligning = true;
+    }
+    private void quitCorrectingAngle(){
+        if(timer4.checkAtSeconds(1)){
+            follower.breakFollowing();      // stops all paths and turns
+            follower.startTeleopDrive();    // force drive mode back
+            aligning = false;              // clear flags
+            telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
+            timer4.stopTimer();
+        }
     }
 
     private void followerstuff() {
@@ -415,12 +462,14 @@ public class teleOplm2 extends OpMode {
 
         // Manual drive ONLY when idle AND NOT aligning
         if (!follower.isBusy() && !aligning) {
-            follower.setTeleOpDrive(
-                    -gamepad1.left_stick_y * speed,
-                    (gamepad1.left_trigger - gamepad1.right_trigger) * speed,
-                    -gamepad1.right_stick_x * speed,
-                    true
-            );
+            if(direction) {
+                led.setPosition(0.388);
+                follower.setTeleOpDrive( gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+            }
+            else {
+                led.setPosition(0);
+                follower.setTeleOpDrive( -gamepad1.left_stick_y*speed, (gamepad1.left_trigger - gamepad1.right_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+            }
         }
     }
 
@@ -436,30 +485,44 @@ public class teleOplm2 extends OpMode {
     }
 
     private void shoot3x() {
-        if (lastShotSlot == -1) return; // nothing scheduled
+//        if (lastShotSlot == -1) return; // nothing scheduled
 
-        // Shot 1 fire
-        if (timer1.checkAtSeconds(0)) {
-            fireShotFromSlot(lastShotSlot);
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.leftUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.4)) {
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
-            fireNextAvailableShot();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.rightUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.8)) {
-            LL.allDown();
-            fireNextAvailableShot();
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.backUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
         }
 
         // Finish cycle
-        if (timer1.checkAtSeconds(1.2)) {
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
+            shooterSequence = 0;
             lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
         }
     }
