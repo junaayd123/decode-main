@@ -55,7 +55,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
-
+//bb
     // ----- Voltage-comp power (tune these once around ~12.35V) -----
     private static final double FAR_BASE_POWER_12V   = 0.67;   // what worked for FAR at ~12.0V
     private static final double FAR_BASE_POWER2_12V  = 0.675;  // a touch hotter between shots (optional)
