@@ -45,8 +45,8 @@ public class teleOplm2 extends OpMode {
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
     private final Pose blueFarShootPose = new Pose(80, 25, Math.toRadians(-57));
     private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-114));
-    private final Pose redGoal  = new Pose(144, 155, 0);
-    private final Pose blueGoal  = new Pose(0, 155,0);
+    private final Pose redGoal  = new Pose(144, 144, 0);
+    private final Pose blueGoal  = new Pose(0, 144,0);
     private final Pose redGoal2  = new Pose(144, 144, 0);
     private final Pose blueGoal2  = new Pose(0, 144,0);
     private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
@@ -165,6 +165,12 @@ public class teleOplm2 extends OpMode {
                 timer3.startTimer();
                 intakeRunning = false;
             }
+        }
+        if(g2.left_bumper){
+            intake.setPower(1);
+        }
+        else if(!g2.left_bumper && !intakeRunning){
+            intake.setPower(0);
         }
 
 
