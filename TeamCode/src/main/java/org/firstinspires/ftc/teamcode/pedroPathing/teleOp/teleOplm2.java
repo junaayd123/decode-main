@@ -60,8 +60,13 @@ public class teleOplm2 extends OpMode {
     private VisionPortal visionPortal;
     public boolean tagDetected;
     public boolean tagInitializing;
+    String shotSlot1;
+    String shotSlot2;
+    String shotSlot3;
+
 
     Pose pedroPose, ftcPose;
+    int[] ballsInRobot = {0,0,0};
     private DcMotor intake = null;
     private Deposition depo;
     boolean shootingTest =false;
@@ -148,6 +153,7 @@ public class teleOplm2 extends OpMode {
         g2.copy(gamepad2);
         depo.updatePID();
         if(g1.psWasPressed()) bluealliance = !bluealliance;
+
 //        if(g2.right_bumper){
 //            intake.setPower(-1);
 //        } else if (g2.left_bumper) {
@@ -180,8 +186,6 @@ public class teleOplm2 extends OpMode {
             intake.setPower(0);
         }
 
-
-
         reverseIntake();
         if(g1.cross) speed = 0.3;
         else speed = 1;
@@ -206,18 +210,27 @@ public class teleOplm2 extends OpMode {
             LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "gpp";
+            ballsInRobot[0] = LL.sensors.getLeft();
+            ballsInRobot[1] = LL.sensors.getRight();
+            ballsInRobot[2] = LL.sensors.getBack();
         }
         if(g2.triangle && !preG2.triangle){//pgp
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
             LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "pgp";
+            ballsInRobot[0] = LL.sensors.getLeft();
+            ballsInRobot[1] = LL.sensors.getRight();
+            ballsInRobot[2] = LL.sensors.getBack();
         }
         if(g2.circle && !preG2.circle){//ppg
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
             LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
             shooting2 = true;
             motif = "ppg";
+            ballsInRobot[0] = LL.sensors.getLeft();
+            ballsInRobot[1] = LL.sensors.getRight();
+            ballsInRobot[2] = LL.sensors.getBack();
         }
         if (g1.triangle && !preG1.triangle){
             tagInitializing = true;
@@ -272,6 +285,9 @@ public class teleOplm2 extends OpMode {
         ledColorTime(ledColor, ledRunTime);
         Pose cur = follower.getPose();
         distanceToGoal = getDistance();
+        telemetry.addData("first shot", shotSlot1);
+        telemetry.addData("second shot", shotSlot2);
+        telemetry.addData("third shot", shotSlot3);
         telemetry.addData("shooter sequence",shooterSequence);
         telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
@@ -613,16 +629,66 @@ public class teleOplm2 extends OpMode {
     private void shootMotifVelo(String seq){
         if (timer2.checkAtSeconds(0)&&shooterSequence==0) { //this executes when depo reached target so timer just started and we can fire the first shot
 //            fireShotFromSlot(lastShotSlot); //lifts the first ball
-            rightFlip = true;
-            leftFlip = true;
-            backFlip = true;
-            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
-            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
-            checkShot();
-            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
-            else if(shootingHasWorked==0) leftFlip = false;
-            else if(shootingHasWorked==2) backFlip = false;
-            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+//            rightFlip = true;
+//            leftFlip = true;
+//            backFlip = true;
+//            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+//            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+//            checkShot();
+//            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
+//            else if(shootingHasWorked==0) leftFlip = false;
+//            else if(shootingHasWorked==2) backFlip = false;
+            boolean hasFired = false;
+            if(seq.equals("gpp")){
+                if(ballsInRobot[0]==1) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot1 = "Green from left";
+                    hasFired = true;
+
+                }
+                else if(ballsInRobot[1]==1) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot1 = "Green from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==1) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot1 = "Green from back";
+                    hasFired = true;
+                }
+            }
+            else{
+                if(ballsInRobot[0]==2) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot1 = "purp from left";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[1]==2) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot1 = "purp from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==2) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot1 = "purp from back";
+                    hasFired = true;
+                }
+            }
+            if(hasFired) {
+                shooterSequence = 1; //this variable is a flag for the sequence to run properly
+            }
+            else{
+                LL.allDown();
+                depo.setTargetVelocity(0);
+                timer2.stopTimer();
+                shooterSequence = 0;
+            }
         }
 
         // Shot 2
@@ -632,14 +698,65 @@ public class teleOplm2 extends OpMode {
         }
         if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
 //            fireNextAvailableShot();//lifts second ball
-            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
-            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
-            checkShot();
-            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
-            else if(shootingHasWorked==0) leftFlip = false;
-            else if(shootingHasWorked==2) backFlip = false;
-            shooterSequence=3;//sets the sequence to check
-            timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+//            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+//            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+//            checkShot();
+//            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
+//            else if(shootingHasWorked==0) leftFlip = false;
+//            else if(shootingHasWorked==2) backFlip = false;
+            boolean hasFired = false;
+            if(seq.equals("pgp")){
+                if(ballsInRobot[0]==1) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot2 = "Green from left";
+                    hasFired = true;
+
+                }
+                else if(ballsInRobot[1]==1) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot2 = "Green from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==1) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot2 = "Green from back";
+                    hasFired = true;
+                }
+            }
+            else{
+                if(ballsInRobot[0]==2) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot2 = "purp from left";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[1]==2) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot2 = "purp from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==2) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot2 = "purp from back";
+                    hasFired = true;
+                }
+            }
+            if(hasFired) {
+                shooterSequence=3;//sets the sequence to check
+                timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+            }
+            else{
+                LL.allDown();
+                depo.setTargetVelocity(0);
+                timer2.stopTimer();
+                shooterSequence = 0;
+            }
+
         }
 
         // Shot 3
@@ -648,10 +765,62 @@ public class teleOplm2 extends OpMode {
             shooterSequence = 4;
         }
         if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
-            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
-            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
-            checkShot();
-//            fireNextAvailableShot();
+//            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+//            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+//            checkShot();
+////            fireNextAvailableShot();
+            boolean hasFired = false;
+            if(seq.equals("ppg")){
+                if(ballsInRobot[0]==1) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot3 = "Green from left";
+                    hasFired = true;
+
+                }
+                else if(ballsInRobot[1]==1) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot3 = "Green from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==1) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot3 = "Green from back";
+                    hasFired = true;
+                }
+            }
+            else{
+                if(ballsInRobot[0]==2) {
+                    ballsInRobot[0]=0;
+                    LL.leftUp();
+                    shotSlot3 = "purp from left";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[1]==2) {
+                    ballsInRobot[1]=0;
+                    LL.rightUp();
+                    shotSlot3 = "purp from right";
+                    hasFired = true;
+                }
+                else if(ballsInRobot[2]==2) {
+                    ballsInRobot[2]=0;
+                    LL.backUp();
+                    shotSlot3 = "purp from back";
+                    hasFired = true;
+                }
+            }
+            if(hasFired) {
+                shooterSequence=5;
+                timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;
+            }
+            else{
+                LL.allDown();
+                depo.setTargetVelocity(0);
+                timer2.stopTimer();
+                shooterSequence = 0;
+            }
             shooterSequence=5;
             timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;
         }
