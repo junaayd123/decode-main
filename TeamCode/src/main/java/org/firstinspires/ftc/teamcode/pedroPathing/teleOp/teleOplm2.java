@@ -43,8 +43,8 @@ public class teleOplm2 extends OpMode {
 
     private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(320.0));
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
-    private final Pose blueFarShootPose = new Pose(80, 25, Math.toRadians(-57));
-    private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-114));
+    private final Pose blueFarShootPose = new Pose(80, 25, Math.toRadians(-58));
+    private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
     private final Pose redGoal  = new Pose(144, 144, 0);
     private final Pose blueGoal  = new Pose(0, 144,0);
     private final Pose redGoal2  = new Pose(144, 144, 0);
@@ -59,6 +59,7 @@ public class teleOplm2 extends OpMode {
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
     public boolean tagDetected;
+    public boolean tagInitializing;
 
     Pose pedroPose, ftcPose;
     private DcMotor intake = null;
@@ -74,10 +75,15 @@ public class teleOplm2 extends OpMode {
     Timer timer2;
     Timer timer3;
     Timer timer4;
+    double ledRunTime;
+    double ledColor;
     Timer timer5;
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
+    boolean rightFlip = true;//true if hasnt flipped yet
+    boolean leftFlip = true;//true if hasnt flipped yet
+    boolean backFlip = true;//true if hasnt flipped yet
     int shooterSequence;
     double timeOfSecondShot;
     boolean shootingHasWorked = true;
@@ -130,7 +136,7 @@ public class teleOplm2 extends OpMode {
         timer3.resetTimer();
         timer4.resetTimer();
         timer5.resetTimer();
-
+        tagInitializing = true;
     }
 
     @Override
@@ -169,7 +175,7 @@ public class teleOplm2 extends OpMode {
         if(g2.left_bumper){
             intake.setPower(1);
         }
-        else if(!g2.left_bumper && !intakeRunning){
+        else if(!g2.left_bumper && !intakeRunning && !timer3.timerIsOn()){
             intake.setPower(0);
         }
 
@@ -212,10 +218,20 @@ public class teleOplm2 extends OpMode {
             shooting2 = true;
             motif = "ppg";
         }
-        if (g1.triangle) {
+        if (g1.triangle && !preG1.triangle){
+            tagInitializing = true;
+        }
+        if (tagInitializing) {
             updateAprilTagLocalization();
             if (tagDetected && pedroPose != null && !follower.isBusy()) {
                 follower.setPose(pedroPose.getPose());
+                ledColor = 0.5;//green
+                ledRunTime = 0.5;
+                timer5.startTimer();
+                tagInitializing = false;
+            }
+            else{
+                led.setPosition(0.388);//yellow
             }
         }
 
@@ -252,7 +268,7 @@ public class teleOplm2 extends OpMode {
 
         followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
-
+        ledColorTime(ledColor, ledRunTime);
         Pose cur = follower.getPose();
         distanceToGoal = getDistance();
         telemetry.addData("shooter sequence",shooterSequence);
@@ -293,7 +309,7 @@ public class teleOplm2 extends OpMode {
         }
         shoot3x();
 //        shootoneColored();
-        shootMotif(motif);
+        shootMotifVelo(motif);
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=25;
         }
@@ -311,8 +327,17 @@ public class teleOplm2 extends OpMode {
 
         telemetry.update();
     }
+    private void ledColorTime(double color, double sec){
+        if(timer5.checkAtSeconds(0)){
+            led.setPosition(color);
+        }
+        if(timer5.checkAtSeconds(sec)){
+            led.setPosition(0);
+            timer5.stopTimer();
+        }
+    }
     private int veloBasedOnDistance(double dist){
-        if(dist<60) return 1150; //close distance
+        if(dist<60) return 1125; //close distance
         else if(dist<70) return 1150;
         else if(dist<75) return 1175;
         else if(dist<80) return 1200;
@@ -469,11 +494,11 @@ public class teleOplm2 extends OpMode {
         // Manual drive ONLY when idle AND NOT aligning
         if (!follower.isBusy() && !aligning) {
             if(direction) {
-                led.setPosition(0.388);
+//                led.setPosition(0.388);
                 follower.setTeleOpDrive( gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true );
             }
             else {
-                led.setPosition(0);
+//                led.setPosition(0);
                 follower.setTeleOpDrive( -gamepad1.left_stick_y*speed, (gamepad1.left_trigger - gamepad1.right_trigger)*speed, -gamepad1.right_stick_x*speed, true );
             }
         }
@@ -584,11 +609,67 @@ public class teleOplm2 extends OpMode {
             timer2.stopTimer();
         }
     }
+    private void shootMotifVelo(String seq){
+
+        if (timer2.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            rightFlip = true;
+            leftFlip = true;
+            backFlip = true;
+            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+            checkShot();
+            if(LL.liftRight.getPosition()>0) rightFlip = false;//means right one worked first dont flip again later
+            else if(LL.liftLeft.getPosition()>0) leftFlip = false;
+            else if(LL.liftBack.getPosition()>0) backFlip = false;
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+        }
+
+        // Shot 2
+        if (timer2.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+            checkShot();
+            if(LL.liftRight.getPosition()>0) rightFlip = false;//means right one worked first dont flip again later
+            else if(LL.liftLeft.getPosition()>0) leftFlip = false;
+            else if(LL.liftBack.getPosition()>0) backFlip = false;
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+        }
+
+        // Shot 3
+        if (timer2.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
+            else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
+            checkShot();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;
+        }
+
+        // Finish cycle
+        if (timer2.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            shooterSequence = 0;
+        }
+    }
     private void checkShot(){//checks that the correct color was shot otherwise quits shooting sequence
         if(!shootingHasWorked) {
             depo.setTargetVelocity(0);
             timer2.stopTimer();
             LL.allDown();
+            shooterSequence = 0;
         }
     }
 

@@ -48,17 +48,59 @@ public class lift_three {
         }
         else return false;
     }
+    public boolean lift_green2(boolean testRight,boolean testLeft, boolean testBack){
+        if(testRight) {
+            if (sensors.getRight() == 1) {
+                rightUp();
+                return true;
+            }
+        }
+        if(testLeft) {
+            if (sensors.getLeft() == 1) {
+                leftUp();
+                return true;
+            }
+        }
+        if(testBack) {
+            if (sensors.getBack() == 1) {
+                backUp();
+                return true;
+            }
+        }
+        return false;
+    }
+    public boolean lift_purple2(boolean testRight,boolean testLeft, boolean testBack){
+        if(testRight) {
+            if (sensors.getRight() == 2) {
+                rightUp();
+                return true;
+            }
+        }
+        if(testLeft) {
+            if (sensors.getLeft() == 2) {
+                leftUp();
+                return true;
+            }
+        }
+        if(testBack) {
+            if (sensors.getBack() == 2) {
+                backUp();
+                return true;
+            }
+        }
+        return false;
+    }
 
     public boolean checkNoBalls(){//false if theres at least one ball true if no balls
         if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;
         else return false;
     }
     public void leftDown(){liftLeft.setPosition(0);}
-    public void leftUp(){liftLeft.setPosition(0.28);}
+    public void leftUp(){liftLeft.setPosition(0.3);}
     public void rightDown(){liftRight.setPosition(0);}
-    public void rightUp(){liftRight.setPosition(0.26);}
+    public void rightUp(){liftRight.setPosition(0.3);}
     public void backDown(){liftBack.setPosition(0);}
-    public void backUp(){liftBack.setPosition(0.28);}
+    public void backUp(){liftBack.setPosition(0.31);}
     public void set_angle_min(){launchAngleServo.setPosition(0.06);}
     public void set_angle_custom(double ang){launchAngleServo.setPosition(ang);}
     public void set_angle_far(){launchAngleServo.setPosition(0.18);}
