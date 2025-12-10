@@ -48,47 +48,47 @@ public class lift_three {
         }
         else return false;
     }
-    public boolean lift_green2(boolean testRight,boolean testLeft, boolean testBack){
+    public int lift_green2(boolean testRight,boolean testLeft, boolean testBack){
         if(testRight) {
             if (sensors.getRight() == 1) {
                 rightUp();
-                return true;
+                return 1;
             }
         }
         if(testLeft) {
             if (sensors.getLeft() == 1) {
                 leftUp();
-                return true;
+                return 0;
             }
         }
         if(testBack) {
             if (sensors.getBack() == 1) {
                 backUp();
-                return true;
+                return 2;
             }
         }
-        return false;
+        return -1;
     }
-    public boolean lift_purple2(boolean testRight,boolean testLeft, boolean testBack){
+    public int lift_purple2(boolean testRight,boolean testLeft, boolean testBack){
         if(testRight) {
             if (sensors.getRight() == 2) {
                 rightUp();
-                return true;
+                return 1;
             }
         }
         if(testLeft) {
             if (sensors.getLeft() == 2) {
                 leftUp();
-                return true;
+                return 0;
             }
         }
         if(testBack) {
             if (sensors.getBack() == 2) {
                 backUp();
-                return true;
+                return 2;
             }
         }
-        return false;
+        return -1;
     }
 
     public boolean checkNoBalls(){//false if theres at least one ball true if no balls

@@ -86,7 +86,7 @@ public class teleOplm2 extends OpMode {
     boolean backFlip = true;//true if hasnt flipped yet
     int shooterSequence;
     double timeOfSecondShot;
-    boolean shootingHasWorked = true;
+    int shootingHasWorked = -1;
     boolean greenball = false;//false is purp true is geren
 
     Gamepad g1= new Gamepad();
@@ -586,32 +586,32 @@ public class teleOplm2 extends OpMode {
         }
     }
     private void shootMotif(String seq){
-        if(timer2.checkAtSeconds(0)) {//first shot
-            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
-        }
-        if(timer2.checkAtSeconds(0.4)) {//second shot
-            LL.allDown();
-            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
-        }
-        if(timer2.checkAtSeconds(0.8)) {//third shot
-            LL.allDown();
-            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
-        }
-        if(timer2.checkAtSeconds(1.2)) {//tunr off depo
-            LL.allDown();
-            depo.setTargetVelocity(0);
-            timer2.stopTimer();
-        }
+//        if(timer2.checkAtSeconds(0)) {//first shot
+//            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green();
+//            else shootingHasWorked = LL.lift_purple();
+//            checkShot();
+//        }
+//        if(timer2.checkAtSeconds(0.4)) {//second shot
+//            LL.allDown();
+//            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green();
+//            else shootingHasWorked = LL.lift_purple();
+//            checkShot();
+//        }
+//        if(timer2.checkAtSeconds(0.8)) {//third shot
+//            LL.allDown();
+//            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green();
+//            else shootingHasWorked = LL.lift_purple();
+//            checkShot();
+//        }
+//        if(timer2.checkAtSeconds(1.2)) {//tunr off depo
+//            LL.allDown();
+//            depo.setTargetVelocity(0);
+//            timer2.stopTimer();
+//        }
     }
     private void shootMotifVelo(String seq){
 
-        if (timer2.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+        if (timer2.checkAtSeconds(0)&&shooterSequence==0) { //this executes when depo reached target so timer just started and we can fire the first shot
 //            fireShotFromSlot(lastShotSlot); //lifts the first ball
             rightFlip = true;
             leftFlip = true;
@@ -619,9 +619,9 @@ public class teleOplm2 extends OpMode {
             if(seq.equals("gpp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
             else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
             checkShot();
-            if(LL.liftRight.getPosition()>0) rightFlip = false;//means right one worked first dont flip again later
-            else if(LL.liftLeft.getPosition()>0) leftFlip = false;
-            else if(LL.liftBack.getPosition()>0) backFlip = false;
+            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
+            else if(shootingHasWorked==0) leftFlip = false;
+            else if(shootingHasWorked==2) backFlip = false;
             shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
 
@@ -635,9 +635,9 @@ public class teleOplm2 extends OpMode {
             if(seq.equals("pgp")) shootingHasWorked = LL.lift_green2(rightFlip,leftFlip,backFlip);
             else shootingHasWorked = LL.lift_purple2(rightFlip,leftFlip,backFlip);
             checkShot();
-            if(LL.liftRight.getPosition()>0) rightFlip = false;//means right one worked first dont flip again later
-            else if(LL.liftLeft.getPosition()>0) leftFlip = false;
-            else if(LL.liftBack.getPosition()>0) backFlip = false;
+            if(shootingHasWorked==1) rightFlip = false;//means right one worked first dont flip again later
+            else if(shootingHasWorked==0) leftFlip = false;
+            else if(shootingHasWorked==2) backFlip = false;
             shooterSequence=3;//sets the sequence to check
             timeOfSecondShot = timer2.timer.seconds()-timer2.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
@@ -665,7 +665,7 @@ public class teleOplm2 extends OpMode {
         }
     }
     private void checkShot(){//checks that the correct color was shot otherwise quits shooting sequence
-        if(!shootingHasWorked) {
+        if(shootingHasWorked==-1) {
             depo.setTargetVelocity(0);
             timer2.stopTimer();
             LL.allDown();
