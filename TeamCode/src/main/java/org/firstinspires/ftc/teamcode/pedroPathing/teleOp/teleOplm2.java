@@ -81,6 +81,7 @@ public class teleOplm2 extends OpMode {
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
+    boolean hasppg;//true if robot holds pu
     boolean rightFlip = true;//true if hasnt flipped yet
     boolean leftFlip = true;//true if hasnt flipped yet
     boolean backFlip = true;//true if hasnt flipped yet
@@ -610,7 +611,6 @@ public class teleOplm2 extends OpMode {
 //        }
     }
     private void shootMotifVelo(String seq){
-
         if (timer2.checkAtSeconds(0)&&shooterSequence==0) { //this executes when depo reached target so timer just started and we can fire the first shot
 //            fireShotFromSlot(lastShotSlot); //lifts the first ball
             rightFlip = true;

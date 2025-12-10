@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
 
@@ -50,7 +51,7 @@ public class shakthiTeleOp extends OpMode {
     @Override
     public void init() {
         LL = new launch_lift(hardwareMap);
-        follower = Constants.createFollower(hardwareMap);
+        follower = A_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         intake = hardwareMap.get(DcMotor.class, "intake");
         depo = new Deposition(hardwareMap);
