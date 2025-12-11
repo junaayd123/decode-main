@@ -86,6 +86,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
     // ---------- Upgraded shooter timing ----------
     private Timer timer1;
     int shooterSequence;
+    //b
     private Timer timer2;
     boolean shootingHasWorkedNoVelo;
     private int sequence = 0;

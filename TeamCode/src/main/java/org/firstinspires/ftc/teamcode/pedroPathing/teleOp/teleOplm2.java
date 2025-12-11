@@ -355,6 +355,7 @@ public class teleOplm2 extends OpMode {
             timer5.stopTimer();
         }
     }
+    //b
     private int veloBasedOnDistance(double dist){
         if(dist<60) return 1125; //close distance
         else if(dist<70) return 1150;
