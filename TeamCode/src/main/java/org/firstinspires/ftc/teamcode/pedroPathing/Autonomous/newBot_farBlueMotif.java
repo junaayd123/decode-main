@@ -37,11 +37,13 @@ import java.util.List;
 public class newBot_farBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
+    private boolean shootingHasWorked = true;
+
     private VisionPortal visionPortal;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
     String motif = null;
-    private boolean shootingHasWorked = true;
+    private boolean shootingHasWorke6d = true;
 
     // ---------- Shooter subsystems -------------
     // Commented out: depo usage will be removed
@@ -83,7 +85,9 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     // ---------- Upgraded shooter timing ----------
     private Timer timer1;
+    int shooterSequence;
     private Timer timer2;
+    boolean shootingHasWorkedNoVelo;
     private int sequence = 0;
 
     // --------- Voltage-comp helpers (kept) ---------
@@ -376,6 +380,14 @@ public class newBot_farBlueMotif extends LinearOpMode {
         follower.setMaxPower(1.0);
 
     }
+    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorkedNoVelo) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
+            shooterSequence = 0;
+        }
+    }
 
     private void go_close() {
 
@@ -452,29 +464,28 @@ public class newBot_farBlueMotif extends LinearOpMode {
     }
 
 
-    private void shootMotif(String seq) {
-        if (timer2.checkAtSeconds(0)) {//first shot
-            if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+    private void shootMotif(String seq){
+        if(timer2.checkAtSeconds(0)) {//first shot
+            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.3)) {//second shot
+        if(timer2.checkAtSeconds(0.6)) {//second shot
             LL.allDown();
-            if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.6)) {//third shot
+        if(timer2.checkAtSeconds(1.2)) {//third shot
             LL.allDown();
-            if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(1.3)) {//tunr off depo
+        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
-
         }
     }
 

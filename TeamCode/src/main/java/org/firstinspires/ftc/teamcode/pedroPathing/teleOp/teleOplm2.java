@@ -93,6 +93,7 @@ public class teleOplm2 extends OpMode {
     int shooterSequence;
     double timeOfSecondShot;
     int shootingHasWorked = -1;
+    boolean shootingHasWorkedNoVelo;
     boolean greenball = false;//false is purp true is geren
 
     Gamepad g1= new Gamepad();
@@ -326,7 +327,8 @@ public class teleOplm2 extends OpMode {
         }
         shoot3x();
 //        shootoneColored();
-        shootMotifVelo(motif);
+//        shootMotifVelo(motif);
+        shootMotif(motif);
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=25;
         }
@@ -603,28 +605,28 @@ public class teleOplm2 extends OpMode {
         }
     }
     private void shootMotif(String seq){
-//        if(timer2.checkAtSeconds(0)) {//first shot
-//            if(seq.equals("gpp")) shootingHasWorked = LL.lift_green();
-//            else shootingHasWorked = LL.lift_purple();
-//            checkShot();
-//        }
-//        if(timer2.checkAtSeconds(0.4)) {//second shot
-//            LL.allDown();
-//            if(seq.equals("pgp")) shootingHasWorked = LL.lift_green();
-//            else shootingHasWorked = LL.lift_purple();
-//            checkShot();
-//        }
-//        if(timer2.checkAtSeconds(0.8)) {//third shot
-//            LL.allDown();
-//            if(seq.equals("ppg")) shootingHasWorked = LL.lift_green();
-//            else shootingHasWorked = LL.lift_purple();
-//            checkShot();
-//        }
-//        if(timer2.checkAtSeconds(1.2)) {//tunr off depo
-//            LL.allDown();
-//            depo.setTargetVelocity(0);
-//            timer2.stopTimer();
-//        }
+        if(timer2.checkAtSeconds(0)) {//first shot
+            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
+        }
+        if(timer2.checkAtSeconds(0.6)) {//second shot
+            LL.allDown();
+            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
+        }
+        if(timer2.checkAtSeconds(1.2)) {//third shot
+            LL.allDown();
+            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
+        }
+        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+        }
     }
     private void shootMotifVelo(String seq){
         if (timer2.checkAtSeconds(0)&&shooterSequence==0) { //this executes when depo reached target so timer just started and we can fire the first shot
@@ -835,6 +837,14 @@ public class teleOplm2 extends OpMode {
     }
     private void checkShot(){//checks that the correct color was shot otherwise quits shooting sequence
         if(shootingHasWorked==-1) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
+            shooterSequence = 0;
+        }
+    }
+    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorkedNoVelo) {
             depo.setTargetVelocity(0);
             timer2.stopTimer();
             LL.allDown();
