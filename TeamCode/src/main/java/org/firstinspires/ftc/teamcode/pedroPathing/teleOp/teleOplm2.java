@@ -363,7 +363,7 @@ public class teleOplm2 extends OpMode {
         else if(dist<80) return 1200;
         else if(dist<87) return 1225;
         else if(dist<110) return 1300;
-        else if(dist>115 && dist<150) return 1575;//far distance
+        else if(dist>115 && dist<150) return 1525;//far distance
         else return 0;//didnt localize the tag
     }
     private double angleBasedOnDistance(double dist){
