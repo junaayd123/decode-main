@@ -68,6 +68,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
     private final Pose thirdpickupPose  = new Pose(18,   14,  Math.toRadians(90));
     private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
     private final Pose infront_of_lever   = new Pose(61.5, 37.5, Math.toRadians(180));
+    //
 
     boolean shootingHasWorkedNoVelo;
     private static final double SECOND_HOP_IN = 19.75;

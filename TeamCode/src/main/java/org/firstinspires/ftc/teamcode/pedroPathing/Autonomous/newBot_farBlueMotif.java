@@ -149,6 +149,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
         timer1.resetTimer();
         timer2.resetTimer();
         stopShooter();
+        //
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
