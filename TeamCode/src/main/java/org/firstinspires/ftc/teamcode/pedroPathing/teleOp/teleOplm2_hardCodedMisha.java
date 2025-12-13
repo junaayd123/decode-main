@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "lm2 hard coded motif", group = "TeleOp")
+@TeleOp(name = "LM2 Final teleOp", group = "TeleOp")
 public class teleOplm2_hardCodedMisha extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
@@ -44,7 +44,7 @@ public class teleOplm2_hardCodedMisha extends OpMode {
 
     private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(320.0));
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
-    private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-56));
+    private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-61));
     private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
     private final Pose redGoal  = new Pose(144, 144, 0);
     private final Pose blueGoal  = new Pose(0, 144,0);

@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Lm2 2 drivers", group = "TeleOp")
+@TeleOp(name = "Lm2 2 drivers (old)", group = "TeleOp")
 public class teleOplm2 extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
