@@ -163,7 +163,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
 
 
         go_back();
-        sleep(600);
+        pauseBeforeShooting(0.4);
         three_close_shots();
         first_line_pickup();
         reset();
@@ -228,6 +228,14 @@ public class newBot_closeBlueMotif extends LinearOpMode {
         depo.setTargetVelocity(depo.closeVelo_New);  // COMMENTED OUT (depo)
 //        LL.close();
 
+    }
+    private void pauseBeforeShooting(double seconds) {
+        Timer pause = new Timer();
+        pause.startTimer();
+        while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
+            follower.update();   // safe even if idle
+            idle();
+        }
     }
     private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
         if(!shootingHasWorkedNoVelo) {

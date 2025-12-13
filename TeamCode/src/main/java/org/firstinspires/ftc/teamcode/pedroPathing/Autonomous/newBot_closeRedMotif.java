@@ -190,7 +190,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
         if (isStopRequested()) return;
 
         go_back();
-        sleep(450);
+        pauseBeforeShooting(0.4);
         three_close_shots();
         first_line_pickup();
         reset();
@@ -227,6 +227,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -255,6 +256,14 @@ public class newBot_closeRedMotif extends LinearOpMode {
         depo.setTargetVelocity(depo.closeVelo_New);  // COMMENTED OUT (depo)
 //        LL.close();
 
+    }
+    private void pauseBeforeShooting(double seconds) {
+        Timer pause = new Timer();
+        pause.startTimer();
+        while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
+            follower.update();   // safe even if idle
+            idle();
+        }
     }
     //ss
     private void three_far_shots() {
