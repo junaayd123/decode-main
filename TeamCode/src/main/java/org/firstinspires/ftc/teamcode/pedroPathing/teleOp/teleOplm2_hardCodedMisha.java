@@ -44,8 +44,8 @@ public class teleOplm2_hardCodedMisha extends OpMode {
 
     private final Pose blueNearShootPose = new Pose(50, 100, Math.toRadians(320.0));
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
-    private final Pose blueFarShootPose = new Pose(80, 25, Math.toRadians(-56));
-    private final Pose redFarShootPose  = new Pose(65, 25, Math.toRadians(-115));
+    private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-56));
+    private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
     private final Pose redGoal  = new Pose(144, 144, 0);
     private final Pose blueGoal  = new Pose(0, 144,0);
     private final Pose redGoal2  = new Pose(144, 144, 0);

@@ -33,14 +33,15 @@ import java.util.List;
 
 
 //hi..
-@Autonomous(name = "newBot_closeBlueMotif", group = "Pedro")
-public class newBot_closeBlueMotif extends LinearOpMode {
+@Autonomous(name = "newBot_closeBlueMotif_fastShooting", group = "Pedro")
+public class newBot_closeBlueMotif_fastShoot extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
-    String motif = null;
+    String motif = "empty";
+    String motifInit = "empty";
     private boolean shootingHasWorked = true;
 
     // ---------- Shooter subsystems ----------
@@ -54,16 +55,18 @@ public class newBot_closeBlueMotif extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
+    double timeOfSecondShot;
+    int greenInSlot;//0 if in left 1 if right, 2 if back
     private final Pose startPose = new Pose(
-            110,               // x inches
-            32,                // y inches
+            107.313,               // x inches
+            29.313,                // y inches
             Math.toRadians(135)
     );
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-127));
-    private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
+    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-124));
+    private final Pose firstpickupPose  = new Pose(66.5, 16,  Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(43.25,14,  Math.toRadians(90));
     private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));
     private final Pose thirdpickupPose  = new Pose(18,   14,  Math.toRadians(90));
     private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
@@ -138,24 +141,28 @@ public class newBot_closeBlueMotif extends LinearOpMode {
         telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
         telemetry.update();
 
-        while (motif == null && !isStopRequested()) {
-            InitialFindMotif();
+        while (!isStarted() && !isStopRequested()) {
+            if(motifInit.equals("empty")) InitialFindMotif();
+
+            if (motifInit.equals("ppg")) {
+                motif = "pgp";
+                motifInit="empty";
+            }
+            else if (motifInit.equals("pgp")){
+                motif = "gpp";
+                motifInit="empty";
+            }
+            else if (motifInit.equals("gpp")){
+                motif = "ppg";
+                motifInit="empty";
+            }
+            telemetry.addData("Motif Pattern:", motif);
             telemetry.addData("Looking for motif...", "");
             telemetry.update();
             idle();
             sleep(10);
         }
-        if (motif.equals("ppg")) {
-            motif = "pgp";
-        }
-        else if (motif.equals("pgp")){
-            motif = "gpp";
-        }
-        else if (motif.equals("gpp")){
-            motif = "ppg";
-        }
-        telemetry.addData("Motif Pattern:", motif);
-        telemetry.update();
+
 
         waitForStart();
         if (isStopRequested()) return;
@@ -253,11 +260,26 @@ public class newBot_closeBlueMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer2.startTimer();
+                    greenInSlot = getGreenPos();
+                    timer1.startTimer();
                     sequence = 0;
                 }
             }
-            shootMotif(motif);
+            if(motif.equals("gpp")){
+                if(greenInSlot == 0) shootLRB();
+                else if(greenInSlot == 1) shootRBL();
+                else shootBLR();
+            }
+            else if(motif.equals("pgp")){
+                if(greenInSlot == 0) shootBLR();
+                else if(greenInSlot == 1) shootLRB();
+                else shootRBL();
+            }
+            else{
+                if(greenInSlot == 0) shootRBL();
+                else if(greenInSlot == 1) shootBLR();
+                else shootLRB();
+            }
             follower.update();
         }
     }
@@ -269,11 +291,26 @@ public class newBot_closeBlueMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer2.startTimer();
+                    greenInSlot = getGreenPos();
+                    timer1.startTimer();
                     sequence = 0;
                 }
             }
-            shootMotif(motif);
+            if(motif.equals("gpp")){
+                if(greenInSlot == 0) shootLRB();
+                else if(greenInSlot == 1) shootRBL();
+                else shootBLR();
+            }
+            else if(motif.equals("pgp")){
+                if(greenInSlot == 0) shootBLR();
+                else if(greenInSlot == 1) shootLRB();
+                else shootRBL();
+            }
+            else{
+                if(greenInSlot == 0) shootRBL();
+                else if(greenInSlot == 1) shootBLR();
+                else shootLRB();
+            }
             follower.update();
         }
     }
@@ -399,49 +436,141 @@ public class newBot_closeBlueMotif extends LinearOpMode {
     }
 
     private boolean isFarShotCycleDone() {
-        return (sequence == 0 && timer2.timerIsOff());
+        return (sequence == 0 && timer1.timerIsOff());
     }
-    private void shoot3x(){
-        if(timer1.checkAtSeconds(0)){
+
+    private int getGreenPos(){
+        int pos;
+        pos = LL.sensors.getLeft();
+        if(pos==1) return 0;
+        else{
+            pos = LL.sensors.getRight();
+            if(pos==1) return 1;
+            else return 2;
+        }
+    }
+
+    private void shootLRB() {//shoots in left right back order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
             LL.leftUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
-        if(timer1.checkAtSeconds(0.3)){
-            LL.leftDown();
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
             LL.rightUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
-        if(timer1.checkAtSeconds(0.6)){
-            LL.rightDown();
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
             LL.backUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
         }
-        if(timer1.checkAtSeconds(1.1)){
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void shootBLR(){//shoots in back left right order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.backUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
 
-    }
-    private void shootMotif(String seq){
-        if(timer2.checkAtSeconds(0)) {//first shot
-            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
-        }
-        if(timer2.checkAtSeconds(0.6)) {//second shot
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
-            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
+            shooterSequence = 2;//sets up to check the depo velocity again
         }
-        if(timer2.checkAtSeconds(1.2)) {//third shot
-            LL.allDown();
-            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.leftUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
-        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.rightUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+        }
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
-            timer2.stopTimer();
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void shootRBL(){//shoots in right back left order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.rightUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+        }
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.backUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+        }
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.leftUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+        }
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
         }
     }
 
@@ -487,7 +616,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
                     telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
                     // Only use tags that don't have Obelisk in them
                     if (detection.metadata.name.contains("Obelisk")) {
-                        motif = (detection.id == 21) ? "gpp" : (detection.id == 22) ? "pgp" : "ppg";
+                        motifInit = (detection.id == 21) ? "gpp" : (detection.id == 22) ? "pgp" : "ppg";
                         telemetry.addData("motif: ", motif);
                     }   // end for() loop
 
