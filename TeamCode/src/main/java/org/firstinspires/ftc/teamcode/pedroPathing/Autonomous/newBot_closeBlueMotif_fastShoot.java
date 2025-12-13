@@ -59,14 +59,14 @@ public class newBot_closeBlueMotif_fastShoot extends LinearOpMode {
     int greenInSlot;//0 if in left 1 if right, 2 if back
     private final Pose startPose = new Pose(
             107.313,               // x inches
-            29.313,                // y inches
+            34.687,                // y inches
             Math.toRadians(135)
     );
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-124));
-    private final Pose firstpickupPose  = new Pose(66.5, 16,  Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(43.25,14,  Math.toRadians(90));
+    private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
     private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));
     private final Pose thirdpickupPose  = new Pose(18,   14,  Math.toRadians(90));
     private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
