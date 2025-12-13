@@ -9,6 +9,7 @@ public class lift_three {
     public Servo liftRight;
     public Servo liftLeft;
     public Servo liftBack;
+    //
     public lift_three(HardwareMap hardwareMap){
         sensors = new ColorSensors(hardwareMap);
         launchAngleServo = hardwareMap.get(Servo.class, "launch_angle");

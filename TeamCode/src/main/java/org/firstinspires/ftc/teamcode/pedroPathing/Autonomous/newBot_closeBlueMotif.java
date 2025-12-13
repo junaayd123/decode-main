@@ -33,8 +33,8 @@ import java.util.List;
 
 
 //hi..
-@Autonomous(name = "newBot_closeRedMotif", group = "Pedro")
-public class newBot_closeRedMotif extends LinearOpMode {
+@Autonomous(name = "newBot_closeBlueMotif", group = "Pedro")
+public class newBot_closeBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
@@ -54,49 +54,27 @@ public class newBot_closeRedMotif extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
+    private final Pose startPose = new Pose(
+            110,               // x inches
+            32,                // y inches
+            Math.toRadians(135)
+    );
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose startPose = new Pose(
-            110,                // x inches
-            -27,                     // y inches og:32
-            Math.toRadians(-225)    // heading (rad)
-    );
+    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-127));
+    private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
+    private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));
+    private final Pose thirdpickupPose  = new Pose(18,   14,  Math.toRadians(90));
+    private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
+    private final Pose infront_of_lever   = new Pose(61.5, 37.5, Math.toRadians(180));
+    //
 
-    // Your goal pose (exactly as in your movement program)
-    private final Pose nearshotpose = new Pose(
-            90,                    // x inches (forward) og: 72
-            -8.5,                   // y inches (left)
-            Math.toRadians(-223)    // heading (rad) at finish
-    );
-    private final Pose firstpickupPose = new Pose(
-            66.5,                    // x inches (forward) og 71.5
-            -6.5,                   // y inches (left) og: 22.5
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose secondpickupPose = new Pose(
-            43.25,                    // x inches (forward) og 41.25
-            -8,                   // y inches (left) og: 21
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose midpoint1     = new Pose(43.25,-2,  Math.toRadians(90.0));
+    boolean shootingHasWorkedNoVelo;
+    private static final double SECOND_HOP_IN = 19.75;
+    private static final double SHOT_DELAY_S  = 0.75;
+    int shooterSequence;
 
-    private final Pose thirdpickupPose = new Pose(
-            20,                    // x inches (forward) og 16
-            -9.5,                   // y inches (left) og: 22
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose homePose = new Pose(
-            0.0,                    // x inches (forward)
-            0.0,            // y inches (left)
-            Math.toRadians(-25.0)    // heading (rad) at finish
-    );
-
-    private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
-
-
-
-    private static final double SECOND_HOP_IN = 20.0;
-    private static final double SHOT_DELAY_S = 0.75;  // 🔹 delay between shots (tunable)
 
     // ---------- Timing for far shots ----------
     private Timer timer1;
@@ -154,19 +132,35 @@ public class newBot_closeRedMotif extends LinearOpMode {
         LL.allDown();
         LL.set_angle_min();
         timer1.resetTimer();
+        timer2.resetTimer();
         stopShooter();
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
         telemetry.update();
 
-        while (motif == null) {
+        while (motif == null && !isStopRequested()) {
             InitialFindMotif();
+            telemetry.addData("Looking for motif...", "");
+            telemetry.update();
+            idle();
+            sleep(10);
+        }
+        if (motif == "ppg") {
+            motif = "pgp";
+        }
+        else if (motif == "pgp"){
+            motif = "gpp";
+        }
+        else if (motif == "gpp"){
+            motif = "ppg";
         }
         telemetry.addData("Motif Pattern:", motif);
         telemetry.update();
 
         waitForStart();
         if (isStopRequested()) return;
+
+
 
         go_back();
         sleep(450);
@@ -185,8 +179,6 @@ public class newBot_closeRedMotif extends LinearOpMode {
         three_close_shots();
         go_infront();
 
-
-        telemetry.addLine("ADITI WAD HEREEEEEEE");
         telemetry.update();
         sleep(500);
 
@@ -235,6 +227,14 @@ public class newBot_closeRedMotif extends LinearOpMode {
 //        LL.close();
 
     }
+    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorkedNoVelo) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
+            shooterSequence = 0;
+        }
+    }
     //ss
     private void three_far_shots() {
         LL.set_angle_far_auto();
@@ -243,7 +243,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
@@ -259,7 +259,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
@@ -382,7 +382,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
     }
 
     private boolean isFarShotCycleDone() {
-        return (sequence == 0 && timer1.timerIsOff());
+        return (sequence == 0 && timer2.timerIsOff());
     }
     private void shoot3x(){
         if(timer1.checkAtSeconds(0)){
@@ -403,29 +403,28 @@ public class newBot_closeRedMotif extends LinearOpMode {
         }
 
     }
-    private void shootMotif(String seq) {
-        if (timer2.checkAtSeconds(0)) {//first shot
-            if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+    private void shootMotif(String seq){
+        if(timer2.checkAtSeconds(0)) {//first shot
+            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.4)) {//second shot
+        if(timer2.checkAtSeconds(0.6)) {//second shot
             LL.allDown();
-            if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.8)) {//third shot
+        if(timer2.checkAtSeconds(1.2)) {//third shot
             LL.allDown();
-            if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(1.2)) {//tunr off depo
+        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
-
         }
     }
 
