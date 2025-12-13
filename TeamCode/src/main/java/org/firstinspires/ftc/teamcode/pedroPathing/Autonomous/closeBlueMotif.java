@@ -33,8 +33,8 @@ import java.util.List;
 
 
 //hi..
-@Autonomous(name = "newBot_closeBlueMotif", group = "Pedro")
-public class newBot_closeBlueMotif extends LinearOpMode {
+@Autonomous(name = "closeBlueMotif", group = "Pedro")
+public class closeBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;

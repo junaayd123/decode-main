@@ -34,8 +34,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "newBot_farBlueMotif", group = "Pedro")
-public class newBot_farBlueMotif extends LinearOpMode {
+@Autonomous(name = "farBlueMotif", group = "Pedro")
+public class farBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private boolean shootingHasWorked = true;
