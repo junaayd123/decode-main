@@ -22,6 +22,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -41,6 +42,7 @@ public class closeRedfinal extends LinearOpMode {
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
     private boolean shootingHasWorked = true;
+    public ColorSensors sensors;
 
     // ---------- Shooter subsystems ----------
     private Deposition depo;
@@ -65,7 +67,7 @@ public class closeRedfinal extends LinearOpMode {
     private final Pose nearshotpose = new Pose(
             90,                    // x inches (forward) og: 72
             -8.5,                   // y inches (left)
-            Math.toRadians(-220)    // heading (rad) at finish
+            Math.toRadians(-224.5)    // heading (rad) at finish
     );
     private final Pose firstpickupPose = new Pose(
             66.5,                    // x inches (forward) og 71.5
@@ -90,7 +92,7 @@ public class closeRedfinal extends LinearOpMode {
             Math.toRadians(-25.0)    // heading (rad) at finish
     );
 
-    private final Pose infront_of_lever   = new Pose(61.5, -37.5, Math.toRadians(0));
+    private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180));
 
 
 
@@ -144,6 +146,8 @@ public class closeRedfinal extends LinearOpMode {
         // Init subsystems
         depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
         LL      = new lift_three(hardwareMap);
+        sensors = new ColorSensors(hardwareMap);
+
         timer1  = new Timer();
         timer2  = new Timer();
 
@@ -218,11 +222,13 @@ public class closeRedfinal extends LinearOpMode {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, infront_of_lever)))
-                .setLinearHeadingInterpolation(cur.getHeading(), homePose.getHeading())
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);
     }
+
     private void go_back(){
 
         Pose cur = follower.getPose();
@@ -501,8 +507,14 @@ public class closeRedfinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
+        if (intake != null) intake.setPower(1);
 
     }
     private void second_line_pickup(){
@@ -522,7 +534,7 @@ public class closeRedfinal extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
         // second movement - 13 inch forward
@@ -534,8 +546,15 @@ public class closeRedfinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
+        if (intake != null) intake.setPower(1);
+
     }
     private void third_line_pickup(){
         // ===== 2) Movement: your two-hop Pedro path =====
@@ -567,8 +586,42 @@ public class closeRedfinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
+        if (intake != null) intake.setPower(1);
+
+    }
+    /**
+     * Manages intake during the second hop.
+     * If robot already has 1–2 balls in storage, spit out any new ones.
+     * If robot already has 3, completely stop intake.
+     * If robot has 0, intake normally.
+     */
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
+
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            if (intake != null) intake.setPower(1);
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
     }
 
     private void go_close(){
@@ -582,7 +635,7 @@ public class closeRedfinal extends LinearOpMode {
             follower.update();
             idle();
         }
-        intake.setPower(0);
+        if (intake != null) intake.setPower(0);
     }
 
     private void initAprilTag() {

@@ -234,6 +234,7 @@ public class closeRedMotif extends LinearOpMode {
             follower.update();
             idle();
         }
+
     }
 
     private void reset() {
@@ -332,6 +333,7 @@ public class closeRedMotif extends LinearOpMode {
             follower.update();
             idle();
         }
+
 
     }
     private void second_line_pickup(){

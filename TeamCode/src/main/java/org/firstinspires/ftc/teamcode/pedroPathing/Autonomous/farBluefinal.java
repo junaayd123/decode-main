@@ -75,9 +75,17 @@ public class farBluefinal extends LinearOpMode {
     private final Pose thirdpickupPose  = new Pose(71, 20, Math.toRadians(90));
     private final Pose midPoint3        = new Pose(76,   4, Math.toRadians(90));
 
+
     private final Pose near_shot_Pose   = new Pose(97.5, 17, Math.toRadians(-120));
     private final Pose infront_of_lever = new Pose(61.5, 37.5, Math.toRadians(180));
-
+    private final Pose farPark = new Pose(
+            25,
+            37,
+            Math.toRadians(-180)
+    );
+    private int linesToCollect = 3; // default to 3
+    boolean farparking = false;
+    boolean shootallfar = false;
 
 
     private static final double SECOND_HOP_IN = 13.5;
@@ -159,6 +167,25 @@ public class farBluefinal extends LinearOpMode {
         telemetry.update();
 
         while (!isStarted() && !isStopRequested()) {
+            if (gamepad1.dpadUpWasPressed()){
+                if(linesToCollect ==3){
+                    linesToCollect = 1;
+                }
+                else linesToCollect += 1;
+            }
+            if(gamepad1.crossWasPressed()){
+                farparking = !farparking;
+            }
+            if(gamepad1.circleWasPressed()) shootallfar = !shootallfar;
+
+            telemetry.addLine("Select # of lines using dpad up");
+            telemetry.addLine("Select to park far using cross");
+            telemetry.addLine("Select to shoot all far using circle");
+            telemetry.addData("lines:", linesToCollect);
+            if(farparking) telemetry.addLine("parking far");
+            else telemetry.addLine("park at gate");
+            if(shootallfar) telemetry.addLine("shoot all lines from far");
+            else telemetry.addLine("last 2 lines will shoot close");
             if (motifInit.equals("empty")) InitialFindMotif();
 
             if (motifInit.equals("ppg")) {
@@ -182,24 +209,57 @@ public class farBluefinal extends LinearOpMode {
 
         first_align_movement();
         three_far_shots();
-        first_line_pickup();
+        if (linesToCollect >= 1) {
+            first_line_pickup();
+            reset();
+            go_home();
+            three_far_shots();
+        }
+        if (linesToCollect >= 2) {
+            second_line_pickup();
+            reset();
+            if(shootallfar){
+                go_home();
+                three_far_shots();
+            }
+            else {
+                go_close();
+                three_close_shots();
+            }
+        }
+        if (linesToCollect >= 3) {
+            third_line_pickup();
+            reset();
+            if(shootallfar){
+                go_home();
+                three_far_shots();
+            }
+            else {
+                go_close_2();
+                three_close_shots();
+            }
+        }
+
         reset();
-        go_home();
-        three_far_shots();
-        second_line_pickup();
-        reset();
-        go_close();
-        three_close_shots();
-        third_line_pickup();
-        reset();
-        go_close_2();
-        three_close_shots();
-        reset();
-        go_infront();
+        if(farparking) parkFar();
+        else go_infront();
 
         telemetry.addLine("✅ Done: fired shots + completed paths.");
         telemetry.update();
         sleep(500);
+    }
+    private void parkFar(){
+        Pose cur = follower.getPose();
+        PathChain home = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, farPark)))
+                .setLinearHeadingInterpolation(cur.getHeading(),farPark.getHeading())
+                .build();
+        follower.followPath(home, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+
     }
 
     private void first_align_movement() {

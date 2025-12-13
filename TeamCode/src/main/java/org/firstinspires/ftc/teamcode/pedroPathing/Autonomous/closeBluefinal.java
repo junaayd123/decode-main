@@ -20,6 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
@@ -56,6 +57,7 @@ public class closeBluefinal extends LinearOpMode {
     // ---------- Pedro ----------
     private Follower follower;
     double timeOfSecondShot;
+    public ColorSensors sensors;
     int greenInSlot;//0 if in left 1 if right, 2 if back
     private final Pose startPose = new Pose(
             107.313,               // x inches
@@ -115,6 +117,8 @@ public class closeBluefinal extends LinearOpMode {
         // Init subsystems
         depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
         LL      = new lift_three(hardwareMap);
+        sensors = new ColorSensors(hardwareMap);
+
         timer1  = new Timer();
         timer2  = new Timer();
 
@@ -346,9 +350,13 @@ public class closeBluefinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
-
         if (intake != null) intake.setPower(1);
 
     }
@@ -369,9 +377,10 @@ public class closeBluefinal extends LinearOpMode {
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
+        follower.setMaxPower(0.7);
         // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
@@ -381,8 +390,14 @@ public class closeBluefinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
+        follower.setMaxPower(1);
         if (intake != null) intake.setPower(1);
 
     }
@@ -416,9 +431,41 @@ public class closeBluefinal extends LinearOpMode {
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
         if (intake != null) intake.setPower(1);
+    }
+    /**
+     * Manages intake during the second hop.
+     * If robot already has 1–2 balls in storage, spit out any new ones.
+     * If robot already has 3, completely stop intake.
+     * If robot has 0, intake normally.
+     */
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
+
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            if (intake != null) intake.setPower(1);
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
     }
 
     private void go_close(){

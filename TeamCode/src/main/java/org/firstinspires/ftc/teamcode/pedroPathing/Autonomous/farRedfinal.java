@@ -221,6 +221,7 @@ public class farRedfinal extends LinearOpMode {
             idle();
         }
 
+
         waitForStart();
         if (isStopRequested()) return;
 
