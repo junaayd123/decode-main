@@ -34,7 +34,7 @@ import java.util.List;
 
 //hi..
 @Autonomous(name = "close blue final", group = "Pedro")
-public class newBot_closeBlueMotif_fastShoot extends LinearOpMode {
+public class closeBluefinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
