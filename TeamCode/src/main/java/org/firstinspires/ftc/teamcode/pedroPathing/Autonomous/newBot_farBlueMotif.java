@@ -66,7 +66,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose start_align_Pose = new Pose(-4.0, -2, Math.toRadians(-180));
-    private final Pose startPose        = new Pose( 0.0,  0, Math.toRadians(-157.5));
+    private final Pose startPose        = new Pose( 0.0,  0, Math.toRadians(-157.2));
     private final Pose firstpickupPose  = new Pose(22.5, 20, Math.toRadians(90));
     private final Pose midPoint1        = new Pose(37,   14, Math.toRadians(90));
     private final Pose secondpickupPose = new Pose(45, 17, Math.toRadians(90));
@@ -221,7 +221,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
 
     //ss
     private void go_home() {
-        if (intake != null) intake.setPower(0);  // turn off intake after spitting
+
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, startPose)))
@@ -232,6 +232,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
             follower.update();
             idle();
         }
+        if (intake != null) intake.setPower(0);  // turn off intake after spitting
     }
 
     // ===== Far / Close shot sequence starters (upgraded) =====
@@ -400,7 +401,6 @@ public class newBot_farBlueMotif extends LinearOpMode {
     }
 
     private void go_close() {
-        if (intake != null) intake.setPower(0); //turn off intake after spitting
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midPoint2, near_shot_Pose)))
@@ -411,7 +411,6 @@ public class newBot_farBlueMotif extends LinearOpMode {
         if (intake != null) intake.setPower(0);
     }
     private void go_close_2() {
-        if (intake != null) intake.setPower(0);  // turn of intake after spitting
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, near_shot_Pose)))
@@ -419,6 +418,7 @@ public class newBot_farBlueMotif extends LinearOpMode {
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);  // turn off intake after spitting
     }
 
     private boolean isFarShotCycleDone() {
@@ -481,19 +481,19 @@ public class newBot_farBlueMotif extends LinearOpMode {
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(0.6)) {//second shot
+        if(timer2.checkAtSeconds(0.7)) {//second shot
             LL.allDown();
             if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(1.2)) {//third shot
+        if(timer2.checkAtSeconds(1.3)) {//third shot
             LL.allDown();
             if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
+        if(timer2.checkAtSeconds(1.9)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();

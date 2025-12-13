@@ -145,13 +145,13 @@ public class newBot_closeBlueMotif extends LinearOpMode {
             idle();
             sleep(10);
         }
-        if (motif == "ppg") {
+        if (motif.equals("ppg")) {
             motif = "pgp";
         }
-        else if (motif == "pgp"){
+        else if (motif.equals("pgp")){
             motif = "gpp";
         }
-        else if (motif == "gpp"){
+        else if (motif.equals("gpp")){
             motif = "ppg";
         }
         telemetry.addData("Motif Pattern:", motif);
@@ -163,7 +163,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
 
 
         go_back();
-        sleep(450);
+        sleep(600);
         three_close_shots();
         first_line_pickup();
         reset();
@@ -191,6 +191,8 @@ public class newBot_closeBlueMotif extends LinearOpMode {
                 .build();
         follower.followPath(home, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);
+
     }
     private void go_back(){
 
@@ -290,18 +292,20 @@ public class newBot_closeBlueMotif extends LinearOpMode {
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
         Path p2 = new Path(new BezierLine(cur, secondGoal));
 
-        follower.setMaxPower(0.5);
         // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(p2)
                 .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
         }
-        follower.setMaxPower(1);
+
+        if (intake != null) intake.setPower(1);
+
     }
     private void second_line_pickup(){
         // ===== 2) Movement: your two-hop Pedro path =====
@@ -327,12 +331,15 @@ public class newBot_closeBlueMotif extends LinearOpMode {
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
         }
+        if (intake != null) intake.setPower(1);
+
     }
     private void third_line_pickup(){
         // ===== 2) Movement: your two-hop Pedro path =====
@@ -341,6 +348,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(first, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -365,6 +373,7 @@ public class newBot_closeBlueMotif extends LinearOpMode {
             follower.update();
             idle();
         }
+        if (intake != null) intake.setPower(1);
     }
 
     private void go_close(){

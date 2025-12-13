@@ -59,14 +59,14 @@ public class newBot_closeRedMotif extends LinearOpMode {
     private final Pose startPose = new Pose(
             110,                // x inches
             -27,                     // y inches og:32
-            Math.toRadians(-225)    // heading (rad)
+            Math.toRadians(-135)    // heading (rad)
     );
 
     // Your goal pose (exactly as in your movement program)
     private final Pose nearshotpose = new Pose(
             90,                    // x inches (forward) og: 72
             -8.5,                   // y inches (left)
-            Math.toRadians(-223)    // heading (rad) at finish
+            Math.toRadians(-220)    // heading (rad) at finish
     );
     private final Pose firstpickupPose = new Pose(
             66.5,                    // x inches (forward) og 71.5
@@ -102,6 +102,13 @@ public class newBot_closeRedMotif extends LinearOpMode {
     private Timer timer1;
     private Timer timer2;
     private int sequence = 0;
+    boolean shootingHasWorkedNoVelo;
+
+    int shooterSequence;
+
+
+    // ---------- Timing for far shots ----------
+
 
 
     private double getBatteryVoltage() {
@@ -154,13 +161,27 @@ public class newBot_closeRedMotif extends LinearOpMode {
         LL.allDown();
         LL.set_angle_min();
         timer1.resetTimer();
+        timer2.resetTimer();
         stopShooter();
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
         telemetry.update();
 
-        while (motif == null) {
+        while (motif == null && !isStopRequested()) {
             InitialFindMotif();
+            telemetry.addData("Looking for motif...", "");
+            telemetry.update();
+            idle();
+            sleep(10);
+        }
+        if (motif.equals("pgp")) {
+            motif = "ppg";
+        }
+        else if (motif.equals("ppg")){
+            motif = "gpp";
+        }
+        else if (motif.equals("gpp")){
+            motif = "pgp";
         }
         telemetry.addData("Motif Pattern:", motif);
         telemetry.update();
@@ -243,7 +264,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
@@ -259,7 +280,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
             depo.updatePID();  // COMMENTED OUT (depo)
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
-                    timer1.startTimer();
+                    timer2.startTimer();
                     sequence = 0;
                 }
             }
@@ -290,18 +311,19 @@ public class newBot_closeRedMotif extends LinearOpMode {
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
         Path p2 = new Path(new BezierLine(cur, secondGoal));
 
-        follower.setMaxPower(0.5);
+
         // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(p2)
                 .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
         }
-        follower.setMaxPower(1);
+
     }
     private void second_line_pickup(){
         // ===== 2) Movement: your two-hop Pedro path =====
@@ -327,6 +349,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -341,6 +364,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(first, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -382,7 +406,7 @@ public class newBot_closeRedMotif extends LinearOpMode {
     }
 
     private boolean isFarShotCycleDone() {
-        return (sequence == 0 && timer1.timerIsOff());
+        return (sequence == 0 && timer2.timerIsOff());
     }
     private void shoot3x(){
         if(timer1.checkAtSeconds(0)){
@@ -403,29 +427,36 @@ public class newBot_closeRedMotif extends LinearOpMode {
         }
 
     }
-    private void shootMotif(String seq) {
-        if (timer2.checkAtSeconds(0)) {//first shot
-            if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+    private void shootMotif(String seq){
+        if(timer2.checkAtSeconds(0)) {//first shot
+            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.4)) {//second shot
+        if(timer2.checkAtSeconds(0.6)) {//second shot
             LL.allDown();
-            if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(0.8)) {//third shot
+        if(timer2.checkAtSeconds(1.2)) {//third shot
             LL.allDown();
-            if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
-            else shootingHasWorked = LL.lift_purple();
-            checkShot();
+            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
+            else shootingHasWorkedNoVelo = LL.lift_purple();
+            checkShotNoVelo();
         }
-        if (timer2.checkAtSeconds(1.2)) {//tunr off depo
+        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
-
+        }
+    }
+    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorkedNoVelo) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
+            shooterSequence = 0;
         }
     }
 
