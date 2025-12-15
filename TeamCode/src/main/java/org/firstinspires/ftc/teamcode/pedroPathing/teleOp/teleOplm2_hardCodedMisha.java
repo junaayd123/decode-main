@@ -378,14 +378,26 @@ public class teleOplm2_hardCodedMisha extends OpMode {
     }
     //b
     private int veloBasedOnDistance(double dist){
-        if(dist<60) return 1125; //close distance
-        else if(dist<70) return 1150;
-        else if(dist<75) return 1175;
-        else if(dist<80) return 1200;
-        else if(dist<87) return 1225;
-        else if(dist<110) return 1300;
-        else if(dist>115 && dist<150) return 1480;//far distance
-        else return 0;//didnt localize the tag
+        if(!bluealliance) {
+            if (dist < 60) return 1125; //close distance
+            else if (dist < 70) return 1150;
+            else if (dist < 75) return 1175;
+            else if (dist < 80) return 1200;
+            else if (dist < 87) return 1225;
+            else if (dist < 110) return 1300;
+            else if (dist > 115 && dist < 150) return 1480;//far distance
+            else return 0;//didnt localize the tag
+        }
+        else{
+            if (dist+5 < 60) return 1125; //close distance
+            else if (dist+5 < 70) return 1150;
+            else if (dist+5 < 75) return 1175;
+            else if (dist+5 < 80) return 1200;
+            else if (dist+5 < 87) return 1225;
+            else if (dist+5 < 110) return 1300;
+            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
+            else return 0;//didnt localize the tag
+        }
     }
     private double angleBasedOnDistance(double dist){
         if(dist<70) return 0.06; //close distance

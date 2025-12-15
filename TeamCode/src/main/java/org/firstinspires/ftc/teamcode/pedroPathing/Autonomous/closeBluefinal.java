@@ -68,9 +68,9 @@ public class closeBluefinal extends LinearOpMode {
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-124));
     private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(43.25,12,  Math.toRadians(90));
-    private final Pose midpoint1        = new Pose(43.25,4,  Math.toRadians(90.0));
-    private final Pose thirdpickupPose  = new Pose(18,   14,  Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(41.25,12,  Math.toRadians(90));
+    private final Pose midpoint1        = new Pose(41.25,4,  Math.toRadians(90.0));
+    private final Pose thirdpickupPose  = new Pose(17,   14,  Math.toRadians(90));
     private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
     private final Pose infront_of_lever   = new Pose(59.5, 36.5, Math.toRadians(180));
     //
@@ -176,18 +176,22 @@ public class closeBluefinal extends LinearOpMode {
         go_back();
         pauseBeforeShooting(0.4);
         three_close_shots();
+        depo.setPowerBoth(0);
         first_line_pickup();
         reset();
         go_close();
         three_close_shots();
+        depo.setPowerBoth(0);
         second_line_pickup();
         reset();
         go_close();
         three_close_shots();
+        depo.setPowerBoth(0);
         third_line_pickup();
         reset();
         go_close();
         three_close_shots();
+        depo.setPowerBoth(0);
         go_infront();
 
         telemetry.update();

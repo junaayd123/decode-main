@@ -333,6 +333,7 @@ public class closeRedfinal extends LinearOpMode {
             }
             follower.update();
         }
+        intake.setPower(0);
     }
     private boolean isFarShotCycleDone() {
         return (sequence == 0 && timer1.timerIsOff());
@@ -514,7 +515,7 @@ public class closeRedfinal extends LinearOpMode {
 
             idle();
         }
-        if (intake != null) intake.setPower(1);
+
 
     }
     private void second_line_pickup(){
@@ -553,7 +554,6 @@ public class closeRedfinal extends LinearOpMode {
 
             idle();
         }
-        if (intake != null) intake.setPower(1);
 
     }
     private void third_line_pickup(){
@@ -593,7 +593,7 @@ public class closeRedfinal extends LinearOpMode {
 
             idle();
         }
-        if (intake != null) intake.setPower(1);
+
 
     }
     /**
@@ -625,6 +625,7 @@ public class closeRedfinal extends LinearOpMode {
     }
 
     private void go_close(){
+        if (intake != null) intake.setPower(0);
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
@@ -635,7 +636,7 @@ public class closeRedfinal extends LinearOpMode {
             follower.update();
             idle();
         }
-        if (intake != null) intake.setPower(0);
+        if (intake != null) intake.setPower(1);
     }
 
     private void initAprilTag() {
