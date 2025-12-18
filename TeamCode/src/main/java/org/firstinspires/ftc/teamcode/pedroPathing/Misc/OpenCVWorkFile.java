@@ -87,6 +87,10 @@ public class OpenCVWorkFile extends LinearOpMode {
     public static int G_S_MAX = 255;
     public static int G_V_MAX = 255;
 
+    public float cameraHeight = 15.0f;
+    public float fovDegree = 78.0f;
+    public float ballDiameter = 0.127f; // in meters
+
     // ====== DEBUG OPTIONS ======
     public static boolean SHOW_MASK = false;  // Show mask instead of normal image
     @Override
@@ -284,8 +288,18 @@ public class OpenCVWorkFile extends LinearOpMode {
             for (ColorBlobLocatorProcessor.Blob b : purpleBlobs) {
 
                 Circle circleFit = b.getCircle();
-                telemetry.addLine(String.format("%5.3f      %3d     (%3d,%3d)",
-                        b.getCircularity(), (int) circleFit.getRadius(), (int) circleFit.getX(), (int) circleFit.getY()));
+                //telemetry.addLine(String.format("%5.3f      %3d     (%3d,%3d)",
+                        //b.getCircularity(), (int) circleFit.getRadius(), (int) circleFit.getX(), (int) circleFit.getY()));
+                double[] fieldPos = pixelToField(circleFit.getX(), circleFit.getY(), circleFit.getRadius(),
+                        320, 240, // image resolution
+                        fovDegree, cameraHeight * 0.0254, // convert inches to meters
+                        45.0, ballDiameter); // pitch + ball size
+
+                telemetry.addLine(String.format("Purple: circ=%.3f rad=%d center=(%d,%d) field=(%.1f in, %.1f in)",
+                        b.getCircularity(),
+                        (int) circleFit.getRadius(),
+                        (int) circleFit.getX(), (int) circleFit.getY(),
+                        fieldPos[0] * 39.37, fieldPos[1] * 39.37));
             }
 
             for (ColorBlobLocatorProcessor.Blob b : greenBlobs) {
@@ -298,5 +312,48 @@ public class OpenCVWorkFile extends LinearOpMode {
             telemetry.update();
             sleep(100); // Match the telemetry update interval.
         }
+
     }
+    public double[] pixelToField(double u, double v, double r_px,
+                                 int imageWidth, int imageHeight,
+                                 double fovDeg, double cameraHeight,
+                                 double pitchDeg, double ballDiameterM) {
+        // Step 1: focal length in pixels
+        double f_x = imageWidth / (2.0 * Math.tan(Math.toRadians(fovDeg / 2.0)));
+        double f_y = f_x;
+        double c_x = imageWidth / 2.0;
+        double c_y = imageHeight / 2.0;
+
+        // Step 2: observed diameter in pixels
+        double d_px = 2.0 * r_px;
+
+        // Step 3: distance along optical axis using known size
+        double Z_cam = (f_x * ballDiameterM) / d_px;
+
+        // Step 4: normalized camera coordinates
+        double x_cam = (u - c_x) * Z_cam / f_x;
+        double y_cam = (v - c_y) * Z_cam / f_y;
+        double[] ray_cam = {x_cam, y_cam, Z_cam};
+
+        // Step 5: apply pitch rotation
+        double pitch = Math.toRadians(pitchDeg);
+        double[][] R_pitch = {
+                {1, 0, 0},
+                {0, Math.cos(pitch), -Math.sin(pitch)},
+                {0, Math.sin(pitch),  Math.cos(pitch)}
+        };
+        double[] ray_world = {
+                R_pitch[0][0]*ray_cam[0] + R_pitch[0][1]*ray_cam[1] + R_pitch[0][2]*ray_cam[2],
+                R_pitch[1][0]*ray_cam[0] + R_pitch[1][1]*ray_cam[1] + R_pitch[1][2]*ray_cam[2],
+                R_pitch[2][0]*ray_cam[0] + R_pitch[2][1]*ray_cam[1] + R_pitch[2][2]*ray_cam[2]
+        };
+
+        // Step 6: intersect with ground plane (z=0)
+        double t = cameraHeight / ray_world[2];
+        double X = ray_world[0] * t;
+        double Y = ray_world[1] * t;
+
+        return new double[]{X, Y};
+    }
+
 }
