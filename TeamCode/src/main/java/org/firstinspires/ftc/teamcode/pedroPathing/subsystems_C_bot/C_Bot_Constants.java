@@ -19,8 +19,8 @@ public class C_Bot_Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(10.8862)
-            .forwardZeroPowerAcceleration(-27.81357699530939)
-            .lateralZeroPowerAcceleration(-69.74173019864497)
+            .forwardZeroPowerAcceleration(-47.11204666214807)
+            .lateralZeroPowerAcceleration(-55.07048078651405)
             .useSecondaryTranslationalPIDF(false)
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
@@ -44,8 +44,8 @@ public class C_Bot_Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(76.90455639456202)
-            .yVelocity(61.644394761934066);
+            .xVelocity(79.53968582754061)
+            .yVelocity(57.234300027682096);
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
             .forwardPodY(-3.305)
