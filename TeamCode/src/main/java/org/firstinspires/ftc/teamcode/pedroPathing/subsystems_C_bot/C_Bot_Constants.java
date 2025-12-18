@@ -25,7 +25,7 @@ public class C_Bot_Constants {
             .useSecondaryHeadingPIDF(false)
             .useSecondaryDrivePIDF(false)
             .centripetalScaling(0.0003)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.05, 0, 0.000001, 0))
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.08, 0, 0.000001, 0))
             .headingPIDFCoefficients(new PIDFCoefficients(2, 0, 0.07, 0))
             .drivePIDFCoefficients(
                     new FilteredPIDFCoefficients(0.014, 0, 0.000005, 0.085, 0.003)
@@ -63,7 +63,7 @@ public class C_Bot_Constants {
     public static PathConstraints pathConstraints = new PathConstraints(
             0.995,
             500,
-            0.700, // original val:  0.875
+            0.800, // original val:  0.875
             1
     );
 
