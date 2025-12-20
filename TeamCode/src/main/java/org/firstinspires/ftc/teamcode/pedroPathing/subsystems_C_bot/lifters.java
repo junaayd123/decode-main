@@ -1,0 +1,122 @@
+package org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot;
+
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+
+public class lifters {
+    public ColorSensors sensors;
+    public Servo launchAngleServo;
+    public Servo liftRight;
+    public Servo liftLeft;
+    public Servo liftBack;
+    //
+    public lifters(HardwareMap hardwareMap){
+        sensors = new ColorSensors(hardwareMap);
+        launchAngleServo = hardwareMap.get(Servo.class, "launch_angle");
+        liftRight = hardwareMap.get(Servo.class, "lift_right");
+        liftBack = hardwareMap.get(Servo.class, "lift_back");
+        liftLeft = hardwareMap.get(Servo.class, "lift_left");
+//        liftLeft.setDirection(Servo.Direction.REVERSE);
+//        liftBack.setDirection(Servo.Direction.REVERSE);
+        liftRight.setDirection(Servo.Direction.REVERSE);
+    }
+
+    public boolean lift_green(){
+        if(sensors.getRight()==1){
+            rightUp();
+            return true;
+        }
+        else if(sensors.getLeft()==1){
+            leftUp();
+            return true;
+        }
+        else if(sensors.getBack()==1){
+            backUp();
+            return true;
+        }
+        else return false;
+    }
+    public boolean lift_purple(){
+        if(sensors.getRight()==2){
+            rightUp();
+            return true;
+        }
+        else if(sensors.getLeft()==2){
+            leftUp();
+            return true;
+        }
+        else if(sensors.getBack()==2){
+            backUp();
+            return true;
+        }
+        else return false;
+    }
+    public int lift_green2(boolean testRight,boolean testLeft, boolean testBack){
+        if(testRight) {
+            if (sensors.getRight() == 1) {
+                rightUp();
+                return 1;
+            }
+        }
+        if(testLeft) {
+            if (sensors.getLeft() == 1) {
+                leftUp();
+                return 0;
+            }
+        }
+        if(testBack) {
+            if (sensors.getBack() == 1) {
+                backUp();
+                return 2;
+            }
+        }
+        return -1;
+    }
+    public int lift_purple2(boolean testRight,boolean testLeft, boolean testBack){
+        if(testRight) {
+            if (sensors.getRight() == 2) {
+                rightUp();
+                return 1;
+            }
+        }
+        if(testLeft) {
+            if (sensors.getLeft() == 2) {
+                leftUp();
+                return 0;
+            }
+        }
+        if(testBack) {
+            if (sensors.getBack() == 2) {
+                backUp();
+                return 2;
+            }
+        }
+        return -1;
+    }
+
+    public boolean checkNoBalls(){//false if theres at least one ball true if no balls
+        if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;
+        else return false;
+    }
+    public void leftDown(){liftLeft.setPosition(0.07);}
+    public void leftUp(){liftLeft.setPosition(0.41);}
+    public void rightDown(){liftRight.setPosition(0.01);}
+    public void rightUp(){liftRight.setPosition(0.37);}
+    public void backDown(){liftBack.setPosition(0.03);}
+    public void backUp(){liftBack.setPosition(0.36);}
+    public void set_angle_min(){launchAngleServo.setPosition(0.06);}
+    public void set_angle_custom(double ang){launchAngleServo.setPosition(ang);}
+    public void set_angle_far(){launchAngleServo.setPosition(0.18);}
+    public void set_angle_far_auto(){launchAngleServo.setPosition(0.16);}
+    public void set_angle_close(){launchAngleServo.setPosition(0.06);}
+
+    public void allDown(){
+        leftDown();
+        rightDown();
+        backDown();
+    }
+
+
+}

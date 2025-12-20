@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -44,6 +45,7 @@ public class shooterPID_test extends LinearOpMode {
 
         depo.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         depo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        depo1.setDirection(DcMotorSimple.Direction.REVERSE);
         depo1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         depo.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
