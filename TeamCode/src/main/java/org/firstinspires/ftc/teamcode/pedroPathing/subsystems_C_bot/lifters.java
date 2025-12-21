@@ -6,14 +6,14 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 
 public class lifters {
-    public ColorSensors sensors;
+    public ColorSensors_C sensors;
     public Servo launchAngleServo;
     public Servo liftRight;
     public Servo liftLeft;
     public Servo liftBack;
     //
     public lifters(HardwareMap hardwareMap){
-        sensors = new ColorSensors(hardwareMap);
+        sensors = new ColorSensors_C(hardwareMap);
         launchAngleServo = hardwareMap.get(Servo.class, "launch_angle");
         liftRight = hardwareMap.get(Servo.class, "lift_right");
         liftBack = hardwareMap.get(Servo.class, "lift_back");

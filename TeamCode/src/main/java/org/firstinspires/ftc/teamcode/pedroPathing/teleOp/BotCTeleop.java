@@ -202,42 +202,66 @@ public class BotCTeleop extends OpMode {
                 else {
                     depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-                    motif = "gpp";
-                    greenInSlot = 0;
                 }
+                motif = "gpp";
+                greenInSlot = 0;
                 shooting = true;
 
             }
         }
         if(g2.square && !preG2.square){//gpp
-            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-            shooting = true;
-            motif = "gpp";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
+            if(!LL.checkNoBalls()) {
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
+                }
+                shooting = true;
+                motif = "gpp";
+                greenInSlot = getGreenPos();
+                ballsInRobot[0] = LL.sensors.getLeft();
+                ballsInRobot[1] = LL.sensors.getRight();
+                ballsInRobot[2] = LL.sensors.getBack();
+
+            }
         }
         if(g2.triangle && !preG2.triangle){//pgp
-            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-            shooting = true;
-            motif = "pgp";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
+            if(!LL.checkNoBalls()) {
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
+                }
+                shooting = true;
+                motif = "pgp";
+                greenInSlot = getGreenPos();
+                ballsInRobot[0] = LL.sensors.getLeft();
+                ballsInRobot[1] = LL.sensors.getRight();
+                ballsInRobot[2] = LL.sensors.getBack();
+
+            }
         }
         if(g2.circle && !preG2.circle){//ppg
-            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-            shooting = true;
-            motif = "ppg";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
+            if(!LL.checkNoBalls()) {
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
+                }
+                shooting = true;
+                motif = "ppg";
+                greenInSlot = getGreenPos();
+                ballsInRobot[0] = LL.sensors.getLeft();
+                ballsInRobot[1] = LL.sensors.getRight();
+                ballsInRobot[2] = LL.sensors.getBack();
+
+            }
         }
         if (g1.triangle && !preG1.triangle){
             tagInitializing = true;
