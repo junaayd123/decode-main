@@ -4,7 +4,9 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.hardware.limelightvision.LLFieldMap;
 import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -16,6 +18,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
+import java.util.List;
+
 @TeleOp(name = "Turret pid test", group = "tuning")
 @Config
 public class TurretTest extends LinearOpMode {
@@ -25,17 +29,23 @@ public class TurretTest extends LinearOpMode {
     private PIDController pid;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
-    public static double p = 0.035;
+    public static double p = 0.01;
     public static double i = 0.0;
-    public static double d = 0.0;
+    public static double d = 0.0001;
     public static int target = 0;
     public static double tolerance = 1.0;
-    public static double targetDegrees = 0;
+    public static double turetSpeed = 0.7;
+    public static double targetDegrees = 0.0;
+    double coefficient = 67.0/18.0;
 
-    private enum Mode { DRIVER, ToTarget, ToDegrees}
+    private enum Mode { DRIVER, ToTarget, ToDegrees,Limelight}
     private Mode mode = Mode.DRIVER;
     private Limelight3A limelight;
-    double yaw;
+    double yawToTagBlue =0;
+    double yawToTagRed =0;
+    double targetTicks;
+    boolean runningAround;
+    boolean doneRUnning;
 
 
     @Override
@@ -68,15 +78,48 @@ public class TurretTest extends LinearOpMode {
 
             double currentPos = encoderMotor.getCurrentPosition();
 
-            if (gamepad1.y) mode = Mode.ToTarget;
-            if (gamepad1.b) mode = Mode.DRIVER;
+            if (gamepad1.triangleWasPressed()) mode = Mode.ToTarget;
+            if (gamepad1.circleWasPressed()) mode = Mode.DRIVER;
+            if (gamepad1.squareWasPressed()) mode = Mode.ToDegrees;
+            if (gamepad1.crossWasPressed()) mode = Mode.Limelight;
 
             double power;
+            /*LLResult result = limelight.getLatestResult();
+            List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
+            for (LLResultTypes.FiducialResult fr : fiducialResults) {
+//                telemetry.addData("Fiducial", "ID: %d, Family: %s, X: %.2f, Y: %.2f", fr.getFiducialId(), fr.getFamily(), fr.getTargetXDegrees(), fr.getTargetYDegrees());
+                if(fr.getFiducialId()==24){
+                    yawToTagRed = fr.getTargetXDegrees();
+                }
+                if(fr.getFiducialId()==20){
+                    yawToTagBlue = fr.getTargetXDegrees();
+                }
+            }*/
+
+            double yaw = 0;
+            boolean hasTag = false;
+
+            LLResult result = limelight.getLatestResult();
+            List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
+            for (LLResultTypes.FiducialResult fr : fiducialResults) {
+                if (fr.getFiducialId() == 20) {
+                    yawToTagBlue = fr.getTargetXDegrees();
+                    hasTag = true;
+                }
+
+                if (fr.getFiducialId() == 24) {
+                    yawToTagRed = fr.getTargetXDegrees();
+                    hasTag = true;
+                }
+
+            }
+
+
 
             if (mode == Mode.DRIVER) {
                 // Manual control
                 power = -gamepad1.left_stick_y;
-            } else {
+            } else if(mode == Mode.ToTarget) {
                 // PID control
                 double error = target - currentPos;
 
@@ -84,27 +127,73 @@ public class TurretTest extends LinearOpMode {
                     power = 0.0;
                 } else {
                     double pidOutput = pid.calculate(currentPos, target);
-                    power = Math.max(-0.75, Math.min(0.75, pidOutput));
+                    power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
                 }
 
+            }else if(mode == Mode.ToDegrees){
+                // PID control
+                double targetTicks = targetDegrees*coefficient;
+                double error = targetTicks - currentPos;
+
+                if (Math.abs(error) <= tolerance) {
+                    power = 0.0;
+                } else {
+                    double pidOutput = pid.calculate(currentPos, targetTicks);
+                    power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
+                }
+
+            }else{
+                if(!runningAround) {
+                    targetTicks = currentPos + (yawToTagBlue * coefficient);
+                }
+                if(targetTicks>707){
+                    targetTicks-=1260;
+                    runningAround = true;
+                    doneRUnning = false;
+                }
+                else if(targetTicks<-707){
+                    targetTicks+=1260;
+                    runningAround = true;
+                    doneRUnning = false;
+                }
+                else {
+                    if(doneRUnning) {
+                        runningAround = false;
+                    }
+                }
+                double error = targetTicks - currentPos;
+                if(Math.abs(error)<=3 && runningAround){
+                    doneRUnning = true;
+                }
+                if (Math.abs(error) <= tolerance ||(!hasTag && !runningAround)) {
+                    power = 0.0;
+                } else {
+                    double pidOutput = pid.calculate(currentPos, targetTicks);
+                    power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
+                }
             }
 
             encoderMotor.setPower(power);
-            LLResult result = limelight.getLatestResult();
-            if (result != null) {
-                if (result.isValid()) {
-                    Pose3D botpose = result.getBotpose();
-                    telemetry.addData("tx", result.getTx());
-                    telemetry.addData("ty", result.getTy());
-//                    telemetry.addData("Botpose", botpose.toString());
-                    telemetry.addData("robot yaw", botpose.getOrientation().getYaw(AngleUnit.DEGREES));
-                }
-            }
+             //LLResult result = limelight.getLatestResult();
+//            if (result != null) {
+//                if (result.isValid()) {
+//                    Pose3D botpose = result.getBotpose();
+//                    telemetry.addData("tx", result.getTx());
+//                    telemetry.addData("ty", result.getTy());
+////                    telemetry.addData("Botpose", botpose.toString());
+//                    telemetry.addData("robot yaw", botpose.getOrientation().getYaw(AngleUnit.DEGREES));
+//                }
+//            }
+
+
             telemetry.addData("Mode", mode);
             telemetry.addData("Target", target);
             telemetry.addData("Encoder Position", currentPos);
             telemetry.addData("Error", target - currentPos);
             telemetry.addData("Servo Power", power);
+            telemetry.addData("degrees to blue", yawToTagBlue);
+            telemetry.addData("degrees to red", yawToTagRed);
+            telemetry.addData("whatever is in the fiducial result", fiducialResults);
             telemetry.addData("P", p);
             telemetry.addData("I", i);
             telemetry.addData("D", d);
