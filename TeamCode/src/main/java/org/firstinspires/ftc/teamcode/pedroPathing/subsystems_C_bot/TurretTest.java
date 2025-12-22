@@ -4,14 +4,17 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDController;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 @TeleOp(name = "Turret pid test", group = "tuning")
 @Config
@@ -27,9 +30,13 @@ public class TurretTest extends LinearOpMode {
     public static double d = 0.0;
     public static int target = 0;
     public static double tolerance = 1.0;
+    public static double targetDegrees = 0;
 
-    private enum Mode { DRIVER, AUTO }
+    private enum Mode { DRIVER, ToTarget, ToDegrees}
     private Mode mode = Mode.DRIVER;
+    private Limelight3A limelight;
+    double yaw;
+
 
     @Override
     public void runOpMode() {
@@ -42,17 +49,26 @@ public class TurretTest extends LinearOpMode {
         pid = new PIDController(p, i, d);
 
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        ElapsedTime timer = new ElapsedTime();
+
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+
+        telemetry.setMsTransmissionInterval(11);
+
+        limelight.pipelineSwitch(0);
+
+        /*
+         * Starts polling for data.
+         */
+        limelight.start();
 
         waitForStart();
-        timer.reset();
 
         while (opModeIsActive()) {
             pid.setPID(p, i, d);
 
             double currentPos = encoderMotor.getCurrentPosition();
 
-            if (gamepad1.y) mode = Mode.AUTO;
+            if (gamepad1.y) mode = Mode.ToTarget;
             if (gamepad1.b) mode = Mode.DRIVER;
 
             double power;
@@ -74,7 +90,16 @@ public class TurretTest extends LinearOpMode {
             }
 
             encoderMotor.setPower(power);
-
+            LLResult result = limelight.getLatestResult();
+            if (result != null) {
+                if (result.isValid()) {
+                    Pose3D botpose = result.getBotpose();
+                    telemetry.addData("tx", result.getTx());
+                    telemetry.addData("ty", result.getTy());
+//                    telemetry.addData("Botpose", botpose.toString());
+                    telemetry.addData("robot yaw", botpose.getOrientation().getYaw(AngleUnit.DEGREES));
+                }
+            }
             telemetry.addData("Mode", mode);
             telemetry.addData("Target", target);
             telemetry.addData("Encoder Position", currentPos);
