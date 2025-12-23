@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -88,6 +89,7 @@ public class BotCTeleop extends OpMode {
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
+    double shootinterval = 0.2;
     boolean hasppg;//true if robot holds pu
     boolean rightFlip = true;//true if hasnt flipped yet
     boolean leftFlip = true;//true if hasnt flipped yet
@@ -112,7 +114,7 @@ public class BotCTeleop extends OpMode {
         LL = new lifters(hardwareMap);
         depo = new Deposition_C(hardwareMap);
         intake = hardwareMap.get(DcMotor.class, "intake");
-        follower = B_Bot_Constants.createFollower(hardwareMap);
+        follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         g1.copy(gamepad1);
         g2.copy(gamepad2);
@@ -611,7 +613,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
             shooterSequence = 2;//sets up to check the depo velocity again
         }
@@ -623,7 +625,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
             LL.allDown();//puts the lifts down
             shooterSequence = 4;
         }
@@ -653,7 +655,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
             shooterSequence = 2;//sets up to check the depo velocity again
         }
@@ -665,7 +667,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
             LL.allDown();//puts the lifts down
             shooterSequence = 4;
         }
@@ -695,7 +697,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
             shooterSequence = 2;//sets up to check the depo velocity again
         }
@@ -707,7 +709,7 @@ public class BotCTeleop extends OpMode {
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
             LL.allDown();//puts the lifts down
             shooterSequence = 4;
         }
