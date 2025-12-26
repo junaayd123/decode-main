@@ -4,7 +4,6 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDController;
-import com.qualcomm.hardware.limelightvision.LLFieldMap;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -12,10 +11,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 import java.util.List;
@@ -24,17 +21,17 @@ import java.util.List;
 @Config
 public class TurretTest extends LinearOpMode {
 
-    private DcMotorEx encoderMotor;   // Motor port used to read encoder
+    private DcMotorEx TurretMotor;   // Motor port used to read encoder
 
     private PIDController pid;
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
-    public static double p = 0.01;
-    public static double i = 0.0;
+    public static double p = 0.005;
+    public static double i = 0.1;
     public static double d = 0.0001;
     public static int target = 0;
     public static double tolerance = 1.0;
-    public static double turetSpeed = 0.7;
+    public static double turetSpeed = 0.8;
     public static double targetDegrees = 0.0;
     double coefficient = 67.0/18.0;
 
@@ -46,24 +43,19 @@ public class TurretTest extends LinearOpMode {
     double targetTicks;
     boolean runningAround;
     boolean doneRUnning;
+    double groundDistanceCM;
 
 
     @Override
     public void runOpMode() {
-        encoderMotor = hardwareMap.get(DcMotorEx.class, "turret");
-
-        // Don’t actually drive the motor, just use its encoder
-        encoderMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        encoderMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
+        TurretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+        TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         pid = new PIDController(p, i, d);
-
-        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-
-        telemetry.setMsTransmissionInterval(11);
-
+        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
+//        telemetry.setMsTransmissionInterval(11);
+//
         limelight.pipelineSwitch(0);
 
         /*
@@ -76,7 +68,7 @@ public class TurretTest extends LinearOpMode {
         while (opModeIsActive()) {
             pid.setPID(p, i, d);
 
-            double currentPos = encoderMotor.getCurrentPosition();
+            double currentPos = TurretMotor.getCurrentPosition();
 
             if (gamepad1.triangleWasPressed()) mode = Mode.ToTarget;
             if (gamepad1.circleWasPressed()) mode = Mode.DRIVER;
@@ -84,24 +76,13 @@ public class TurretTest extends LinearOpMode {
             if (gamepad1.crossWasPressed()) mode = Mode.Limelight;
 
             double power;
-            /*LLResult result = limelight.getLatestResult();
-            List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
-            for (LLResultTypes.FiducialResult fr : fiducialResults) {
-//                telemetry.addData("Fiducial", "ID: %d, Family: %s, X: %.2f, Y: %.2f", fr.getFiducialId(), fr.getFamily(), fr.getTargetXDegrees(), fr.getTargetYDegrees());
-                if(fr.getFiducialId()==24){
-                    yawToTagRed = fr.getTargetXDegrees();
-                }
-                if(fr.getFiducialId()==20){
-                    yawToTagBlue = fr.getTargetXDegrees();
-                }
-            }*/
-
-            double yaw = 0;
             boolean hasTag = false;
 
             LLResult result = limelight.getLatestResult();
             List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
             for (LLResultTypes.FiducialResult fr : fiducialResults) {
+                Pose3D camToTag = fr.getCameraPoseTargetSpace();
+                groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
                 if (fr.getFiducialId() == 20) {
                     yawToTagBlue = fr.getTargetXDegrees();
                     hasTag = true;
@@ -146,13 +127,13 @@ public class TurretTest extends LinearOpMode {
                 if(!runningAround) {
                     targetTicks = currentPos + (yawToTagBlue * coefficient);
                 }
-                if(targetTicks>707){
-                    targetTicks-=1260;
+                if(targetTicks>730){
+                    targetTicks-=1300;
                     runningAround = true;
                     doneRUnning = false;
                 }
-                else if(targetTicks<-707){
-                    targetTicks+=1260;
+                else if(targetTicks<-850){
+                    targetTicks+=1300;
                     runningAround = true;
                     doneRUnning = false;
                 }
@@ -173,7 +154,7 @@ public class TurretTest extends LinearOpMode {
                 }
             }
 
-            encoderMotor.setPower(power);
+            TurretMotor.setPower(power);
              //LLResult result = limelight.getLatestResult();
 //            if (result != null) {
 //                if (result.isValid()) {
@@ -193,6 +174,7 @@ public class TurretTest extends LinearOpMode {
             telemetry.addData("Servo Power", power);
             telemetry.addData("degrees to blue", yawToTagBlue);
             telemetry.addData("degrees to red", yawToTagRed);
+            telemetry.addData("distance to tag cm", groundDistanceCM);
             telemetry.addData("whatever is in the fiducial result", fiducialResults);
             telemetry.addData("P", p);
             telemetry.addData("I", i);
