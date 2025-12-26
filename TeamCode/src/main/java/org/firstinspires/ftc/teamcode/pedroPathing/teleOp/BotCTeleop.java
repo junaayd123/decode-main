@@ -412,6 +412,10 @@ public class BotCTeleop extends OpMode {
     }
     //b
     private int veloBasedOnDistance(double dist){
+        //https://www.desmos.com/calculator/nxghj961jg
+        //desmos table for the shooting velo
+        //x is distanceCM y1 is velo y2 is launch angle
+        //below is old stuff
         if(!bluealliance) {
             if (dist < 60) return 1125; //close distance
             else if (dist < 70) return 1150;
