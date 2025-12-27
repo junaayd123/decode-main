@@ -90,7 +90,7 @@ public class BotCTeleop extends OpMode {
     double ourVelo = 1300;
     boolean shooting = false;
     boolean shooting2 = false;
-    double shootinterval = 0.3;
+    double shootinterval = 0.35;
     boolean hasppg;//true if robot holds pu
     boolean rightFlip = true;//true if hasnt flipped yet
     boolean leftFlip = true;//true if hasnt flipped yet
@@ -195,6 +195,16 @@ public class BotCTeleop extends OpMode {
         if(g2.dpad_down && !preG2.dpad_down){
             shootingTest = !shootingTest;
         }
+        if(g1.shareWasPressed()){
+            turret.resetTurretEncoder();
+        }
+        if(g2.psWasPressed()){
+            alignToTags = !alignToTags;
+        }
+        if(alignToTags){
+            turret.allignToTag();
+        }
+        else turret.TurretMotor.setPower(0);
         if(g2.cross && !preG2.cross){//shoot 3 close
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
@@ -210,16 +220,6 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(g1.shareWasPressed()){
-            turret.resetTurretEncoder();
-        }
-        if(g2.psWasPressed()){
-            alignToTags = !alignToTags;
-        }
-        if(alignToTags){
-            turret.allignToTag();
-        }
-        else turret.TurretMotor.setPower(0);
         if(g2.square && !preG2.square){//gpp
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
@@ -299,16 +299,16 @@ public class BotCTeleop extends OpMode {
 //            }
             direction = !direction;
         }
-        if (g1.circle && !preG1.circle && !follower.isBusy()) {
-            if(distanceToGoal<115) {
-                faceAllianceGoal();
-                timer4.startTimer();//lets allignment run for 1 sec
-            }
-            else{
-                goToFarPose();
-                alignForFar=true;
-            }
-        }
+//        if (g1.circle && !preG1.circle && !follower.isBusy()) {
+//            if(distanceToGoal<115) {
+//                faceAllianceGoal();
+//                timer4.startTimer();//lets allignment run for 1 sec
+//            }
+//            else{
+//                goToFarPose();
+//                alignForFar=true;
+//            }
+//        }
         if(alignForFar && !follower.isBusy()){
             timer4.startTimer();
             alignForFar = false;
@@ -416,33 +416,38 @@ public class BotCTeleop extends OpMode {
         //desmos table for the shooting velo
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
-        if(!bluealliance) {
-            if (dist < 60) return 1125; //close distance
-            else if (dist < 70) return 1150;
-            else if (dist < 75) return 1175;
-            else if (dist < 80) return 1200;
-            else if (dist < 87) return 1225;
-            else if (dist < 110) return 1300;
-            else if (dist > 115 && dist < 150) return 1480;//far distance
-            else return 0;//didnt localize the tag
-        }
-        else{
-            if (dist+5 < 60) return 1125; //close distance
-            else if (dist+5 < 70) return 1150;
-            else if (dist+5 < 75) return 1175;
-            else if (dist+5 < 80) return 1200;
-            else if (dist+5 < 87) return 1225;
-            else if (dist+5 < 110) return 1300;
-            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
-            else return 0;//didnt localize the tag
-        }
+        if(dist<145){
+        return (int) (3.69593*dist+929.60458);}
+        else return 1625; //far
+//        if(!bluealliance) {
+//            if (dist < 60) return 1125; //close distance
+//            else if (dist < 70) return 1150;
+//            else if (dist < 75) return 1175;
+//            else if (dist < 80) return 1200;
+//            else if (dist < 87) return 1225;
+//            else if (dist < 110) return 1300;
+//            else if (dist > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
+//        else{
+//            if (dist+5 < 60) return 1125; //close distance
+//            else if (dist+5 < 70) return 1150;
+//            else if (dist+5 < 75) return 1175;
+//            else if (dist+5 < 80) return 1200;
+//            else if (dist+5 < 87) return 1225;
+//            else if (dist+5 < 110) return 1300;
+//            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
     }
     private double angleBasedOnDistance(double dist){
-        if(dist<70) return 0.06; //close distance
-        else if(dist<87) return 0.09; //close distance
-        else if(dist<110) return 0.12; //close distance
-        else if(dist>115 && dist<150) return 0.18;//far distance
-        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
+//        if(dist<70) return 0.06; //close distance
+//        else if(dist<87) return 0.09; //close distance
+//        else if(dist<110) return 0.12; //close distance
+//        else if(dist>115 && dist<150) return 0.18;//far distance
+//        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
+        if (dist>145) return 0.21;
+        else return 0.00132566*dist+0.00291356;
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {

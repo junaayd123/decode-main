@@ -55,7 +55,6 @@ public class TurretLimelight {
         LLResult result = limelight.getLatestResult();
         List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
         yawToTag = 0;
-        groundDistanceCM = 0;
         hasTag = false;
         for (LLResultTypes.FiducialResult fr : fiducialResults) {
             if(blueAlliance){
@@ -67,7 +66,6 @@ public class TurretLimelight {
                 }
                 else{
                     yawToTag = 0;
-                    groundDistanceCM = 0;
                     hasTag = false;
                 }
             }
@@ -80,7 +78,6 @@ public class TurretLimelight {
                 }
                 else{
                     yawToTag = 0;
-                    groundDistanceCM = 0;
                     hasTag = false;
                 }
             }
