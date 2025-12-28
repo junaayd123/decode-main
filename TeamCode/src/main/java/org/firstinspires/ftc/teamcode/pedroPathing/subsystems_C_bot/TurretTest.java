@@ -40,6 +40,7 @@ public class TurretTest extends LinearOpMode {
     private enum Mode { DRIVER, ToTarget, ToDegrees,Limelight}
     private Mode mode = Mode.DRIVER;
     private Limelight3A limelight;
+    double lastTimestamp = -1;
     double yawToTagBlue =0;
     double yawToTagRed =0;
     double targetTicks;
@@ -106,7 +107,7 @@ public class TurretTest extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            if(gamepad1.shareWasPressed()){
+            if (gamepad1.shareWasPressed()) {
                 TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
@@ -141,46 +142,49 @@ public class TurretTest extends LinearOpMode {
 //
 //
 //            }
-            List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
-            for (LLResultTypes.FiducialResult fr : fiducialResults) {
-                Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
-                if (fr.getFiducialId() == 20) {
-                    yawToTagBlue = fr.getTargetXDegrees();
-                    Pose3D llPose = fr.getRobotPoseTargetSpace();// FIELD pose of camera
-                    telemetry.addData("LL Botpose X (m)", llPose.getPosition().x);
-                    telemetry.addData("LL Botpose Y (m)", llPose.getPosition().y);
-                    telemetry.addData("LL Botpose Heading",
-                            llPose.getOrientation().getYaw());
-                    Pose2d camFieldPose = new Pose2d(llPose.getPosition().x, llPose.getPosition().y, new Rotation2d(Math.toRadians(llPose.getOrientation().getYaw())));
+            List<LLResultTypes.FiducialResult> fiducialResults = null;
+            if (result.getTimestamp() != lastTimestamp) {
+                lastTimestamp = result.getTimestamp();
+                fiducialResults = result.getFiducialResults();
+                for (LLResultTypes.FiducialResult fr : fiducialResults) {
+                    Pose3D camToTag = fr.getCameraPoseTargetSpace();
+                    groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z) * 100;
+                    if (fr.getFiducialId() == 20) {
+                        yawToTagBlue = fr.getTargetXDegrees();
+                        Pose3D llPose = fr.getRobotPoseTargetSpace();// FIELD pose of camera
+                        telemetry.addData("LL Botpose X (m)", llPose.getPosition().x);
+                        telemetry.addData("LL Botpose Y (m)", llPose.getPosition().y);
+                        telemetry.addData("LL Botpose Heading",
+                                llPose.getOrientation().getYaw());
+                        Pose2d camFieldPose = new Pose2d(llPose.getPosition().x, llPose.getPosition().y, new Rotation2d(Math.toRadians(llPose.getOrientation().getYaw())));
 
-                    Pose2d robotFieldPose = getRobotPoseFromLimelight(camFieldPose, camPoseRobot);
-                    Pose2d robotFieldPoseInches = new Pose2d(
-                            robotFieldPose.getX() * METERS_TO_INCHES,
-                            robotFieldPose.getY() * METERS_TO_INCHES,
-                            robotFieldPose.getRotation()
-                    );
+                        Pose2d robotFieldPose = getRobotPoseFromLimelight(camFieldPose, camPoseRobot);
+                        Pose2d robotFieldPoseInches = new Pose2d(
+                                robotFieldPose.getX() * METERS_TO_INCHES,
+                                robotFieldPose.getY() * METERS_TO_INCHES,
+                                robotFieldPose.getRotation()
+                        );
 
-                    telemetry.addData("Robot X", robotFieldPoseInches.getX());
-                    telemetry.addData("Robot Y", robotFieldPoseInches.getY());
-                    telemetry.addData("Robot Heading deg",
-                            Math.toDegrees(robotFieldPoseInches.getHeading()));
-                    hasTag = true;
+                        telemetry.addData("Robot X", robotFieldPoseInches.getX());
+                        telemetry.addData("Robot Y", robotFieldPoseInches.getY());
+                        telemetry.addData("Robot Heading deg",
+                                Math.toDegrees(robotFieldPoseInches.getHeading()));
+                        hasTag = true;
+                    }
+
+                    if (fr.getFiducialId() == 24) {
+                        yawToTagRed = fr.getTargetXDegrees();
+                        hasTag = true;
+                    }
+
                 }
-
-                if (fr.getFiducialId() == 24) {
-                    yawToTagRed = fr.getTargetXDegrees();
-                    hasTag = true;
-                }
-
             }
-
 
 
             if (mode == Mode.DRIVER) {
                 // Manual control
                 power = -gamepad1.left_stick_y;
-            } else if(mode == Mode.ToTarget) {
+            } else if (mode == Mode.ToTarget) {
                 // PID control
                 double error = target - currentPos;
 
@@ -191,9 +195,9 @@ public class TurretTest extends LinearOpMode {
                     power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
                 }
 
-            }else if(mode == Mode.ToDegrees){
+            } else if (mode == Mode.ToDegrees) {
                 // PID control
-                double targetTicks = targetDegrees* DegtoTickCoefficient;
+                double targetTicks = targetDegrees * DegtoTickCoefficient;
                 double error = targetTicks - currentPos;
 
                 if (Math.abs(error) <= tolerance) {
@@ -203,30 +207,28 @@ public class TurretTest extends LinearOpMode {
                     power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
                 }
 
-            }else{
-                if(!runningAround) {
+            } else {
+                if (!runningAround) {
                     targetTicks = currentPos + (yawToTagBlue * DegtoTickCoefficient);
                 }
-                if(targetTicks>730){
-                    targetTicks-=1300;
+                if (targetTicks > 730) {
+                    targetTicks -= 1300;
                     runningAround = true;
                     doneRUnning = false;
-                }
-                else if(targetTicks<-850){
-                    targetTicks+=1300;
+                } else if (targetTicks < -850) {
+                    targetTicks += 1300;
                     runningAround = true;
                     doneRUnning = false;
-                }
-                else {
-                    if(doneRUnning) {
+                } else {
+                    if (doneRUnning) {
                         runningAround = false;
                     }
                 }
                 double error = targetTicks - currentPos;
-                if(Math.abs(error)<=3 && runningAround){
+                if (Math.abs(error) <= 3 && runningAround) {
                     doneRUnning = true;
                 }
-                if (Math.abs(error) <= tolerance ||(!hasTag && !runningAround)) {
+                if (Math.abs(error) <= tolerance || (!hasTag && !runningAround)) {
                     power = 0.0;
                 } else {
                     double pidOutput = pid.calculate(currentPos, targetTicks);
@@ -235,7 +237,7 @@ public class TurretTest extends LinearOpMode {
             }
 
             TurretMotor.setPower(power);
-             //LLResult result = limelight.getLatestResult();
+            //LLResult result = limelight.getLatestResult();
 //            if (result != null) {
 //                if (result.isValid()) {
 //                    Pose3D botpose = result.getBotpose();
