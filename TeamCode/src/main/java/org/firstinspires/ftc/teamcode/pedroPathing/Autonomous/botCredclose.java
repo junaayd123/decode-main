@@ -209,9 +209,9 @@ public class botCredclose extends LinearOpMode {
         }
         waitForStart();
         if (isStopRequested()) return;
-        turret.setDegreesTarget(-35);
+        turret.setDegreesTarget(-37);
         go_back();
-        pauseBeforeShooting(4);
+        pauseBeforeShooting(.4);
         three_close_shots();
 //        first_line_pickup();
 //        reset();
@@ -256,7 +256,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             turret.toTargetInDegrees();
             follower.update();
-//            idle();
+            idle();
         }
     }
 
@@ -286,6 +286,7 @@ public class botCredclose extends LinearOpMode {
         pause.startTimer();
         while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
             follower.update();   // safe even if idle
+            turret.toTargetInDegrees();
             idle();
         }
     }
