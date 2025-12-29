@@ -24,7 +24,7 @@ public class TurretLimelight {
     public static double turetSpeed = 0.8;
     public static double targetDegrees = 0.0;
     double coefficient = 67.0/18.0;
-    private Limelight3A limelight;
+    public Limelight3A limelight;
     public double yawToTag;
     boolean blueAlliance;
     double targetTicks;
@@ -48,9 +48,6 @@ public class TurretLimelight {
         limelight.start();
     }
     public void updateLimelight(){
-        pid.setPID(p, i, d);
-
-        currentPos = TurretMotor.getCurrentPosition();
 
         LLResult result = limelight.getLatestResult();
         List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
@@ -84,6 +81,11 @@ public class TurretLimelight {
 
         }
     }
+
+
+    public void setPid(){
+        pid.setPID(p,i,d);
+    }
     public void toTargetInTicks(){
         double error = target - currentPos;
         if (Math.abs(error) <= tolerance) {
@@ -97,7 +99,9 @@ public class TurretLimelight {
     public void setTicksTarget(int targett){
         target = targett;
     }
+
     public void toTargetInDegrees(){
+        currentPos = TurretMotor.getCurrentPosition();
         // PID control
         double targetTicks = targetDegrees*coefficient;
         double error = targetTicks - currentPos;
