@@ -98,3 +98,4 @@ public class Deposition_C {
     public double getTargetVelocity() { return targetVelocity; }
     public double getPowerOutput() { return powerOutput; }
 }
+//hi
