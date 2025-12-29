@@ -65,7 +65,7 @@ public class botCredclose extends LinearOpMode {
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose startPose = new Pose(
             44,                // x inches
-          128,                     // y inches og:32
+            128,                     // y inches og:32
             Math.toRadians(35)    // heading (rad)
     );
 
@@ -77,12 +77,17 @@ public class botCredclose extends LinearOpMode {
     );
     private final Pose midpoint1 = new Pose(
             13.4,                    // x inches (forward) og: 72
-            60,                   // y inches (left)
+            58,                   // y inches (left)
+            Math.toRadians(0)    // heading (rad) at finish
+    );
+    private final Pose midpoint2 = new Pose(
+            10,                    // x inches (forward) og: 72
+            68,                   // y inches (left)
             Math.toRadians(0)    // heading (rad) at finish
     );
     private final Pose firstpickupPose = new Pose(
-            130-72,                    // x inches (forward) og 71.5
-             60,                   // y inches (left) og: 22.5
+            56,                    // x inches (forward) og 71.5
+            56,                   // y inches (left) og: 22.5
             Math.toRadians(0)    // heading (rad) at finish
     );
 
@@ -157,7 +162,7 @@ public class botCredclose extends LinearOpMode {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-    //    initAprilTag();
+        //    initAprilTag();
 
         // Launcher safe start
         LL.allDown();
@@ -197,10 +202,11 @@ public class botCredclose extends LinearOpMode {
         }
         waitForStart();
         if (isStopRequested()) return;
-        turret.setDegreesTarget(-35);
+        //turret.setDegreesTarget(-35);
         go_back();
         pauseBeforeShooting(4);
-        three_close_shots();
+        //three_close_shots();
+        bezier_curve_test();
 //        first_line_pickup();
 //        reset();
 //        go_close();
@@ -231,7 +237,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);
     }
-//hi
+    //hi
     private void go_back(){
 
         Pose cur = follower.getPose();
@@ -356,7 +362,7 @@ public class botCredclose extends LinearOpMode {
     }
 
     private void shootLRB() {//shoots in left right back order
-       if (timer1.checkAtSeconds(0)) {
+        if (timer1.checkAtSeconds(0)) {
             LL.leftUp();
             shooterSequence = 1;
         }
@@ -426,19 +432,39 @@ public class botCredclose extends LinearOpMode {
 
     private void bezier_curve_test() {
         intake.setPower(-1);
+        Pose cur = follower.getPose();
         // ===== 2) Movement: your two-hop Pedro path =====
         PathChain first = follower.pathBuilder()
                 .addPath(
                         new Path(
                                 new BezierCurve
-                                        (nearshotpose,
-                                        midpoint1,
-                                        firstpickupPose)
+                                        (cur,
+                                                midpoint1,
+                                                firstpickupPose)
                         )
                 )
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), firstpickupPose.getHeading(), 0.8)
                 .build();
         follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        intake.setPower(0);
+        cur = follower.getPose();
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain second = follower.pathBuilder()
+                .addPath(
+                        new Path(
+                                new BezierCurve
+                                        (cur,
+                                                midpoint2,
+                                                nearshotpose)
+                        )
+                )
+                .setLinearHeadingInterpolation(cur.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .build();
+        follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
@@ -538,73 +564,73 @@ public class botCredclose extends LinearOpMode {
             idle();
         }*/
 
-        // calculations to move forward
-        Pose cur1 = follower.getPose();
-        double heading = cur1.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
-        Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
+    // calculations to move forward
+    /*Pose cur1 = follower.getPose();
+    double heading = cur1.getHeading();
+    double dx = (SECOND_HOP_IN) * Math.cos(heading);
+    double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
+    Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);*/
 
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur1, secondGoal)))
-                .setConstantHeadingInterpolation(heading)
-                .build();
+    // second movement - 13 inch forward
+    /*PathChain second = follower.pathBuilder()
+            .addPath(new Path(new BezierLine(cur1, secondGoal)))
+            .setConstantHeadingInterpolation(heading)
+            .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
+        follower.update();
 
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
+        // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+        manageSecondHopIntake();
 
 
-            idle();
+        idle();
+    }
+
+
+}
+        /**
+         * Manages intake during the second hop.
+         * If robot already has 1–2 balls in storage, spit out any new ones.
+         * If robot already has 3, completely stop intake.
+         * If robot has 0, intake normally.
+         */
+        private void manageSecondHopIntake() {
+            if (intake == null || LL == null || sensors == null) return;
+
+            boolean rightFull = (sensors.getRight() != 0);
+            boolean backFull  = (sensors.getBack()  != 0);
+            boolean leftFull  = (sensors.getLeft()  != 0);
+
+            int count = 0;
+            if (rightFull) count++;
+            if (backFull)  count++;
+            if (leftFull)  count++;
+
+            // Tray full → spit everything else we touch
+            if (count >= 3) {
+                if (intake != null) intake.setPower(1);
+                return;
+            }
+
+            // Tray not full yet → continue grabbing balls
+            if (intake != null) intake.setPower(-1);
         }
 
-
-    }
-    /**
-     * Manages intake during the second hop.
-     * If robot already has 1–2 balls in storage, spit out any new ones.
-     * If robot already has 3, completely stop intake.
-     * If robot has 0, intake normally.
-     */
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull  = (sensors.getBack()  != 0);
-        boolean leftFull  = (sensors.getLeft()  != 0);
-
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull)  count++;
-        if (leftFull)  count++;
-
-        // Tray full → spit everything else we touch
-        if (count >= 3) {
+        private void go_close(){
+            if (intake != null) intake.setPower(0);
+            Pose cur = follower.getPose();
+            PathChain close_shot = follower.pathBuilder()
+                    .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
+                    .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
+                    .build();
+            follower.followPath(close_shot, true);
+            while (opModeIsActive() && follower.isBusy()) {
+                follower.update();
+                idle();
+            }
             if (intake != null) intake.setPower(1);
-            return;
         }
-
-        // Tray not full yet → continue grabbing balls
-        if (intake != null) intake.setPower(-1);
-    }
-
-    private void go_close(){
-        if (intake != null) intake.setPower(0);
-        Pose cur = follower.getPose();
-        PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
-                .build();
-        follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-        if (intake != null) intake.setPower(1);
-    }
 }
 
 
