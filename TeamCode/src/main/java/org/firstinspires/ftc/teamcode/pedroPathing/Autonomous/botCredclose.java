@@ -71,31 +71,19 @@ public class botCredclose extends LinearOpMode {
 
     // Your goal pose (exactly as in your movement program)
     private final Pose nearshotpose = new Pose(
-            13.4,                    // x inches (forward) og: 72
+            13.4,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
             84.3,                   // y inches (left)
             Math.toRadians(0)    // heading (rad) at finish
     );
+    private final Pose midpoint1 = new Pose(
+            13.4,                    // x inches (forward) og: 72
+            60,                   // y inches (left)
+            Math.toRadians(0)    // heading (rad) at finish
+    );
     private final Pose firstpickupPose = new Pose(
-            66.5,                    // x inches (forward) og 71.5
-            -6.5,                   // y inches (left) og: 22.5
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose secondpickupPose = new Pose(
-            43.25,                    // x inches (forward) og 41.25
-            -8,                   // y inches (left) og: 21
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose midpoint1     = new Pose(43.25,-2,  Math.toRadians(90.0));
-
-    private final Pose thirdpickupPose = new Pose(
-            20,                    // x inches (forward) og 16
-            -9.5,                   // y inches (left) og: 22
-            Math.toRadians(-90)    // heading (rad) at finish
-    );
-    private final Pose homePose = new Pose(
-            0.0,                    // x inches (forward)
-            0.0,            // y inches (left)
-            Math.toRadians(-25.0)    // heading (rad) at finish
+            130-72,                    // x inches (forward) og 71.5
+             60,                   // y inches (left) og: 22.5
+            Math.toRadians(0)    // heading (rad) at finish
     );
 
     private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180));
@@ -436,7 +424,26 @@ public class botCredclose extends LinearOpMode {
     //ss
 
 
-
+    private void bezier_curve_test() {
+        intake.setPower(-1);
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain first = follower.pathBuilder()
+                .addPath(
+                        new Path(
+                                new BezierCurve
+                                        (nearshotpose,
+                                        midpoint1,
+                                        firstpickupPose)
+                        )
+                )
+                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+    }
     private void first_line_pickup(){
         intake.setPower(-1);
         // ===== 2) Movement: your two-hop Pedro path =====
@@ -478,7 +485,7 @@ public class botCredclose extends LinearOpMode {
 
 
     }
-    private void second_line_pickup(){
+    /*private void second_line_pickup(){
         // ===== 2) Movement: your two-hop Pedro path =====
         intake.setPower(-1);
         PathChain first = follower.pathBuilder()
@@ -529,7 +536,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
-        }
+        }*/
 
         // calculations to move forward
         Pose cur1 = follower.getPose();
