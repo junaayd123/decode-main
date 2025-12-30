@@ -104,7 +104,9 @@ public class botCredclose extends LinearOpMode {
     //private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180)); was modified 12/28
     private final Pose infront_of_lever   = new Pose(54, 60, Math.toRadians(0));
     private final Pose midpointbefore_intake_from_gate   = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate   = new Pose(56, 53, Math.toRadians(35));
+    private final Pose intake_from_gate   = new Pose(56, 53, Math.toRadians(40));
+    private final Pose intake_from_gate_rotate   = new Pose(55, 54, Math.toRadians(0));
+
 
 
 
@@ -501,7 +503,7 @@ public class botCredclose extends LinearOpMode {
    /////////////////////////////////////////////////////////////////////////////////
    private void open_gate() {
         //gateTimer.resetTimer();
-        intake.setPower(-1);
+       //intake.setPower(-1);
         Pose cur = follower.getPose();
        // ===== 2) Movement: your two-hop Pedro path =====
        /*PathChain first = follower.pathBuilder()
@@ -523,15 +525,6 @@ public class botCredclose extends LinearOpMode {
 
                .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), 0.8)
                .build();
-       cur = follower.getPose();
-       PathChain second = follower.pathBuilder()
-                       .addPath(
-                               new Path(
-                                       new BezierCurve(cur, midpointbefore_intake_from_gate, intake_from_gate)
-                               )
-                       )
-               .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading())
-               .build();
        follower.followPath(first, true);
        while (opModeIsActive() && follower.isBusy()) {
            follower.update();
@@ -540,7 +533,17 @@ public class botCredclose extends LinearOpMode {
            idle();
 
        }
+       intake.setPower(-1);
        pauseBeforeShooting(0.5);
+       cur = follower.getPose();
+       PathChain second = follower.pathBuilder()
+               .addPath(
+                       new Path(
+                               new BezierCurve(cur, midpointbefore_intake_from_gate, intake_from_gate, intake_from_gate_rotate)
+                       )
+               )
+               .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), intake_from_gate_rotate.getHeading())
+               .build();
        follower.followPath(second, true);
        while (opModeIsActive() && follower.isBusy()) {
            follower.update();
