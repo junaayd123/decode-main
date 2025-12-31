@@ -103,6 +103,9 @@ public class botCredclose extends LinearOpMode {
     );
     //private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180)); was modified 12/28
     private final Pose infront_of_lever   = new Pose(54, 60, Math.toRadians(0));
+    private final Pose infront_of_lever_new  = new Pose(59, 59, Math.toRadians(42));
+    private final Pose outfromgate = new Pose (50,50, Math.toRadians(42));
+
     private final Pose midpointbefore_intake_from_gate   = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate   = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate   = new Pose(55, 54, Math.toRadians(0));
@@ -220,21 +223,44 @@ public class botCredclose extends LinearOpMode {
         }
         waitForStart();
         if (isStopRequested()) return;
-        //turret.setDegreesTarget(-35);
+//        turret.setDegreesTarget(-25);
+        turret.setDegreesTarget(-38.5);
+        turret.setPid();
+
         go_back();
-        pauseBeforeShooting(3);
-        //three_close_shots();
+
+        pauseBeforeShooting(.8);
+        three_close_shots();
+
+        reset();
         bezier_curve_test(); // picks from 2nd line and comes back to near shooting zone
-        pauseBeforeShooting(3);
-        open_gate(); //opens gate and collects 3 artifacts and waits
-        go_back();
-        pauseBeforeShooting(15);
-        open_gate(); //opens gate and collects 3 artifacts and waits
-        go_back();
-        pauseBeforeShooting(15);
-        open_gate(); //opens gate and collects 3 artifacts and waits
-        go_back();
-        pauseBeforeShooting(15);
+
+        pauseBeforeShooting(.8);
+        three_close_shots();
+
+        reset();
+        go_gate_open(1.6); //opens gate and collects 3 artifacts and waits
+//        go_back();
+
+//        pauseBeforeShooting(.8);
+        three_close_shots();
+
+        reset();
+        go_gate_open(1.2); //opens gate and collects 3 artifacts and waits
+        //go_back();
+
+//        pauseBeforeShooting(.8);
+        three_close_shots();
+
+        reset();
+        go_gate_open(1.2); //opens gate and collects 3 artifacts and waits
+        //go_back();
+
+//        pauseBeforeShooting(.8);
+        three_close_shots();
+
+
+        //old auto function below
         //        first_line_pickup();
 //        reset();
 //        go_close();
@@ -250,7 +276,7 @@ public class botCredclose extends LinearOpMode {
 //        go_infront();
 
 
-        telemetry.addLine("ADITI WAD HEREEEEEEE");
+
         telemetry.update();
         sleep(500);
 
@@ -279,7 +305,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             turret.toTargetInDegrees();
             follower.update();
-//            idle();
+
         }
     }
 
@@ -305,6 +331,15 @@ public class botCredclose extends LinearOpMode {
 
     }
     private void pauseBeforeShooting(double seconds) {
+        Timer pause = new Timer();
+        pause.startTimer();
+        while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
+            follower.update();   // safe even if idle
+            turret.toTargetInDegrees();
+            idle();
+        }
+    }
+    private void pauseWait(double seconds) {
         Timer pause = new Timer();
         pause.startTimer();
         while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
@@ -389,6 +424,7 @@ public class botCredclose extends LinearOpMode {
             else return 2;
         }
     }
+
 
     private void shootLRB() {//shoots in left right back order
         if (timer1.checkAtSeconds(0)) {
@@ -517,10 +553,7 @@ public class botCredclose extends LinearOpMode {
                .build();*/
        PathChain first = follower.pathBuilder()
                .addPath(
-                       new Path(
-                               new BezierLine
-                                       (cur, infront_of_lever)
-                       )
+                       new Path(new BezierLine(cur, infront_of_lever))
                )
 
                .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), 0.8)
@@ -534,7 +567,7 @@ public class botCredclose extends LinearOpMode {
 
        }
        intake.setPower(-1);
-       pauseBeforeShooting(0.5);
+       pauseWait(0.5);
        cur = follower.getPose();
        PathChain second = follower.pathBuilder()
                .addPath(
@@ -552,7 +585,7 @@ public class botCredclose extends LinearOpMode {
            idle();
 
        }
-       pauseBeforeShooting(1.6);
+       pauseWait(1.6);
        intake.setPower(0);
 
 //       intake.setPower(0);
@@ -575,8 +608,36 @@ public class botCredclose extends LinearOpMode {
 //           idle();
 //       }
    }
-   ////////////////////////////////////////////////////////////////////////////////
 
+
+    private void go_gate_open(double seconds){
+        intake.setPower(-1);
+        Pose cur = follower.getPose();
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
+                .setTimeoutConstraint(1.2)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        pauseWait(seconds);
+        intake.setPower(0);
+        cur = follower.getPose();
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+    }
     private void first_line_pickup(){
         intake.setPower(-1);
         // ===== 2) Movement: your two-hop Pedro path =====
