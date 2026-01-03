@@ -214,7 +214,7 @@ public class TurretTest extends LinearOpMode {
                 }
 
             } else if (mode == Mode.ToDegrees) {
-                double targetDegrees2 = cur.getHeading()-headingTotag;
+                double targetDegrees2 = Math.toDegrees(cur.getHeading()-headingTotag);
                 // PID control
                 double targetTicks = targetDegrees2 * DegtoTickCoefficient;
                 double error = targetTicks - currentPos;

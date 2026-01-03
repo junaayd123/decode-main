@@ -34,7 +34,7 @@ public class Deposition_C {
     public double farPower   = 0.70;
     //    public double farPower2  = 0.70;
     //
-    public double closeVelo_New = 1200; //use for new bot
+    public double closeVelo_New = 1250; //use for new bot
 
     private double powerOutput = 0.0;
 
@@ -59,7 +59,7 @@ public class Deposition_C {
         return targetVelocity != 0 && getVelocity() >= targetVelocity - 20 && getVelocity() <= targetVelocity + 20;
     }
     public boolean reachedTargetHighTolerance(){
-        return targetVelocity != 0 && getVelocity() >= targetVelocity;
+        return targetVelocity != 0 && getVelocity() >= targetVelocity-40;
     }
 
     // --- PID velocity update (call periodically in your loop) ---

@@ -73,9 +73,14 @@ public class cbotclosered extends LinearOpMode {
 
     // Your goal pose (exactly as in your movement program)
     private final Pose nearshotpose = new Pose(
-            13.4,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
-            84.3,                   // y inches (left)
+            22,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
+            90.5,                   // y inches (left)
             Math.toRadians(0)    // heading (rad) at finish
+    );
+    private final Pose nearshotpose2 = new Pose(//same pose but with heading of gate opening
+            22,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
+            90.5,                   // y inches (left)
+            Math.toRadians(34)    // heading (rad) at finish
     );
     private final Pose firstPickupPose = new Pose(
             54,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
@@ -226,13 +231,14 @@ public class cbotclosered extends LinearOpMode {
         waitForStart();
         if (isStopRequested()) return;
 //        turret.setDegreesTarget(-25);
-        turret.setDegreesTarget(-44);
+        turret.setDegreesTarget(-44.5);
         turret.setPid();
 
         go_back();
         three_close_shots();
 
         reset();
+        turret.setDegreesTarget(22);
         bezier_curve_test(); // picks from 2nd line and comes back to near shooting zone
 
         three_close_shots();
@@ -304,7 +310,7 @@ public class cbotclosered extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             turret.toTargetInDegrees();
             follower.update();
-//            manageSecondHopIntake();
+            manageSecondHopIntake();
         }
     }
 
@@ -383,7 +389,7 @@ public class cbotclosered extends LinearOpMode {
         while (opModeIsActive() && !isFarShotCycleDone()) {
             depo.updatePID();  // COMMENTED OUT (depo)
             turret.toTargetInDegrees();
-            if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
+            if (depo.reachedTargetHighTolerance()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
                     greenInSlot = getGreenPos();
                     timer1.startTimer();
@@ -523,10 +529,10 @@ public class cbotclosered extends LinearOpMode {
                                 new BezierCurve
                                         (cur,
                                                 midpoint2,
-                                                nearshotpose)
+                                                nearshotpose2)
                         )
                 )
-                .setLinearHeadingInterpolation(cur.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.8)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -629,8 +635,8 @@ public class cbotclosered extends LinearOpMode {
         cur = follower.getPose();
         // ===== 2) Movement: your two-hop Pedro path =====
         PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
