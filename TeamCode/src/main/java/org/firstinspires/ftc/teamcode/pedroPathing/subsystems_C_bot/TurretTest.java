@@ -6,6 +6,8 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.arcrobotics.ftclib.controller.PIDController;
 import com.arcrobotics.ftclib.geometry.Pose2d;
 import com.arcrobotics.ftclib.geometry.Rotation2d;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -41,13 +43,17 @@ public class TurretTest extends LinearOpMode {
     private Mode mode = Mode.DRIVER;
     private Limelight3A limelight;
     double lastTimestamp = -1;
-    double yawToTagBlue =0;
-    double yawToTagRed =0;
+    double yawToTag=0;
+    boolean blueAlliance = false;
     double targetTicks;
     boolean runningAround;
     boolean doneRUnning;
     double groundDistanceCM;
     double turretPoseRad;
+    private Follower follower;
+    private final Pose startPose = new Pose(53,70,0); //red
+    private final Pose blueGoal = new Pose(-72,144,0);
+    private final Pose redGoal = new Pose(72,144,0);
     // Camera position relative to ROBOT CENTER (meters)
     public static final double CAM_X = 0.14; // forward (+X)
     public static final double CAM_Y = 0.00; // left (+Y)
@@ -55,6 +61,7 @@ public class TurretTest extends LinearOpMode {
     // Camera yaw relative to turret (rad)
     public static final double CAM_YAW_OFFSET = 0.0;
     public static final double METERS_TO_INCHES = 39.37007874;
+    double headingTotag;
 
 
 
@@ -98,6 +105,8 @@ public class TurretTest extends LinearOpMode {
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
 //        telemetry.setMsTransmissionInterval(11);
         limelight.pipelineSwitch(0);
+        follower = C_Bot_Constants.createFollower(hardwareMap);
+        follower.setStartingPose(startPose);
 
         /*
          * Starts polling for data.
@@ -107,10 +116,24 @@ public class TurretTest extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
+            follower.update();
+            Pose cur = follower.getPose();
+            if(gamepad1.psWasPressed()){
+                blueAlliance = !blueAlliance;
+                Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
+                follower.setPose(invert);
+            }
             if (gamepad1.shareWasPressed()) {
                 TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
+            Pose targett = blueAlliance ? blueGoal : redGoal;
+            double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
+
+            double flippedAngle = rawAngle + Math.PI;
+            flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+            headingTotag = flippedAngle+Math.PI;
             pid.setPID(p, i, d);
 
             double currentPos = TurretMotor.getCurrentPosition();
@@ -147,34 +170,29 @@ public class TurretTest extends LinearOpMode {
                 lastTimestamp = result.getTimestamp();
                 fiducialResults = result.getFiducialResults();
                 for (LLResultTypes.FiducialResult fr : fiducialResults) {
-                    Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                    groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z) * 100;
-                    if (fr.getFiducialId() == 20) {
-                        yawToTagBlue = fr.getTargetXDegrees();
-                        Pose3D llPose = fr.getRobotPoseTargetSpace();// FIELD pose of camera
-                        telemetry.addData("LL Botpose X (m)", llPose.getPosition().x);
-                        telemetry.addData("LL Botpose Y (m)", llPose.getPosition().y);
-                        telemetry.addData("LL Botpose Heading",
-                                llPose.getOrientation().getYaw());
-                        Pose2d camFieldPose = new Pose2d(llPose.getPosition().x, llPose.getPosition().y, new Rotation2d(Math.toRadians(llPose.getOrientation().getYaw())));
-
-                        Pose2d robotFieldPose = getRobotPoseFromLimelight(camFieldPose, camPoseRobot);
-                        Pose2d robotFieldPoseInches = new Pose2d(
-                                robotFieldPose.getX() * METERS_TO_INCHES,
-                                robotFieldPose.getY() * METERS_TO_INCHES,
-                                robotFieldPose.getRotation()
-                        );
-
-                        telemetry.addData("Robot X", robotFieldPoseInches.getX());
-                        telemetry.addData("Robot Y", robotFieldPoseInches.getY());
-                        telemetry.addData("Robot Heading deg",
-                                Math.toDegrees(robotFieldPoseInches.getHeading()));
-                        hasTag = true;
+                    if(blueAlliance){
+                        if (fr.getFiducialId() == 20) {
+                            yawToTag = fr.getTargetXDegrees();
+                            hasTag = true;
+                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
+                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
+                        }
+                        else{
+                            yawToTag = 0;
+                            hasTag = false;
+                        }
                     }
-
-                    if (fr.getFiducialId() == 24) {
-                        yawToTagRed = fr.getTargetXDegrees();
-                        hasTag = true;
+                    else {
+                        if (fr.getFiducialId() == 24) {
+                            yawToTag = fr.getTargetXDegrees();
+                            hasTag = true;
+                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
+                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
+                        }
+                        else{
+                            yawToTag = 0;
+                            hasTag = false;
+                        }
                     }
 
                 }
@@ -196,8 +214,9 @@ public class TurretTest extends LinearOpMode {
                 }
 
             } else if (mode == Mode.ToDegrees) {
+                double targetDegrees2 = cur.getHeading()-headingTotag;
                 // PID control
-                double targetTicks = targetDegrees * DegtoTickCoefficient;
+                double targetTicks = targetDegrees2 * DegtoTickCoefficient;
                 double error = targetTicks - currentPos;
 
                 if (Math.abs(error) <= tolerance) {
@@ -209,7 +228,7 @@ public class TurretTest extends LinearOpMode {
 
             } else {
                 if (!runningAround) {
-                    targetTicks = currentPos + (yawToTagBlue * DegtoTickCoefficient);
+                    targetTicks = currentPos + (yawToTag * DegtoTickCoefficient);
                 }
                 if (targetTicks > 730) {
                     targetTicks -= 1300;
@@ -250,12 +269,15 @@ public class TurretTest extends LinearOpMode {
 
 
             telemetry.addData("Mode", mode);
+            telemetry.addData("follower x",cur.getX());
+            telemetry.addData("follower y",cur.getY());
+            telemetry.addData("follower heading",Math.toDegrees(cur.getHeading()));
+            telemetry.addData("desired angle to tag",Math.toDegrees(headingTotag));
             telemetry.addData("Target", target);
             telemetry.addData("Encoder Position", currentPos);
             telemetry.addData("Error", target - currentPos);
             telemetry.addData("Servo Power", power);
-            telemetry.addData("degrees to blue", yawToTagBlue);
-            telemetry.addData("degrees to red", yawToTagRed);
+            telemetry.addData(blueAlliance?"degrees to blue tag":"degrees to red tag", yawToTag);
             telemetry.addData("distance to tag cm", groundDistanceCM);
             telemetry.addData("whatever is in the fiducial result", fiducialResults);
             telemetry.addData("P", p);
