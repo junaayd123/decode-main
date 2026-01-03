@@ -482,13 +482,13 @@ public class TEST_newBot_farRedMotif extends LinearOpMode {
             else shootingHasWorked = LL.lift_purple();
             checkShot();
         }
-        if (timer2.checkAtSeconds(1.2)) {//third shot
+        if (timer2.checkAtSeconds(1.0)) {//third shot
             LL.allDown();
             if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
             else shootingHasWorked = LL.lift_purple();
             checkShot();
         }
-        if (timer2.checkAtSeconds(1.6)) {//tunr off depo
+        if (timer2.checkAtSeconds(1.4)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();

@@ -101,16 +101,16 @@ public class lifters {
         else return false;
     }
     public void leftDown(){liftLeft.setPosition(0.07);}
-    public void leftUp(){liftLeft.setPosition(0.41);}
+    public void leftUp(){liftLeft.setPosition(0.39);}
     public void rightDown(){liftRight.setPosition(0.01);}
-    public void rightUp(){liftRight.setPosition(0.37);}
-    public void backDown(){liftBack.setPosition(0.03);}
-    public void backUp(){liftBack.setPosition(0.36);}
+    public void rightUp(){liftRight.setPosition(0.33);}
+    public void backDown(){liftBack.setPosition(0.01);}
+    public void backUp(){liftBack.setPosition(0.35);}
     public void set_angle_min(){launchAngleServo.setPosition(0.06);}
     public void set_angle_custom(double ang){launchAngleServo.setPosition(ang);}
     public void set_angle_far(){launchAngleServo.setPosition(0.18);}
     public void set_angle_far_auto(){launchAngleServo.setPosition(0.16);}
-    public void set_angle_close(){launchAngleServo.setPosition(0.06);}
+    public void set_angle_close(){launchAngleServo.setPosition(0.09);}
 
     public void allDown(){
         leftDown();

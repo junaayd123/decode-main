@@ -4,6 +4,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -15,9 +16,9 @@ public class reallySimpleTeleOpForShyam extends OpMode {
     // Really Simple Teleop For AUTO THIS HAS BEEN REPU*RPOSED THIS IS NOT FOR SHYAM ANYMORE BECAUSE WE ARE USING THSI RROFOR THE AUTO - vihonion and juneiad
     public Follower follower;
     private final Pose startPose = new Pose(
-            110,                // x inches
-            -27,                     // y inches og:32
-            Math.toRadians(-225)    // heading (rad)
+            44,                // x inches
+            128,                     // y inches og:32
+            Math.toRadians(35)    // heading (rad)
     );
     @Override
     public void init() {

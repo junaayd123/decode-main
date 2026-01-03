@@ -21,6 +21,7 @@ public class Deposition_C {
     public static double p = -0.001;
     public static double i = 0.0;
     public static double d = 0.0;
+    public double farVelo_New = 1625;
 
     // Target velocity in ticks per second
     public  double targetVelocity = 0;
@@ -33,7 +34,8 @@ public class Deposition_C {
     public double farPower   = 0.70;
     //    public double farPower2  = 0.70;
     //
-    public double closeVelo_New = 1125; //use for new bot
+    public double closeVelo_New = 1250; //use for new bot
+
     private double powerOutput = 0.0;
 
     public Deposition_C(HardwareMap hardwareMap) {
@@ -57,8 +59,9 @@ public class Deposition_C {
         return targetVelocity != 0 && getVelocity() >= targetVelocity - 20 && getVelocity() <= targetVelocity + 20;
     }
     public boolean reachedTargetHighTolerance(){
-        return targetVelocity != 0 && getVelocity() >= targetVelocity;
+        return targetVelocity != 0 && getVelocity() >= targetVelocity-40;
     }
+    //
 
     // --- PID velocity update (call periodically in your loop) ---
     public void updatePID() {
@@ -96,3 +99,4 @@ public class Deposition_C {
     public double getTargetVelocity() { return targetVelocity; }
     public double getPowerOutput() { return powerOutput; }
 }
+//hi

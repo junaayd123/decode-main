@@ -127,8 +127,14 @@ public class Tuning extends SelectableOpMode {
  * @version 1.0, 5/6/2024
  */
 class LocalizationTest extends OpMode {
+    private final Pose startPose = new Pose(
+            44,                // x inches
+            128,                     // y inches og:32
+            Math.toRadians(35)    // heading (rad)
+    );
     @Override
-    public void init() {}
+    public void init() {
+    }
 
     /** This initializes the PoseUpdater, the mecanum drive motors, and the Panels telemetry. */
     @Override
@@ -152,6 +158,9 @@ class LocalizationTest extends OpMode {
      */
     @Override
     public void loop() {
+        if(gamepad1.shareWasPressed()){
+            follower.setPose(startPose);
+        }
         follower.setTeleOpDrive(-gamepad1.left_stick_y, -gamepad1.left_stick_x, -gamepad1.right_stick_x, true);
         follower.update();
 
@@ -1324,3 +1333,5 @@ class Drawing {
         panelsField.update();
     }
 }
+
+//hi

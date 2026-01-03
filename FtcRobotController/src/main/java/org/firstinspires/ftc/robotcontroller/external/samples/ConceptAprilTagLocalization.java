@@ -29,10 +29,14 @@
 
 package org.firstinspires.ftc.robotcontroller.external.samples;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -66,10 +70,13 @@ import java.util.List;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
 @TeleOp(name = "Concept: AprilTag Localization", group = "Concept")
-@Disabled
 public class ConceptAprilTagLocalization extends LinearOpMode {
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    private FtcDashboard dashboard = FtcDashboard.getInstance();
+    public double fieldX;
+    public double fieldY;
+    public double fieldHeading;
 
     /**
      * Variables to store the position and orientation of the camera on the robot. Setting these
@@ -112,6 +119,8 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
+
 
         initAprilTag();
 
@@ -120,6 +129,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
         telemetry.addData(">", "Touch START to start OpMode");
         telemetry.update();
         waitForStart();
+
 
         while (opModeIsActive()) {
 
@@ -218,6 +228,7 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
      * Add telemetry about AprilTag detections.
      */
     private void telemetryAprilTag() {
+        Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
 
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
         telemetry.addData("# AprilTags Detected", currentDetections.size());
@@ -236,6 +247,12 @@ public class ConceptAprilTagLocalization extends LinearOpMode {
                             detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
                             detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                    telemetry.addData("x", detection.robotPose.getPosition().x);
+                    telemetry.addData("y", detection.robotPose.getPosition().y);
+                    telemetry.addData("heading", detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES));
+                    fieldX = detection.robotPose.getPosition().x;
+                    fieldY = detection.robotPose.getPosition().y;
+                    fieldHeading = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
                 }
             } else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
