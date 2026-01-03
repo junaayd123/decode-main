@@ -631,6 +631,7 @@ public class cbotclosered extends LinearOpMode {
             idle();
         }
         pauseWait(seconds);
+        //
 //        intake.setPower(0);
         cur = follower.getPose();
         // ===== 2) Movement: your two-hop Pedro path =====
