@@ -224,7 +224,7 @@ public class botCredclose extends LinearOpMode {
         waitForStart();
         if (isStopRequested()) return;
 //        turret.setDegreesTarget(-25);
-        turret.setDegreesTarget(-38.5);
+        turret.setDegreesTarget(-41);
         turret.setPid();
 
         go_back();
