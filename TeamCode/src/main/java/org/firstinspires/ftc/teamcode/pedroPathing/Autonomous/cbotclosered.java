@@ -1,3 +1,5 @@
+
+
 package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
 
 import com.pedropathing.geometry.BezierCurve;
@@ -14,25 +16,34 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
 
 //hi..
-@Autonomous(name = "botCredclosered_a", group = "Pedro")
-public class botCredclose extends LinearOpMode {
+@Autonomous(name = "cbotclosered", group = "Pedro")
+public class cbotclosered extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
@@ -69,7 +80,7 @@ public class botCredclose extends LinearOpMode {
     private final Pose nearshotpose2 = new Pose(//same pose but with heading of gate opening
             22,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
             90.5,                   // y inches (left)
-            Math.toRadians(42)    // heading (rad) at finish
+            Math.toRadians(34)    // heading (rad) at finish
     );
     private final Pose firstPickupPose = new Pose(
             54,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
@@ -86,7 +97,7 @@ public class botCredclose extends LinearOpMode {
             68,                   // y inches (left)
             Math.toRadians(0)    // heading (rad) at finish
     );
-    private final Pose newFirstpickup = new Pose(
+    private final Pose firstpickupPose = new Pose(
             56,                    // x inches (forward) og 71.5
             55,                   // y inches (left) og: 22.5
             Math.toRadians(0)    // heading (rad) at finish
@@ -99,13 +110,8 @@ public class botCredclose extends LinearOpMode {
     );
     //private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180)); was modified 12/28
     private final Pose infront_of_lever   = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new  = new Pose(59, 59, Math.toRadians(42));
+    private final Pose infront_of_lever_new  = new Pose(57.2, 57.1, Math.toRadians(34));
     private final Pose outfromgate = new Pose (50,50, Math.toRadians(42));
-    private final Pose beforeGate = new Pose(
-            56,                    // x inches (forward) og: 72 //junaayd note: later change x and y so that they are exactly 12 instead of having this, meaning12 and 84
-            55,                   // y inches (left)
-            Math.toRadians(0)    // heading (rad) at finish
-    );
 
     private final Pose midpointbefore_intake_from_gate   = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate   = new Pose(56, 53, Math.toRadians(40));
@@ -225,18 +231,16 @@ public class botCredclose extends LinearOpMode {
         waitForStart();
         if (isStopRequested()) return;
 //        turret.setDegreesTarget(-25);
-        turret.setDegreesTarget(-42.5);
+        turret.setDegreesTarget(-44.5);
         turret.setPid();
 
         go_back();
-
-        pauseBeforeShooting(.8);
         three_close_shots();
 
         reset();
+        turret.setDegreesTarget(22);
         bezier_curve_test(); // picks from 2nd line and comes back to near shooting zone
 
-        pauseBeforeShooting(.8);
         three_close_shots();
 
         reset();
@@ -282,36 +286,6 @@ public class botCredclose extends LinearOpMode {
         sleep(500);
 
     }
-    private void go_gate_open(double seconds){
-        intake.setPower(-1);
-        Pose cur = follower.getPose();
-        // ===== 2) Movement: your two-hop Pedro path =====
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
-                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.2)
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-        pauseWait(seconds);
-        check3ballsIntake();
-        cur = follower.getPose();
-        // ===== 2) Movement: your two-hop Pedro path =====
-        PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
-                .build();
-        follower.followPath(second, true);
-        check3ballsIntake();
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-    }
-    //
     private void go_infront(){
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
@@ -336,7 +310,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) {
             turret.toTargetInDegrees();
             follower.update();
-
+            manageSecondHopIntake();
         }
     }
 
@@ -415,7 +389,7 @@ public class botCredclose extends LinearOpMode {
         while (opModeIsActive() && !isFarShotCycleDone()) {
             depo.updatePID();  // COMMENTED OUT (depo)
             turret.toTargetInDegrees();
-            if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
+            if (depo.reachedTargetHighTolerance()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
                     greenInSlot = getGreenPos();
                     timer1.startTimer();
@@ -536,10 +510,10 @@ public class botCredclose extends LinearOpMode {
                                 new BezierCurve
                                         (cur,
                                                 midpoint1,
-                                                newFirstpickup)
+                                                firstpickupPose)
                         )
                 )
-                .setLinearHeadingInterpolation(cur.getHeading(), newFirstpickup.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), firstpickupPose.getHeading(), 0.8)
                 .build();
         follower.followPath(first, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -555,24 +529,25 @@ public class botCredclose extends LinearOpMode {
                                 new BezierCurve
                                         (cur,
                                                 midpoint2,
-                                                nearshotpose)
+                                                nearshotpose2)
                         )
                 )
-                .setLinearHeadingInterpolation(cur.getHeading(), newFirstpickup.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.8)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+            manageSecondHopIntake();
             idle();
-        }//trying to commit
+        }
     }
 
-   /////////////////////////////////////////////////////////////////////////////////
-   private void open_gate() {
+    /////////////////////////////////////////////////////////////////////////////////
+    private void open_gate() {
         //gateTimer.resetTimer();
-       //intake.setPower(-1);
+        //intake.setPower(-1);
         Pose cur = follower.getPose();
-       // ===== 2) Movement: your two-hop Pedro path =====
+        // ===== 2) Movement: your two-hop Pedro path =====
        /*PathChain first = follower.pathBuilder()
                .addPath(
                        new Path(
@@ -582,42 +557,42 @@ public class botCredclose extends LinearOpMode {
                )
                .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), 0.8)
                .build();*/
-       PathChain first = follower.pathBuilder()
-               .addPath(
-                       new Path(new BezierLine(cur, infront_of_lever))
-               )
+        PathChain first = follower.pathBuilder()
+                .addPath(
+                        new Path(new BezierLine(cur, infront_of_lever))
+                )
 
-               .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), 0.8)
-               .build();
-       follower.followPath(first, true);
-       while (opModeIsActive() && follower.isBusy()) {
-           follower.update();
-           //telemetry.addData("Timer Seconds", gateTimer.curtime);
-           //telemetry.update();
-           idle();
+                .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), 0.8)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            //telemetry.addData("Timer Seconds", gateTimer.curtime);
+            //telemetry.update();
+            idle();
 
-       }
-       intake.setPower(-1);
-       pauseWait(0.5);
-       cur = follower.getPose();
-       PathChain second = follower.pathBuilder()
-               .addPath(
-                       new Path(
-                               new BezierCurve(cur, midpointbefore_intake_from_gate, intake_from_gate, intake_from_gate_rotate)
-                       )
-               )
-               .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), intake_from_gate_rotate.getHeading())
-               .build();
-       follower.followPath(second, true);
-       while (opModeIsActive() && follower.isBusy()) {
-           follower.update();
-           //telemetry.addData("Timer Seconds", gateTimer.curtime);
-           //telemetry.update();
-           idle();
+        }
+        intake.setPower(-1);
+        pauseWait(0.5);
+        cur = follower.getPose();
+        PathChain second = follower.pathBuilder()
+                .addPath(
+                        new Path(
+                                new BezierCurve(cur, midpointbefore_intake_from_gate, intake_from_gate, intake_from_gate_rotate)
+                        )
+                )
+                .setLinearHeadingInterpolation(cur.getHeading(), intake_from_gate.getHeading(), intake_from_gate_rotate.getHeading())
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            //telemetry.addData("Timer Seconds", gateTimer.curtime);
+            //telemetry.update();
+            idle();
 
-       }
-       pauseWait(1.6);
-       intake.setPower(0);
+        }
+        pauseWait(1.6);
+        intake.setPower(0);
 
 //       intake.setPower(0);
 //       cur = follower.getPose();
@@ -638,16 +613,37 @@ public class botCredclose extends LinearOpMode {
 //           follower.update();
 //           idle();
 //       }
-   }
+    }
 
 
-
-    private void check3ballsIntake() {
-        if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
-            intake.setPower(0);
+    private void go_gate_open(double seconds){
+        intake.setPower(-1);
+        Pose cur = follower.getPose();
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
+                .setTimeoutConstraint(1.2)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
         }
-        else {
-            intake.setPower(-1);
+        pauseWait(seconds);
+        //
+//        intake.setPower(0);
+        cur = follower.getPose();
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            manageSecondHopIntake();
+            idle();
         }
     }
     private void first_line_pickup(){
@@ -775,42 +771,41 @@ public class botCredclose extends LinearOpMode {
          * If robot already has 3, completely stop intake.
          * If robot has 0, intake normally.
          */
-        private void manageSecondHopIntake() {
-            if (intake == null || LL == null || sensors == null) return;
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
 
-            boolean rightFull = (sensors.getRight() != 0);
-            boolean backFull  = (sensors.getBack()  != 0);
-            boolean leftFull  = (sensors.getLeft()  != 0);
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
 
-            int count = 0;
-            if (rightFull) count++;
-            if (backFull)  count++;
-            if (leftFull)  count++;
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
 
-            // Tray full → spit everything else we touch
-            if (count >= 3) {
-                if (intake != null) intake.setPower(1);
-                return;
-            }
-
-            // Tray not full yet → continue grabbing balls
-            if (intake != null) intake.setPower(-1);
-        }
-
-        private void go_close(){
-            if (intake != null) intake.setPower(0);
-            Pose cur = follower.getPose();
-            PathChain close_shot = follower.pathBuilder()
-                    .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
-                    .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
-                    .build();
-            follower.followPath(close_shot, true);
-            while (opModeIsActive() && follower.isBusy()) {
-                follower.update();
-                idle();
-            }
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
             if (intake != null) intake.setPower(1);
+            return;
         }
-}
 
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
+    }
+
+    private void go_close(){
+        if (intake != null) intake.setPower(0);
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
+                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        if (intake != null) intake.setPower(1);
+    }
+}
 
