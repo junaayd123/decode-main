@@ -50,8 +50,6 @@ public class BotCTeleop extends OpMode {
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
     private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-61));
     private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
-    private final Pose redGoal  = new Pose(144, 144, 0);
-    private final Pose blueGoal  = new Pose(0, 144,0);
     private final Pose redGoal2  = new Pose(144, 144, 0);
     private final Pose blueGoal2  = new Pose(0, 144,0);
     private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
@@ -110,7 +108,10 @@ public class BotCTeleop extends OpMode {
 
     private Follower follower;
 
-    private final Pose startPose = new Pose(0,0,0);
+    private final Pose startPose = new Pose(53,70,0); //red
+    private final Pose blueGoal = new Pose(-72,144,0);
+    private final Pose redGoal = new Pose(72,144,0);
+    double headingTotag;
     @Override
     public void init() {
         turret = new TurretLimelight(hardwareMap);
@@ -154,6 +155,7 @@ public class BotCTeleop extends OpMode {
 
     @Override
     public void loop() {
+        Pose cur = follower.getPose();
         preG1.copy(g1);
         preG2.copy(g2);
         g1.copy(gamepad1);
@@ -163,8 +165,17 @@ public class BotCTeleop extends OpMode {
             bluealliance = !bluealliance;
             if(bluealliance) turret.setBlueAlliance();
             else turret.setRedAlliance();
+            Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
+            follower.setPose(invert);
         }
         turret.updateLimelight();
+        Pose targett = bluealliance ? blueGoal : redGoal;
+        double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
+
+        double flippedAngle = rawAngle + Math.PI;
+        flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+        headingTotag = flippedAngle+Math.PI;
 
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.getPower() < -0.5) {
@@ -202,7 +213,7 @@ public class BotCTeleop extends OpMode {
             alignToTags = !alignToTags;
         }
         if(alignToTags){
-            turret.allignToTag();
+            turret.toTargetInDegrees2(Math.toDegrees(cur.getHeading() - headingTotag));
         }
         else turret.TurretMotor.setPower(0);
         if(g2.cross && !preG2.cross){//shoot 3 close
@@ -325,7 +336,7 @@ public class BotCTeleop extends OpMode {
         followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
         ledColorTime(ledColor, ledRunTime);
-        Pose cur = follower.getPose();
+//        Pose cur = follower.getPose();
         distanceToGoal = turret.getTagDistance();// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("align to tag",alignToTags);

@@ -17,7 +17,17 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
@@ -41,7 +51,7 @@ public class TurretTest extends LinearOpMode {
 
     private enum Mode { DRIVER, ToTarget, ToDegrees,Limelight}
     private Mode mode = Mode.DRIVER;
-    private Limelight3A limelight;
+//    private Limelight3A limelight;
     double lastTimestamp = -1;
     double yawToTag=0;
     boolean blueAlliance = false;
@@ -57,13 +67,65 @@ public class TurretTest extends LinearOpMode {
     // Camera position relative to ROBOT CENTER (meters)
     public static final double CAM_X = 0.14; // forward (+X)
     public static final double CAM_Y = 0.00; // left (+Y)
+    private static final double TURRET_MIN_TICKS = -850;
+    private static final double TURRET_MAX_TICKS = 730;
+
 
     // Camera yaw relative to turret (rad)
     public static final double CAM_YAW_OFFSET = 0.0;
     public static final double METERS_TO_INCHES = 39.37007874;
     double headingTotag;
+    private static final boolean USE_WEBCAM = true;
+    private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 9, 6, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, 20, -90, 0);
 
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
+    Pose ftcPose, pedroPose;
+    boolean tagDetected;
+    boolean tagInitializing;
+    double turretDeg;
 
+    private void initAprilTag() {
+        aprilTag = new AprilTagProcessor.Builder()
+                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+                .setCameraPose(cameraPosition, cameraOrientation)
+                .build();
+
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        if (USE_WEBCAM) {
+            try { builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1")); }
+            catch (Exception e) { telemetry.addLine("Warning: Webcam not found"); }
+        } else {
+            builder.setCamera(BuiltinCameraDirection.BACK);
+        }
+        builder.addProcessor(aprilTag);
+        visionPortal = builder.build();
+    }
+    private void updateAprilTagLocalization() {
+        if (aprilTag == null) return;
+
+        List<AprilTagDetection> dets = aprilTag.getDetections();
+        tagDetected = false;
+
+        for (AprilTagDetection d : dets) {
+            if (d.metadata == null) continue;
+            if (d.metadata.name.contains("Obelisk")) continue;
+
+            tagDetected = true;
+
+            double xIn = d.robotPose.getPosition().x;
+            double yIn = d.robotPose.getPosition().y;
+            double hDeg = d.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+            double bearing = d.ftcPose.z;
+            double bearingDeg = 1.634*bearing;
+
+            ftcPose = new Pose(xIn, yIn, Math.toRadians(hDeg));
+            pedroPose = new Pose(ftcPose.getY(), -ftcPose.getX() + 72, ftcPose.getHeading()+Math.toRadians(turretDeg-bearingDeg));
+            break;
+        }
+    }
 
     public static Pose2d getCameraPoseRobotFrame(double turretAngleRad) {
 
@@ -101,23 +163,42 @@ public class TurretTest extends LinearOpMode {
 //        TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 //        TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         pid = new PIDController(p, i, d);
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+//        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        initAprilTag();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
 //        telemetry.setMsTransmissionInterval(11);
-        limelight.pipelineSwitch(0);
+//        limelight.pipelineSwitch(0);
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
         /*
          * Starts polling for data.
          */
-        limelight.start();
+//        limelight.start();
 
         waitForStart();
 
         while (opModeIsActive()) {
             follower.update();
             Pose cur = follower.getPose();
+            double currentPos = TurretMotor.getCurrentPosition();
+            // Convert ticks → degrees → radians
+            turretDeg = currentPos / DegtoTickCoefficient;
+            if(gamepad1.dpadUpWasPressed()){
+                tagInitializing = !tagInitializing;
+            }
+            if (tagInitializing) {
+                updateAprilTagLocalization();
+                if (tagDetected && pedroPose != null && !follower.isBusy()) {
+                    telemetry.addLine("seeing and localizing tag");
+                    telemetry.addData("local x",pedroPose.getX());
+                    telemetry.addData("local y",pedroPose.getY());
+                    telemetry.addData("local hed",Math.toDegrees(pedroPose.getHeading()));
+//                    follower.setPose(pedroPose.getPose());
+//                    tagInitializing = false;
+                }
+            }
+
             if(gamepad1.psWasPressed()){
                 blueAlliance = !blueAlliance;
                 Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
@@ -136,9 +217,7 @@ public class TurretTest extends LinearOpMode {
             headingTotag = flippedAngle+Math.PI;
             pid.setPID(p, i, d);
 
-            double currentPos = TurretMotor.getCurrentPosition();
-            // Convert ticks → degrees → radians
-            double turretDeg = currentPos / DegtoTickCoefficient;
+
 
             // Invert so CCW is positive
             turretPoseRad = Math.toRadians(-turretDeg);
@@ -159,44 +238,44 @@ public class TurretTest extends LinearOpMode {
             double power;
             boolean hasTag = false;
 
-            LLResult result = limelight.getLatestResult();
+//            LLResult result = limelight.getLatestResult();
 
 //            if (result != null && result.isValid()) {
 //
 //
 //            }
-            List<LLResultTypes.FiducialResult> fiducialResults = null;
-            if (result.getTimestamp() != lastTimestamp) {
-                lastTimestamp = result.getTimestamp();
-                fiducialResults = result.getFiducialResults();
-                for (LLResultTypes.FiducialResult fr : fiducialResults) {
-                    if(blueAlliance){
-                        if (fr.getFiducialId() == 20) {
-                            yawToTag = fr.getTargetXDegrees();
-                            hasTag = true;
-                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
-                        }
-                        else{
-                            yawToTag = 0;
-                            hasTag = false;
-                        }
-                    }
-                    else {
-                        if (fr.getFiducialId() == 24) {
-                            yawToTag = fr.getTargetXDegrees();
-                            hasTag = true;
-                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
-                        }
-                        else{
-                            yawToTag = 0;
-                            hasTag = false;
-                        }
-                    }
-
-                }
-            }
+//            List<LLResultTypes.FiducialResult> fiducialResults = null;
+//            if (result.getTimestamp() != lastTimestamp) {
+//                lastTimestamp = result.getTimestamp();
+//                fiducialResults = result.getFiducialResults();
+//                for (LLResultTypes.FiducialResult fr : fiducialResults) {
+//                    if(blueAlliance){
+//                        if (fr.getFiducialId() == 20) {
+//                            yawToTag = fr.getTargetXDegrees();
+//                            hasTag = true;
+//                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
+//                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
+//                        }
+//                        else{
+//                            yawToTag = 0;
+//                            hasTag = false;
+//                        }
+//                    }
+//                    else {
+//                        if (fr.getFiducialId() == 24) {
+//                            yawToTag = fr.getTargetXDegrees();
+//                            hasTag = true;
+//                            Pose3D camToTag = fr.getCameraPoseTargetSpace();
+//                            groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
+//                        }
+//                        else{
+//                            yawToTag = 0;
+//                            hasTag = false;
+//                        }
+//                    }
+//
+//                }
+//            }
 
 
             if (mode == Mode.DRIVER) {
@@ -214,9 +293,14 @@ public class TurretTest extends LinearOpMode {
                 }
 
             } else if (mode == Mode.ToDegrees) {
-                double targetDegrees2 = cur.getHeading()-headingTotag;
-                // PID control
+
+                double targetDegrees2 = Math.toDegrees(cur.getHeading() - headingTotag);
                 double targetTicks = targetDegrees2 * DegtoTickCoefficient;
+
+                // Clamp target to limits
+                targetTicks = Math.max(TURRET_MIN_TICKS,
+                        Math.min(TURRET_MAX_TICKS, targetTicks));
+
                 double error = targetTicks - currentPos;
 
                 if (Math.abs(error) <= tolerance) {
@@ -225,7 +309,6 @@ public class TurretTest extends LinearOpMode {
                     double pidOutput = pid.calculate(currentPos, targetTicks);
                     power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
                 }
-
             } else {
                 if (!runningAround) {
                     targetTicks = currentPos + (yawToTag * DegtoTickCoefficient);
@@ -279,7 +362,7 @@ public class TurretTest extends LinearOpMode {
             telemetry.addData("Servo Power", power);
             telemetry.addData(blueAlliance?"degrees to blue tag":"degrees to red tag", yawToTag);
             telemetry.addData("distance to tag cm", groundDistanceCM);
-            telemetry.addData("whatever is in the fiducial result", fiducialResults);
+//            telemetry.addData("whatever is in the fiducial result", fiducialResults);
             telemetry.addData("P", p);
             telemetry.addData("I", i);
             telemetry.addData("D", d);
