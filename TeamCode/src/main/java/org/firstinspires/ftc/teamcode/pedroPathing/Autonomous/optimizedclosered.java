@@ -513,7 +513,7 @@ public class optimizedclosered extends OpMode {
         if (leftFull) count++;
 
         if (count >= 3) {
-            intake.setPower(1); // Spit out
+            intake.setPower(0.5); // Spit out
         } else {
             intake.setPower(-1); // Continue intake
         }
