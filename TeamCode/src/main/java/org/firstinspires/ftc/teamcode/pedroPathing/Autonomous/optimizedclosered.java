@@ -50,7 +50,7 @@ public class optimizedclosered extends OpMode {
     private int gateHitCount = 0; // Track how many gate cycles we've done
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.35;
+    private static final double SHOOT_INTERVAL = 0.40;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
@@ -66,7 +66,7 @@ public class optimizedclosered extends OpMode {
     private final Pose firstpickupPose = new Pose(56, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.2, 57.1, Math.toRadians(34));
+    private final Pose infront_of_lever_new = new Pose(57.2, 56.1, Math.toRadians(34)); //y changed from 57 to 56 on 1/5/2026 - vihaan
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -477,7 +477,7 @@ public class optimizedclosered extends OpMode {
         // Second hop: move forward SECOND_HOP_IN + 7.5 inches
         double heading = firstPickupPose.getHeading();
         double dx = SECOND_HOP_IN * Math.cos(heading);
-        double dy = (SECOND_HOP_IN) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN)+2 * Math.sin(heading);
         Pose secondGoal = new Pose(
                 firstPickupPose.getX() + dx,
                 firstPickupPose.getY() + dy,
