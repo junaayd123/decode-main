@@ -24,6 +24,8 @@ public class TurretLimelight {
     public static double turetSpeed = 0.8;
     public static double targetDegrees = 0.0;
     double coefficient = 67.0/18.0;
+    private static final double TURRET_MIN_TICKS = -850;
+    private static final double TURRET_MAX_TICKS = 730;
     public Limelight3A limelight;
     public double yawToTag;
     boolean blueAlliance;
@@ -81,6 +83,9 @@ public class TurretLimelight {
 
         }
     }
+    public void updateEncoderPos(){
+        currentPos = TurretMotor.getCurrentPosition();
+    }
 
 
     public void setPid(){
@@ -104,6 +109,24 @@ public class TurretLimelight {
         currentPos = TurretMotor.getCurrentPosition();
         // PID control
         double targetTicks = targetDegrees*coefficient;
+        double error = targetTicks - currentPos;
+
+        if (Math.abs(error) <= tolerance) {
+            power = 0.0;
+        } else {
+            double pidOutput = pid.calculate(currentPos, targetTicks);
+            power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
+        }
+        TurretMotor.setPower(power);
+    }
+    public void toTargetInDegrees2(double targetDegrees2){
+//        double targetDegrees2 = Math.toDegrees(cur.getHeading() - headingTotag);
+        double targetTicks = targetDegrees2 * coefficient;
+
+        // Clamp target to limits
+        targetTicks = Math.max(TURRET_MIN_TICKS,
+                Math.min(TURRET_MAX_TICKS, targetTicks));
+
         double error = targetTicks - currentPos;
 
         if (Math.abs(error) <= tolerance) {

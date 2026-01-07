@@ -40,6 +40,7 @@ public class BotCTeleop extends OpMode {
     // Coordinates of red/blue speaker tags (meters)
 
     private boolean bluealliance = false;
+    private boolean blueStartPose = false;
     private double desiredHeading = 0;
     String motif = "gpp";
 
@@ -109,8 +110,8 @@ public class BotCTeleop extends OpMode {
     private Follower follower;
 
     private final Pose startPose = new Pose(53,70,0); //red
-    private final Pose blueGoal = new Pose(-72,144,0);
-    private final Pose redGoal = new Pose(72,144,0);
+    private final Pose blueGoal = new Pose(-72,140,0);
+    private final Pose redGoal = new Pose(72,140,0);
     double headingTotag;
     @Override
     public void init() {
@@ -165,10 +166,14 @@ public class BotCTeleop extends OpMode {
             bluealliance = !bluealliance;
             if(bluealliance) turret.setBlueAlliance();
             else turret.setRedAlliance();
+        }
+        if(g1.ps && g1.startWasPressed()){//invert pose
             Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
             follower.setPose(invert);
+            blueStartPose = !blueStartPose;
         }
         turret.updateLimelight();
+        turret.updateEncoderPos();
         Pose targett = bluealliance ? blueGoal : redGoal;
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
@@ -213,9 +218,15 @@ public class BotCTeleop extends OpMode {
             alignToTags = !alignToTags;
         }
         if(alignToTags){
+//            telemetry.addLine("trying to do the turret bs");
             turret.toTargetInDegrees2(Math.toDegrees(cur.getHeading() - headingTotag));
         }
-        else turret.TurretMotor.setPower(0);
+        else {
+//            telemetry.addLine("setting turret power to 0");
+            turret.TurretMotor.setPower(0);
+        }
+        if(distanceToGoal>120) shootinterval = 0.4;
+        else shootinterval = 0.35;
         if(g2.cross && !preG2.cross){//shoot 3 close
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
@@ -335,9 +346,10 @@ public class BotCTeleop extends OpMode {
 
         followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
+        telemetry.addData("start pose Blue?", blueStartPose);
         ledColorTime(ledColor, ledRunTime);
 //        Pose cur = follower.getPose();
-        distanceToGoal = turret.getTagDistance();// used to be getDistance();
+        distanceToGoal = cur.distanceFrom(targett);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("align to tag",alignToTags);
         telemetry.addData("yaw to tag", turret.yawToTag);
@@ -427,9 +439,9 @@ public class BotCTeleop extends OpMode {
         //desmos table for the shooting velo
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
-        if(dist<145){
-        return (int) (3.69593*dist+929.60458);}
-        else return 1625; //far
+        if(dist<120){
+        return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
+        else return 1650; //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -457,7 +469,7 @@ public class BotCTeleop extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>145) return 0.21;
+        if (dist>120) return 0.21;
         else return 0.00132566*dist+0.00291356;
     }
     private void reverseIntake() {
