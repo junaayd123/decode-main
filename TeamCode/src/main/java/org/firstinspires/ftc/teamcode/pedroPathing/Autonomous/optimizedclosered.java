@@ -285,39 +285,36 @@ public class optimizedclosered extends OpMode {
                 break;
 
             // ===== FIRST LINE PICKUP (replaces 3rd gate cycle) =====
-            case 12: // Drive to first line pickup position
-                intake.setPower(-1);
-                buildFirstLinePickupPaths();
+            case 12: // Drive straight to first line pickup
+                intake.setPower(-1); // start intake
+                buildFirstLinePickupPaths(); // only straight path to pickup
                 follower.followPath(firstLinePickupPath, true);
                 setPathState(13);
                 break;
 
-            case 13: // Second hop forward (13 inches)
-                manageSecondHopIntake();
+            case 13: // Wait until pickup reached
+                manageSecondHopIntake(); // run intake logic
                 if (!follower.isBusy()) {
-                    follower.followPath(firstLineSecondHopPath, true);
-                    setPathState(14);
+                    setPathState(14); // proceed to straight return
                 }
                 break;
 
-            case 14: // Second hop forward (8 inches)
-                manageSecondHopIntake();
-                if (!follower.isBusy()) {
-//                    intake.setPower(0);
-                    setPathState(15);
-                }
-                break;
-
-            case 15: // Build return path and start driving back
-                buildReturnToShootingPath();
+            case 14: // Drive straight back to shooting pose
+                buildReturnToShootingPath(); // straight line to nearshotpose2
                 follower.followPath(goBackPath, true);
-                setPathState(16);
+                setPathState(15);
                 break;
 
-            case 16: // Wait to return to shooting position
+            case 15: // Wait until back at shooting pose
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start final shooting
-                    setPathState(17);
+                    setActionState(1); // start final shooting
+                    setPathState(16);
+                }
+                break;
+
+            case 16: // Final shooting sequence
+                if (actionState == 0) {
+                    setPathState(-1); // finished all auto
                 }
                 break;
 
@@ -500,10 +497,18 @@ public class optimizedclosered extends OpMode {
                 .build();
     }
 
+//    private void buildReturnToShootingPath() {
+//        Pose cur = follower.getPose();
+//        goBackPath = follower.pathBuilder()
+//                .addPath(new Path(new BezierCurve(cur, midpoint1, nearshotpose2)))
+//                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
+//                .build();
+//    }
+
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1, nearshotpose2)))
+                .addPath(new Path(new BezierLine(cur, nearshotpose2))) // STRAIGHT line now
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
                 .build();
     }
