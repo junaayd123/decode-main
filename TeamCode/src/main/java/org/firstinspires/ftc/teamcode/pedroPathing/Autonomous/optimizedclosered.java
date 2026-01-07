@@ -465,29 +465,38 @@ public class optimizedclosered extends OpMode {
                 .build();
     }
 
+//    private void buildFirstLinePickupPaths() {
+//        Pose cur = follower.getPose();
+//
+//        // First path: drive to first pickup position
+//        firstLinePickupPath = follower.pathBuilder()
+//                .addPath(new Path(new BezierLine(cur, firstPickupPose)))
+//                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading(), 0.3)
+//                .build();
+//
+//        // Second hop: move forward SECOND_HOP_IN + 7.5 inches
+//        double heading = firstPickupPose.getHeading();
+//        double dx = SECOND_HOP_IN * Math.cos(heading);
+//        double dy = (SECOND_HOP_IN)+2 * Math.sin(heading);
+//        Pose secondGoal = new Pose(
+//                firstPickupPose.getX() + dx,
+//                firstPickupPose.getY() + dy,
+//                heading
+//        );
+//
+//        firstLineSecondHopPath = follower.pathBuilder()
+//                .addPath(new Path(new BezierLine(firstPickupPose, secondGoal)))
+//                .setConstantHeadingInterpolation(heading)
+//                .setTimeoutConstraint(0.2)
+//                .build();
+//    }
     private void buildFirstLinePickupPaths() {
         Pose cur = follower.getPose();
 
-        // First path: drive to first pickup position
+        // Drive straight to first pickup position
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading(), 0.3)
-                .build();
-
-        // Second hop: move forward SECOND_HOP_IN + 7.5 inches
-        double heading = firstPickupPose.getHeading();
-        double dx = SECOND_HOP_IN * Math.cos(heading);
-        double dy = (SECOND_HOP_IN)+2 * Math.sin(heading);
-        Pose secondGoal = new Pose(
-                firstPickupPose.getX() + dx,
-                firstPickupPose.getY() + dy,
-                heading
-        );
-
-        firstLineSecondHopPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(firstPickupPose, secondGoal)))
-                .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
+                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
                 .build();
     }
 
