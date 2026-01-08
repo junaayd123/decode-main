@@ -129,6 +129,9 @@ public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
+    // for isGreenMovingRight, our obelisk isn't doing that.
+    public boolean isGreenMovingRight = false; //WHAT THIS MEANS IS when you look at when G is at the left or the middle, and you take the obelisk and look at the next face, is G moving right or left? For us, it's not.
+    public boolean blueSide = false; //set this to false cuz we mainly test red side rn
     private double getBatteryVoltage() {
         double v = 0.0;
         for (com.qualcomm.robotcore.hardware.VoltageSensor vs : hardwareMap.voltageSensor) {
@@ -184,6 +187,19 @@ public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
                 //isTagTracked = !isTagTracked;
 
             //}
+
+            if (gamepad1.aWasPressed()) {
+                isGreenMovingRight = false;
+            }
+            if (gamepad1.bWasPressed()) {
+                isGreenMovingRight = true; // only use this if the field obelisk follows this pattern
+            }
+            if (gamepad1.yWasPressed()) {
+                blueSide = true; // only use this if the field obelisk follows this pattern
+            }
+            if (gamepad1.xWasPressed()) {
+                blueSide = false; // only use this if the field obelisk follows this pattern
+            }
 
 
             updateAprilTagPedro();
@@ -313,57 +329,92 @@ public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
         // Step through the list of detections and display info for each one.
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null) {
-
-                telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                // Only use tags that don't have Obelisk in them
                 if (!detection.metadata.name.contains("Obelisk")) {
-                    tagDetected = true; // Tag that is good for tracking LOCATION ON FIELD
-                    double xInches = detection.robotPose.getPosition().x; // already in inches
-                    double yInches = detection.robotPose.getPosition().y;
-                    double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
-                    ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg));
 
-                    /*pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change
-                    pedroPose = new Pose(pedroPose.getX()+72, pedroPose.getY()+72, pedroPose.getHeading()); // origin changes*/
-                    //pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change COMMENTED OUT CUZ ROTATION IS WEIRD
-                    pedroPose = new Pose(ftcPose.getY()+72, -ftcPose.getX()+72, ftcPose.getHeading()); // origin changes
-                    // how many degrees to just
-                    double bearing = detection.ftcPose.bearing;
-                    // current heading from tag
-                    double yawTagField = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
-                    // desired heading so tag is centered (yaw=0)
-                    double desiredHeadingDeg = yawTagField + bearing;
-                    //if (gamepad1.circleWasPressed() && tagDetected && !follower.isBusy()) {
+                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+                    // Only use tags that don't have Obelisk in them
+                    if (!detection.metadata.name.contains("Obelisk")) {
+                        tagDetected = true; // Tag that is good for tracking LOCATION ON FIELD
+                        double xInches = detection.robotPose.getPosition().x; // already in inches
+                        double yInches = detection.robotPose.getPosition().y;
+                        double headingDeg = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                        ftcPose = new Pose(xInches, yInches, Math.toRadians(headingDeg));
 
-
-                    //    follower.turnTo(Math.toRadians(desiredHeadingDeg));
-
-
-                    //}
-                    //if (gamepad1.squareWasPressed() && tagDetected && follower.isBusy()) {
+                        /*pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change
+                        pedroPose = new Pose(pedroPose.getX()+72, pedroPose.getY()+72, pedroPose.getHeading()); // origin changes*/
+                        //pedroPose = ftcPose.getAsCoordinateSystem(PedroCoordinates.INSTANCE); // Coordinate System change COMMENTED OUT CUZ ROTATION IS WEIRD
+                        pedroPose = new Pose(ftcPose.getY() + 72, -ftcPose.getX() + 72, ftcPose.getHeading()); // origin changes
+                        // how many degrees to just
+                        double bearing = detection.ftcPose.bearing;
+                        // current heading from tag
+                        double yawTagField = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
+                        // desired heading so tag is centered (yaw=0)
+                        double desiredHeadingDeg = yawTagField + bearing;
+                        //if (gamepad1.circleWasPressed() && tagDetected && !follower.isBusy()) {
 
 
-                    //    follower.breakFollowing();
+                        //    follower.turnTo(Math.toRadians(desiredHeadingDeg));
 
 
+                        //}
+                        //if (gamepad1.squareWasPressed() && tagDetected && follower.isBusy()) {
 
-                    //}
+
+                        //    follower.breakFollowing();
 
 
-                    telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
-                            detection.robotPose.getPosition().x,
-                            detection.robotPose.getPosition().y,
-                            detection.robotPose.getPosition().z));
-                    telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
-                            detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
-                            detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
-                    telemetry.addData("Bearing", detection.ftcPose.bearing);
-                    telemetry.addData("Degrees to turn", desiredHeadingDeg);
-                    //telemetry.addData("is it turning", follower.isTurning());
+                        //}
+
+
+                        telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)",
+                                detection.robotPose.getPosition().x,
+                                detection.robotPose.getPosition().y,
+                                detection.robotPose.getPosition().z));
+                        telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)",
+                                detection.robotPose.getOrientation().getPitch(AngleUnit.DEGREES),
+                                detection.robotPose.getOrientation().getRoll(AngleUnit.DEGREES),
+                                detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES)));
+                        telemetry.addData("Bearing", detection.ftcPose.bearing);
+                        telemetry.addData("Degrees to turn", desiredHeadingDeg);
+                        //telemetry.addData("is it turning", follower.isTurning());
+                    }
+                } else if (detection.metadata.name.contains("Obelisk")) {
+                    telemetry.addData("Tag ID", detection.id);
+                    telemetry.addData("Tag ID", detection.ftcPose.yaw);
+                    // This code can easily be used for green detection by just swapping which telemetry you use.
+                    // You can choose wheter to use the telemetry in !BlueSide or BlueSide, regardless of whether you are actually in blueside or not.
+                    // !blueside + green reverse direction = use BlueSide
+                    // blueside + green reverse direction = use !BlueSide
+                    // I think thats how it works?
+                    if (!blueSide) {
+                        if (detection.ftcPose.yaw > 40 && detection.ftcPose.yaw < 90) {
+                            if (detection.id == 21) { telemetry.addLine("First check: PGP"); }
+                            if (detection.id == 22) { telemetry.addLine("First check: PPG"); }
+                            if (detection.id == 23) { telemetry.addLine("First check: GPP"); }
+                        }
+                        if (detection.ftcPose.yaw > -80 && detection.ftcPose.yaw < -40) {
+                            // look at the detection IDS carefully!
+                            if (detection.id == 22) { telemetry.addLine("Second check: PGP"); }
+                            if (detection.id == 23) { telemetry.addLine("Second check: PPG"); }
+                            if (detection.id == 21) { telemetry.addLine("Second check: GPP"); }
+                        }
+                    }
+                    else {
+                        if (detection.ftcPose.yaw > 40 && detection.ftcPose.yaw < 90) {
+                            if (detection.id == 21) { telemetry.addLine("First check: GPP"); }
+                            if (detection.id == 22) { telemetry.addLine("First check: PGP"); }
+                            if (detection.id == 23) { telemetry.addLine("First check: PPG"); }
+                        }
+                        if (detection.ftcPose.yaw > -80 && detection.ftcPose.yaw < -40) {
+                            if (detection.id == 21) { telemetry.addLine("Second check: PPG"); }
+                            if (detection.id == 22) { telemetry.addLine("Second check: GPP"); }
+                            if (detection.id == 23) { telemetry.addLine("Second check: PGP"); }
+                        }
+                    }
+
                 }
-
-            } else {
+            }
+            else {
                 telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
                 telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
             }
