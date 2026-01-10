@@ -51,8 +51,8 @@ public class BotCTeleop extends OpMode {
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
     private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-61));
     private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
-    private final Pose redGoal2  = new Pose(144, 144, 0);
-    private final Pose blueGoal2  = new Pose(0, 144,0);
+//    private final Pose redGoal2  = new Pose(144, 144, 0);
+//    private final Pose blueGoal2  = new Pose(0, 144,0);
     private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
     private final Pose blueHP  = new Pose(115, 25,0); // blue human player
 
@@ -112,6 +112,8 @@ public class BotCTeleop extends OpMode {
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
     private final Pose redGoal = new Pose(72,140,0);
+    private final Pose blueGoalfar = new Pose(-68,144,0);
+    private final Pose redGoalfar = new Pose(68,144,0);
     double headingTotag;
     @Override
     public void init() {
@@ -128,7 +130,7 @@ public class BotCTeleop extends OpMode {
         timer3 = new Timer();
         timer4 = new Timer();
         timer5 = new Timer();
-        turret.InitLimelight();
+//        turret.InitLimelight();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -172,9 +174,15 @@ public class BotCTeleop extends OpMode {
             follower.setPose(invert);
             blueStartPose = !blueStartPose;
         }
-        turret.updateLimelight();
+//        turret.updateLimelight();
         turret.updateEncoderPos();
-        Pose targett = bluealliance ? blueGoal : redGoal;
+        Pose targett;
+        if(distanceToGoal>120) {
+            targett = bluealliance ? blueGoalfar : redGoalfar;
+        }
+        else{
+            targett = bluealliance ? blueGoal : redGoal;
+        }
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
         double flippedAngle = rawAngle + Math.PI;
@@ -241,6 +249,10 @@ public class BotCTeleop extends OpMode {
                 shooting = true;
 
             }
+        }
+        if(!shootingTest && shooting){
+            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+            LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
         }
         if(g2.square && !preG2.square){//gpp
             if(!LL.checkNoBalls()) {
@@ -500,7 +512,7 @@ public class BotCTeleop extends OpMode {
     }
     private double getDistance(){ //old bot B logic
         Pose cur = follower.getPose();
-        Pose target = bluealliance ? blueGoal2 : redGoal2;
+        Pose target = bluealliance ? blueGoal : redGoal;
         double hypotenuse,x,y;
         x = target.getX()-cur.getX();
         y= target.getY()-cur.getY();
