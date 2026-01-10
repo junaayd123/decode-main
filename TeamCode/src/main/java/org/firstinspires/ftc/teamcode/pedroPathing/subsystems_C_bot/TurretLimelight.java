@@ -39,7 +39,7 @@ public class TurretLimelight {
     public TurretLimelight(HardwareMap hardwareMap) {
         TurretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         pid = new PIDController(p, i, d);
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+//        limelight = hardwareMap.get(Limelight3A.class, "limelight");
     }
     public void resetTurretEncoder(){
         TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
