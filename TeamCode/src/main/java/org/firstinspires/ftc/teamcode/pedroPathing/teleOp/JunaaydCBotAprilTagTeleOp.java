@@ -202,6 +202,7 @@ public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
             }
 
 
+
             updateAprilTagPedro();
             if (tagDetected) {
                 //follower.setPose(pedroPose.getPose());
