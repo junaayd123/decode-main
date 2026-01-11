@@ -65,7 +65,7 @@ public class botCredfar extends OpMode {
     private static final double GATE_WAIT_TIME_LATER = 1.2;
     private static final int TOTAL_GATE_CYCLES = 2;
 
-    // ========== POSES ==========12,17
+    // ========== POSES ==========
     private final Pose startPose = new Pose(7, 7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
