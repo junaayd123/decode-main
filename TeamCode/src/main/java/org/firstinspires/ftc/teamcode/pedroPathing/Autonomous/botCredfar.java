@@ -31,7 +31,7 @@ import java.util.List;
 @Autonomous(name = "C-Bot Far Red ", group = "Pedro")
 public class botCredfar extends OpMode {
 
-    // ========== SUBSYSTEMS ==========
+    // =========== SUBSYSTEMS ===========
     private Follower follower;
     private Deposition_C depo;
     private TurretLimelight turret;

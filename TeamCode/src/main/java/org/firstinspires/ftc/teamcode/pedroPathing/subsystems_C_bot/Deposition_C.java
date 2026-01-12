@@ -17,7 +17,7 @@ public class Deposition_C {
     // --- PID controller for velocity ---
     private PIDController pid;
 
-    // --- PID constants (dashboard-tunable) ---
+    // ---- PID constants (dashboard-tunable) ----
     public static double p = -0.001;
     public static double i = 0.0;
     public static double d = 0.0;
