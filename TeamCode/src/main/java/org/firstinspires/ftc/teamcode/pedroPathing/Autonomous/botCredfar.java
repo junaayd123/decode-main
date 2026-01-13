@@ -78,7 +78,7 @@ public class botCredfar extends OpMode {
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
+    private final Pose infront_of_lever_new = new Pose(63, 61, Math.toRadians(34));
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -120,7 +120,7 @@ public class botCredfar extends OpMode {
 
         // Initialize launcher
         LL.allDown();
-        LL.set_angle_min();
+        LL.set_angle_far();
         stopShooter();
 
         // Initialize turret
@@ -365,7 +365,7 @@ public class botCredfar extends OpMode {
                 break;
 
             case 1: // Initialize shooting
-                LL.set_angle_close();
+                LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVelo_New);
                 setActionState(2);
                 break;
