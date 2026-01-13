@@ -15,6 +15,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
@@ -24,6 +25,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -44,12 +46,13 @@ public class TurretTest extends LinearOpMode {
     public static double i = 0.1;
     public static double d = 0.0001;
     public static int target = 0;
+    public static double movingSpeed = 0.3;
     public static double tolerance = 1.0;
     public static double turetSpeed = 0.8;
     public static double targetDegrees = 0.0;
     double DegtoTickCoefficient = 67.0/18.0;
 
-    private enum Mode { DRIVER, ToTarget, ToDegrees,Limelight}
+    private enum Mode { DRIVER, ToTarget, ToDegrees,Limelight, ToActualDegrees}
     private Mode mode = Mode.DRIVER;
 //    private Limelight3A limelight;
     double lastTimestamp = -1;
@@ -61,7 +64,8 @@ public class TurretTest extends LinearOpMode {
     double groundDistanceCM;
     double turretPoseRad;
     private Follower follower;
-    private final Pose startPose = new Pose(53,70,0); //red
+    double power;
+    private final Pose startPose = new Pose(43,70,0); //red
     private final Pose blueGoal = new Pose(-72,144,0);
     private final Pose redGoal = new Pose(72,144,0);
     // Camera position relative to ROBOT CENTER (meters)
@@ -69,6 +73,7 @@ public class TurretTest extends LinearOpMode {
     public static final double CAM_Y = 0.00; // left (+Y)
     private static final double TURRET_MIN_TICKS = -850;
     private static final double TURRET_MAX_TICKS = 730;
+    double targetDegrees3;
 
 
     // Camera yaw relative to turret (rad)
@@ -77,7 +82,7 @@ public class TurretTest extends LinearOpMode {
     double headingTotag;
     private static final boolean USE_WEBCAM = true;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 9, 6, 0);
-    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, 20, -90, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -70, 0, 0);
 
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
@@ -85,6 +90,9 @@ public class TurretTest extends LinearOpMode {
     boolean tagDetected;
     boolean tagInitializing;
     double turretDeg;
+    Servo led;
+    Timer turretTimer;
+
 
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
@@ -122,7 +130,7 @@ public class TurretTest extends LinearOpMode {
             double bearingDeg = 1.634*bearing;
 
             ftcPose = new Pose(xIn, yIn, Math.toRadians(hDeg));
-            pedroPose = new Pose(ftcPose.getY(), -ftcPose.getX() + 72, ftcPose.getHeading()+Math.toRadians(turretDeg-bearingDeg));
+            pedroPose = new Pose(ftcPose.getY(), -ftcPose.getX() + 72, ftcPose.getHeading()+Math.toRadians(turretDeg));
             break;
         }
     }
@@ -157,9 +165,37 @@ public class TurretTest extends LinearOpMode {
 
         return new Pose2d(robotX, robotY, new Rotation2d(robotHeading));
     }
+    double movingCase = 1;
+    double timerDiddyMoment;
+    public void moveDiddyTurret(){
+        if(movingCase ==1){
+            targetDegrees3 = -180;
+        }if(movingCase ==2){
+            targetDegrees3 = -120;
+        }if(movingCase ==3){
+            targetDegrees3 = -60;
+        }if(movingCase ==4){
+            targetDegrees3 = 0;
+        }if(movingCase ==5){
+            targetDegrees3 = 60;
+        }if(movingCase ==6){
+            targetDegrees3 = 120;
+        }
+        if(turretTimer.checkAtSeconds(1+timerDiddyMoment)){
+            timerDiddyMoment = turretTimer.timer.seconds() - turretTimer.curtime;
+            if(movingCase ==6){
+                movingCase = 1;
+            }
+            else {
+                movingCase += 1;
+            }
+        }
+    }
     @Override
     public void runOpMode() {
         TurretMotor = hardwareMap.get(DcMotorEx.class, "turret");
+        led = hardwareMap.get(Servo.class, "led");
+        turretTimer = new Timer();
 //        TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 //        TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         pid = new PIDController(p, i, d);
@@ -177,7 +213,7 @@ public class TurretTest extends LinearOpMode {
 //        limelight.start();
 
         waitForStart();
-
+        turretTimer.resetTimer();
         while (opModeIsActive()) {
             follower.update();
             Pose cur = follower.getPose();
@@ -185,17 +221,39 @@ public class TurretTest extends LinearOpMode {
             // Convert ticks → degrees → radians
             turretDeg = currentPos / DegtoTickCoefficient;
             if(gamepad1.dpadUpWasPressed()){
-                tagInitializing = !tagInitializing;
+                if(tagInitializing){
+                    tagInitializing = false;
+                    led.setPosition(0);
+                    mode = Mode.DRIVER;
+                }
+                else{
+                    turretTimer.startTimer();
+                    mode = Mode.ToActualDegrees;
+                    movingCase = 1;
+                    timerDiddyMoment = 0;
+                    tagInitializing = true;
+                    led.setPosition(0.34);
+                }
+            }
+            if(gamepad1.dpadDownWasPressed()){
+                follower.setPose(pedroPose);
             }
             if (tagInitializing) {
                 updateAprilTagLocalization();
-                if (tagDetected && pedroPose != null && !follower.isBusy()) {
+                if (tagDetected && pedroPose != null) {
+                    mode = Mode.DRIVER;
                     telemetry.addLine("seeing and localizing tag");
                     telemetry.addData("local x",pedroPose.getX());
                     telemetry.addData("local y",pedroPose.getY());
                     telemetry.addData("local hed",Math.toDegrees(pedroPose.getHeading()));
-//                    follower.setPose(pedroPose.getPose());
-//                    tagInitializing = false;
+                    telemetry.addData("turret angle",turretDeg);
+                    follower.setPose(pedroPose.getPose());
+                    tagInitializing = false;
+                    led.setPosition(0.5);
+                    turretTimer.stopTimer();
+                }
+                else{
+                    moveDiddyTurret();
                 }
             }
 
@@ -235,7 +293,7 @@ public class TurretTest extends LinearOpMode {
             if (gamepad1.squareWasPressed()) mode = Mode.ToDegrees;
             if (gamepad1.crossWasPressed()) mode = Mode.Limelight;
 
-            double power;
+
             boolean hasTag = false;
 
 //            LLResult result = limelight.getLatestResult();
@@ -244,6 +302,7 @@ public class TurretTest extends LinearOpMode {
 //
 //
 //            }
+//            List<LLResultTypes.FiducialResult> fiducialResults = null;
 //            List<LLResultTypes.FiducialResult> fiducialResults = null;
 //            if (result.getTimestamp() != lastTimestamp) {
 //                lastTimestamp = result.getTimestamp();
@@ -309,7 +368,24 @@ public class TurretTest extends LinearOpMode {
                     double pidOutput = pid.calculate(currentPos, targetTicks);
                     power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
                 }
-            } else {
+            }else if (mode == Mode.ToActualDegrees) {
+
+                double targetTicks = targetDegrees3 * DegtoTickCoefficient;
+
+                // Clamp target to limits
+                targetTicks = Math.max(TURRET_MIN_TICKS,
+                        Math.min(TURRET_MAX_TICKS, targetTicks));
+
+                double error = targetTicks - currentPos;
+//One large dr. pepper, one number two with no pickles, and an foid
+                if (Math.abs(error) <= tolerance) {
+                    power = 0.0;
+                } else {
+                    double pidOutput = pid.calculate(currentPos, targetTicks);
+                    power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
+                }
+            }
+            else {
                 if (!runningAround) {
                     targetTicks = currentPos + (yawToTag * DegtoTickCoefficient);
                 }
