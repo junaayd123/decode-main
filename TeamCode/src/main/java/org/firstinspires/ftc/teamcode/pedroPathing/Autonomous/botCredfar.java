@@ -149,7 +149,7 @@ public class botCredfar extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-73);
+        turret.setDegreesTarget(-69);
 //        turret.setPid();
         setPathState(0);
         setActionState(0);
