@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure thi
 
 import com.pedropathing.geometry.BezierCurve;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -34,6 +35,7 @@ import java.util.List;
 
 
 //hi..
+@Disabled
 @Autonomous(name = "close blue final", group = "Pedro")
 public class closeBluefinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera

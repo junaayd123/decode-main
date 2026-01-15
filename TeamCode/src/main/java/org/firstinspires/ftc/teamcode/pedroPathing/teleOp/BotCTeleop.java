@@ -227,7 +227,7 @@ public class BotCTeleop extends OpMode {
         }
         if(alignToTags){
 //            telemetry.addLine("trying to do the turret bs");
-            turret.toTargetInDegrees2(Math.toDegrees(cur.getHeading() - headingTotag));
+//            turret.toTargetInDegrees2(Math.toDegrees(cur.getHeading() - headingTotag));
         }
         else {
 //            telemetry.addLine("setting turret power to 0");
@@ -804,6 +804,7 @@ public class BotCTeleop extends OpMode {
             lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
         }
     }
+
     private void fireShotFromSlot(int slot) {
         if (slot == 0) LL.leftUp();
         if (slot == 1) LL.rightUp();

@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "C-Bot Far Red ", group = "Pedro")
-public class botCredfar extends OpMode {
+@Autonomous(name = "farredoptimized ", group = "Pedro")
+public class botCredFar_optimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
     private Follower follower;
@@ -60,7 +60,7 @@ public class botCredfar extends OpMode {
     private int shotCycleCount = 0;  // ADD THIS - tracks how many 3-ball cycles completed
 
     // ======== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.40;
+    private static double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
@@ -71,15 +71,16 @@ public class botCredfar extends OpMode {
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
     private final Pose firstPickupPose = new Pose(57, 35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13, 58, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(25, 50, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(57, 58, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
+    private final Pose infront_of_lever_adj = new Pose(61.25, 61, Math.toRadians(34));
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -150,7 +151,7 @@ public class botCredfar extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-73);
+        turret.setDegreesTarget(-69.2);
 //        turret.setPid();
         shotCycleCount = 0;  // ADD THIS - reset shot counter at start
         setPathState(0);
@@ -231,12 +232,16 @@ public class botCredfar extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0: // Go back to near shot pose
-//                buildGoBackPath();
-//                follower.followPath(goBackPath, true);
+                // ✅ Start spinning flywheel at the very beginning
+                LL.set_angle_far();
+                depo.setTargetVelocity(depo.farVelo_New);
+                SHOOT_INTERVAL = 0.375;
                 setPathState(1);
+
                 break;
 
             case 1: // Wait to reach near shot pose
+                depo.updatePID();  // ✅ Keep updating PID
                 if (!follower.isBusy()) {
                     setActionState(1); // Start shooting
                     setPathState(2);
@@ -246,13 +251,15 @@ public class botCredfar extends OpMode {
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
 //                    turret.setDegreesTarget(-15);
+                    intake.setPower(-1);
+                    SHOOT_INTERVAL = 0.335;
                     setPathState(3);
+
                 }
                 break;
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
-                manageSecondHopIntake();
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
@@ -260,6 +267,11 @@ public class botCredfar extends OpMode {
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     manageSecondHopIntake();
+
+                    // ✅ Start spinning flywheel BEFORE next path
+                    LL.set_angle_far();
+                    depo.setTargetVelocity(depo.farVelo_New);
+
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -267,6 +279,7 @@ public class botCredfar extends OpMode {
 
             case 5: // Wait for second bezier path
                 manageSecondHopIntake();
+                depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     setActionState(1); // Start shooting
                     setPathState(6);
@@ -299,6 +312,11 @@ public class botCredfar extends OpMode {
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+
+                    // ✅ Start spinning flywheel BEFORE return path
+                    LL.set_angle_far();
+                    depo.setTargetVelocity(depo.farVelo_New);
+
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
@@ -306,6 +324,7 @@ public class botCredfar extends OpMode {
 
             case 10: // Gate - return to shooting position
                 manageSecondHopIntake();
+                depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     setActionState(1); // Start shooting
                     setPathState(11);
@@ -340,12 +359,17 @@ public class botCredfar extends OpMode {
                 break;
 
             case 14: // Drive straight back to shooting pose
+                // ✅ Start spinning flywheel BEFORE return path
+                LL.set_angle_far();
+                depo.setTargetVelocity(depo.farVelo_New);
+
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
 
             case 15: // Wait until back at shooting pose
+                depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     setActionState(1);
                     setPathState(16);
@@ -419,43 +443,51 @@ public class botCredfar extends OpMode {
 
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.backUp();
         }
     }
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.backUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.leftUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.rightUp();
         }
     }
-
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.backUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.leftUp();
         }
     }
+
     private void shootThreeRandom() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL) {
@@ -497,20 +529,22 @@ public class botCredfar extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondLinePickupPose, midpoint1, farshotpose)))
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
+                .setTimeoutConstraint(0.15)
                 .build();
     }
 
     private void buildGatePaths(double waitTime) {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
+                .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1.2)
                 .build();
 
         gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(infront_of_lever_new, midpoint3, farshotpose)))
+                .addPath(new Path(new BezierCurve(infront_of_lever_adj, midpoint3, farshotpose)))
                 .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), farshotpose.getHeading())
+                .setTimeoutConstraint(0.15)
                 .build();
     }
 
@@ -527,6 +561,7 @@ public class botCredfar extends OpMode {
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading())
+                .setTimeoutConstraint(0.15)
                 .build();
     }
 

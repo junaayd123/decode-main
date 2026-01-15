@@ -58,6 +58,8 @@ public class optimizedclosered_webcam extends OpMode {
     private String motif = "empty";
     private int gateHitCount = 0;
 
+    private int scenario = 3;
+
     // ========== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.40;
     private static final double SECOND_HOP_IN = 8;
@@ -81,6 +83,8 @@ public class optimizedclosered_webcam extends OpMode {
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
 
+
+
     // ========== PATHS ==========
     private PathChain goBackPath;
     private PathChain bezierFirstPath;
@@ -89,6 +93,30 @@ public class optimizedclosered_webcam extends OpMode {
     private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
     private PathChain firstLineSecondHopPath;
+    private PathChain thirdLinePickupPath;
+    private Pose thirdPickupPose;
+
+
+    //scenario 1: Go back shoot preload 3
+    //1. Go to second line pickup
+    //2. Shoot 3
+    //3. Gate open pickup
+    //4. Shoot 3
+    //5. Third line pickup
+    //6. Shoot 3
+    //7. First line pickup
+    //8. Shoot 3
+
+    //scenario 4:
+    //1.Go back shoot preload 3
+    //2.Go to second line pickup
+    //3.Shoot 3
+    //4.Gate open pickup
+    //5. Shoot 3
+    //6. Third line pickup
+    //7. Shoot 3
+    //8. First line pickup
+    //9. Shoot 3
 
     @Override
     public void init() {
@@ -159,7 +187,7 @@ public class optimizedclosered_webcam extends OpMode {
         turret.toTargetInDegrees();
 
         // Run state machines
-        autonomousPathUpdate();
+        autonomousPathUpdate(3);
         autonomousActionUpdate();
 
         // Telemetry
@@ -223,135 +251,251 @@ public class optimizedclosered_webcam extends OpMode {
     }
 
     // ========== PATH STATE MACHINE ==========
-    public void autonomousPathUpdate() {
-        switch (pathState) {
-            case 0: // Go back to near shot pose
-                buildGoBackPath();
-                follower.followPath(goBackPath, true);
-                setPathState(1);
-                break;
+    public void autonomousPathUpdate(double scenario) {
+        if (scenario == 2){
+            //Go back shoot 3
+            //Go to second line pickup
+            //Shoot 3
+            //Gate open pickup
+            //Shoot 3
+            //Third Line pickup
+            //Shoot 3
+            //First Line pickup
+            //Shoot 3
+            switch (pathState) {
+                case 0: // Go back to near shot pose
+                    buildGoBackPath();
+                    follower.followPath(goBackPath, true);
+                    setPathState(1);
+                    break;
 
-            case 1: // Wait to reach near shot pose
-                if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
-                    setPathState(2);
-                }
-                break;
-
-            case 2: // Wait for shooting to complete
-                if (actionState == 0) { // Shooting done
-                    turret.setDegreesTarget(-15);
-                    setPathState(3);
-                }
-                break;
-
-            case 3: // Bezier curve pickup - first path
-                buildBezierPaths();
-                manageSecondHopIntake();
-                follower.followPath(bezierFirstPath, true);
-                setPathState(4);
-                break;
-
-            case 4: // Wait for first bezier path
-                if (!follower.isBusy()) {
-                    manageSecondHopIntake();
-                    follower.followPath(bezierSecondPath, true);
-                    setPathState(5);
-                }
-                break;
-
-            case 5: // Wait for second bezier path
-                manageSecondHopIntake();
-                if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
-                    setPathState(6);
-                }
-                break;
-
-            case 6: // Wait for shooting cycle 2
-                if (actionState == 0) {
-                    gateHitCount = 0; // Reset counter
-                    setPathState(7); // Start gate cycles
-                }
-                break;
-
-            // ===== GATE CYCLE LOOP =====
-            case 7: // Gate - go to gate
-                double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                buildGatePaths(waitTime);
-                intake.setPower(-1);
-                follower.followPath(gateFirstPath, true);
-                setPathState(8);
-                break;
-
-            case 8: // Gate - wait at gate position
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();
-                    setPathState(9);
-                }
-                break;
-
-            case 9: // Gate - pause to collect artifacts
-                double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-                    follower.followPath(gateSecondPath, true);
-                    setPathState(10);
-                }
-                break;
-
-            case 10: // Gate - return to shooting position
-                manageSecondHopIntake();
-                if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
-                    setPathState(11);
-                }
-                break;
-
-            case 11: // Wait for shooting to complete
-                if (actionState == 0) {
-                    gateHitCount++;
-
-                    if (gateHitCount < TOTAL_GATE_CYCLES) {
-                        setPathState(7); // Loop back to gate cycle
-                    } else {
-                        setPathState(12); // Move to first line pickup
+                case 1: // Wait to reach near shot pose
+                    if (!follower.isBusy()) {
+                        setActionState(1); // Start shooting
+                        setPathState(2);
                     }
-                }
-                break;
+                    break;
 
-            // ===== FIRST LINE PICKUP =====
-            case 12: // Drive straight to first line pickup
-                manageSecondHopIntake();
-                buildFirstLinePickupPaths();
-                follower.followPath(firstLinePickupPath, true);
-                setPathState(13);
-                break;
+                case 2: // Wait for shooting to complete
+                    if (actionState == 0) { // Shooting done
+                        turret.setDegreesTarget(-15);
+                        setPathState(3);
+                    }
+                    break;
 
-            case 13: // Wait until pickup reached
-                if (!follower.isBusy()) {
+                case 3: // Bezier curve pickup - first path
+                    buildBezierPaths();
                     manageSecondHopIntake();
-                    setPathState(14);
-                }
-                break;
+                    follower.followPath(bezierFirstPath, true);
+                    setPathState(4);
+                    break;
 
-            case 14: // Drive straight back to shooting pose
-                buildReturnToShootingPath();
-                follower.followPath(goBackPath, true);
-                setPathState(15);
-                break;
+                case 4: // Wait for first bezier path
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        follower.followPath(bezierSecondPath, true);
+                        setPathState(5);
+                    }
+                    break;
 
-            case 15: // Wait until back at shooting pose
-                if (!follower.isBusy()) {
-                    setActionState(1);
-                    setPathState(16);
-                }
-                break;
+                case 5: // Wait for second bezier path
+                    manageSecondHopIntake();
+                    if (!follower.isBusy()) {
+                        setActionState(1); // Start shooting
+                        setPathState(6);
+                    }
+                    break;
 
-            case 16: // Final shooting sequence
-                if (actionState == 0) {
-                    setPathState(-1);
-                }
-                break;
+                // ===== Third  LINE PICKUP =====
+                case 6: // Drive straight to first line pickup
+                    manageSecondHopIntake();
+                    buildLinePickupPaths();
+                    follower.followPath(thirdLinePickupPath, true);
+                    setPathState(7);
+                    break;
+
+                case 7: // Wait until pickup reached
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        setPathState(8);
+                    }
+                    break;
+
+                case 8: // Drive straight back to shooting pose
+                    buildReturnToShootingPath();
+                    follower.followPath(goBackPath, true);
+                    setPathState(9);
+                    break;
+
+                // First line pickup
+                case 9: // Wait until back at shooting pose
+                    if (!follower.isBusy()) {
+                        setActionState(1);
+                        setPathState(10);
+                    }
+                    break;
+                case 10:
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        follower.followPath(thirdLinePickupPath, true);
+                        setPathState(11);
+                        break;
+                    }
+                case 11:
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        setPathState(12);
+                    }
+                    break;
+                case 12:
+                    buildReturnToShootingPath();
+                    follower.followPath(goBackPath, true);
+                    setPathState(13);
+                    break;
+                case 13: // Final shooting sequence
+                    if (!follower.isBusy()) {
+                        setActionState(1);
+                        setPathState(10);
+                    }
+                    break;
+                case 14: // Final shooting sequence
+                    if (actionState == 0) {
+                        setPathState(-1);
+                    }
+                    break;
+            }
+
+        }
+        else if (scenario == 3 || scenario == 4) {
+            switch (pathState) {
+                case 0: // Go back to near shot pose
+                    buildGoBackPath();
+                    follower.followPath(goBackPath, true);
+                    setPathState(1);
+                    break;
+
+                case 1: // Wait to reach near shot pose
+                    if (!follower.isBusy()) {
+                        setActionState(1); // Start shooting
+                        setPathState(2);
+                    }
+                    break;
+
+                case 2: // Wait for shooting to complete
+                    if (actionState == 0) { // Shooting done
+                        turret.setDegreesTarget(-15);
+                        setPathState(3);
+                    }
+                    break;
+
+                case 3: // Bezier curve pickup - first path
+                    buildBezierPaths();
+                    manageSecondHopIntake();
+                    follower.followPath(bezierFirstPath, true);
+                    setPathState(4);
+                    break;
+
+                case 4: // Wait for first bezier path
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        follower.followPath(bezierSecondPath, true);
+                        setPathState(5);
+                    }
+                    break;
+
+                case 5: // Wait for second bezier path
+                    manageSecondHopIntake();
+                    if (!follower.isBusy()) {
+                        setActionState(1); // Start shooting
+                        setPathState(6);
+                    }
+                    break;
+
+                case 6: // Wait for shooting cycle 2
+                    if (actionState == 0) {
+                        gateHitCount = 0; // Reset counter
+                        setPathState(7); // Start gate cycles
+                    }
+                    break;
+
+                // ===== GATE CYCLE LOOP =====
+                case 7: // Gate - go to gate
+                    double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                    buildGatePaths(waitTime);
+                    intake.setPower(-1);
+                    follower.followPath(gateFirstPath, true);
+                    setPathState(8);
+                    break;
+
+                case 8: // Gate - wait at gate position
+                    if (!follower.isBusy()) {
+                        actionTimer.resetTimer();
+                        setPathState(9);
+                    }
+                    break;
+
+                case 9: // Gate - pause to collect artifacts
+                    double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                    if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                        follower.followPath(gateSecondPath, true);
+                        setPathState(10);
+                    }
+                    break;
+
+                case 10: // Gate - return to shooting position
+                    manageSecondHopIntake();
+                    if (!follower.isBusy()) {
+                        setActionState(1); // Start shooting
+                        setPathState(11);
+                    }
+                    break;
+
+                case 11: // Wait for shooting to complete
+                    if (actionState == 0) {
+                        gateHitCount++;
+
+                        if (gateHitCount < TOTAL_GATE_CYCLES) {
+                            setPathState(7); // Loop back to gate cycle
+                        } else {
+                            setPathState(12); // Move to first line pickup
+                        }
+                    }
+                    break;
+
+                // ===== FIRST LINE PICKUP =====
+                case 12: // Drive straight to first line pickup
+                    manageSecondHopIntake();
+                    buildLinePickupPaths();
+                    follower.followPath(firstLinePickupPath, true);
+                    setPathState(13);
+                    break;
+
+                case 13: // Wait until pickup reached
+                    if (!follower.isBusy()) {
+                        manageSecondHopIntake();
+                        setPathState(14);
+                    }
+                    break;
+
+                case 14: // Drive straight back to shooting pose
+                    buildReturnToShootingPath();
+                    follower.followPath(goBackPath, true);
+                    setPathState(15);
+                    break;
+
+                case 15: // Wait until back at shooting pose
+                    if (!follower.isBusy()) {
+                        setActionState(1);
+                        setPathState(16);
+                    }
+                    break;
+
+                case 16: // Final shooting sequence
+                    if (actionState == 0) {
+                        setPathState(-1);
+                    }
+                    break;
+            }
         }
     }
 
@@ -475,6 +619,8 @@ public class optimizedclosered_webcam extends OpMode {
                 .addPath(new Path(new BezierCurve(firstpickupPose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(firstpickupPose.getHeading(), nearshotpose2.getHeading(), 0.8)
                 .build();
+
+
     }
 
     private void buildGatePaths(double waitTime) {
@@ -491,11 +637,15 @@ public class optimizedclosered_webcam extends OpMode {
                 .build();
     }
 
-    private void buildFirstLinePickupPaths() {
+    private void buildLinePickupPaths() {
         Pose cur = follower.getPose();
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
+                .build();
+        thirdLinePickupPath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, thirdPickupPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), thirdPickupPose.getHeading())
                 .build();
     }
 
