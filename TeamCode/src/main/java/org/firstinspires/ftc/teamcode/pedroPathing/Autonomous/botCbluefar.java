@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "C-Bot Far Red ", group = "Pedro")
-public class botCredfar extends OpMode {
+@Autonomous(name = "C-Bot Far Blue ", group = "Pedro")
+public class botCbluefar extends OpMode {
 
     // =========== SUBSYSTEMS ===========
     private Follower follower;
@@ -57,33 +57,34 @@ public class botCredfar extends OpMode {
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
-    private int shotCycleCount = 0;  // ADD THIS - tracks how many 3-ball cycles completed
 
     // ======== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.40;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
-    private static final int TOTAL_GATE_CYCLES = 2;
+    private static final int TOTAL_GATE_CYCLES = 1;
 
     // ========== POSES ==========
-    private final Pose startPose = new Pose(7, 7, Math.toRadians(0));
-    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose firstPickupPose = new Pose(57, 35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13, 58, Math.toRadians(0));
-    private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(25, 50, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(57, 58, Math.toRadians(0));
-    private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(63, 61, Math.toRadians(34));
-    private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
-    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
+    private final Pose startPose = new Pose(7, -7, Math.toRadians(0));
+    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
+  //  private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
+    private final Pose firstPickupPose = new Pose(57, -35, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13, -58, Math.toRadians(0));
+    private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(23, -35, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(25, -50, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(57, -58, Math.toRadians(0));
+    //private final Pose humanplayerPickupPose = new Pose(57, -58, Math.toRadians(0));
+
+    // private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
+    //private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
+    //private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(63,- 61, Math.toRadians(-34));
+ //   private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+ //   private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
+   // private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
+ //   private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -126,7 +127,7 @@ public class botCredfar extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-90);
+        turret.setDegreesTarget(90);
 
         // Initialize AprilTag vision
         initAprilTag();
@@ -150,9 +151,8 @@ public class botCredfar extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-69);
+        turret.setDegreesTarget(71);
 //        turret.setPid();
-        shotCycleCount = 0;  // ADD THIS - reset shot counter at start
         setPathState(0);
         setActionState(0);
     }
@@ -383,17 +383,12 @@ public class botCredfar extends OpMode {
 
             case 3: // Execute shooting sequence
                 depo.updatePID();
-                boolean useRandomShooting = (shotCycleCount < 2);
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
+                executeShootingSequence();
+
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
-                    shotCycleCount++;
                     setActionState(0);
                 }
                 break;
@@ -443,7 +438,6 @@ public class botCredfar extends OpMode {
         }
     }
 
-
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL) {
@@ -454,18 +448,6 @@ public class botCredfar extends OpMode {
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.allDown();
             LL.leftUp();
-        }
-    }
-    private void shootThreeRandom() {
-        double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
-            LL.backUp();
         }
     }
 

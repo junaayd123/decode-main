@@ -21,7 +21,7 @@ public class Deposition_C {
     public static double p = -0.001;
     public static double i = 0.0;
     public static double d = 0.0;
-    public double farVelo_New = 1625;
+    public double farVelo_New = 1650;
 
     // Target velocity in ticks per second
     public  double targetVelocity = 0;
