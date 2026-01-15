@@ -75,7 +75,7 @@ public class optimizedcloseblue_webcam extends OpMode {
     private final Pose firstpickupPose = new Pose(56, -55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
+    private final Pose infront_of_lever_new = new Pose(59.2, -57.1, Math.toRadians(-28));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
@@ -238,9 +238,9 @@ public class optimizedcloseblue_webcam extends OpMode {
                 }
                 break;
 
-            case 2: // Wait for shooting to complete
+            case 2: // Wait for shooting to c   omplete
                 if (actionState == 0) { // Shooting done
-                    turret.setDegreesTarget(15);
+                    turret.setDegreesTarget(7);
                     setPathState(3);
                 }
                 break;
@@ -301,7 +301,9 @@ public class optimizedcloseblue_webcam extends OpMode {
 
             case 10: // Gate - return to shooting position
                 manageSecondHopIntake();
+                intake.setPower(1); //TESTING
                 if (!follower.isBusy()) {
+                    intake.setPower(0);
                     setActionState(1); // Start shooting
                     setPathState(11);
                 }
@@ -341,7 +343,9 @@ public class optimizedcloseblue_webcam extends OpMode {
                 break;
 
             case 15: // Wait until back at shooting pose
+                intake.setPower(1);
                 if (!follower.isBusy()) {
+                    intake.setPower(0);
                     setActionState(1);
                     setPathState(16);
                 }
