@@ -35,6 +35,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 @Disabled
+//
 @Autonomous(name = "farred pedro coordinate testing", group = "Pedro")
 public class farRedCycleTest extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera

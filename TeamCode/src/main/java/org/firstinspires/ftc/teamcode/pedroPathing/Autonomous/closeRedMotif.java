@@ -33,6 +33,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 
 @Disabled
+//
 //hi..
 @Autonomous(name = "closeRedMotif", group = "Pedro")
 public class closeRedMotif extends LinearOpMode {

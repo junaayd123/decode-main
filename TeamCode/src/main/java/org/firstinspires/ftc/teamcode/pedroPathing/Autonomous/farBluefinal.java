@@ -34,6 +34,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
+//
 @Disabled
 @Autonomous(name = "far blue final", group = "Pedro")
 public class farBluefinal extends LinearOpMode {

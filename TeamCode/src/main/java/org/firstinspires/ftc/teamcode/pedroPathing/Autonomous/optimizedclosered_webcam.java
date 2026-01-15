@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
+//
 @Autonomous(name = "C-Bot Close Red (Webcam)", group = "Pedro")
 public class optimizedclosered_webcam extends OpMode {
 

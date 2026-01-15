@@ -35,6 +35,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 @Disabled
+//
 @Autonomous(name = "farBlueMotif", group = "Pedro")
 public class farBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera

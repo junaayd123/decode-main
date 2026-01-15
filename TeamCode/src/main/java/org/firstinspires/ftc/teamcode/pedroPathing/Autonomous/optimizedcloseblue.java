@@ -24,7 +24,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 
 import java.util.List;
-
+//
 @Autonomous(name = "C-Bot Close Blue (State)", group = "Pedro")
 public class optimizedcloseblue extends OpMode {
 

@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Disabled
+//
 @Autonomous(name = "LM2 Square Test", group = "Testing")
 public class newRobotAuto extends LinearOpMode {
 

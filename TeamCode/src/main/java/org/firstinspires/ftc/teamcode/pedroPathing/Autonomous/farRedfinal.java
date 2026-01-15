@@ -33,6 +33,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 @Disabled
+//
 @Autonomous(name = "far red final", group = "Pedro")
 public class farRedfinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera

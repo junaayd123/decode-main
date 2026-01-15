@@ -27,7 +27,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
+//
 @Autonomous(name = "C-Bot Far Blue ", group = "Pedro")
 public class botCbluefar extends OpMode {
 
