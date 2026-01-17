@@ -64,21 +64,15 @@ public class TurretTest extends LinearOpMode {
     double groundDistanceCM;
     double turretPoseRad;
     private Follower follower;
+
+    Servo led;
     double power;
     private final Pose startPose = new Pose(43,70,0); //red
     private final Pose blueGoal = new Pose(-72,144,0);
     private final Pose redGoal = new Pose(72,144,0);
-    // Camera position relative to ROBOT CENTER (meters)
-    public static final double CAM_X = 0.14; // forward (+X)
-    public static final double CAM_Y = 0.00; // left (+Y)
     private static final double TURRET_MIN_TICKS = -850;
     private static final double TURRET_MAX_TICKS = 730;
     double targetDegrees3;
-
-
-    // Camera yaw relative to turret (rad)
-    public static final double CAM_YAW_OFFSET = 0.0;
-    public static final double METERS_TO_INCHES = 39.37007874;
     double headingTotag;
     private static final boolean USE_WEBCAM = true;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 9, 6, 0);
@@ -90,7 +84,6 @@ public class TurretTest extends LinearOpMode {
     boolean tagDetected;
     boolean tagInitializing;
     double turretDeg;
-    Servo led;
     Timer turretTimer;
 
 
@@ -126,44 +119,11 @@ public class TurretTest extends LinearOpMode {
             double xIn = d.robotPose.getPosition().x;
             double yIn = d.robotPose.getPosition().y;
             double hDeg = d.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
-            double bearing = d.ftcPose.z;
-            double bearingDeg = 1.634*bearing;
 
             ftcPose = new Pose(xIn, yIn, Math.toRadians(hDeg));
             pedroPose = new Pose(ftcPose.getY(), -ftcPose.getX() + 72, ftcPose.getHeading()+Math.toRadians(turretDeg));
             break;
         }
-    }
-
-    public static Pose2d getCameraPoseRobotFrame(double turretAngleRad) {
-
-        // Rotate camera offset by turret angle
-        double cos = Math.cos(turretAngleRad);
-        double sin = Math.sin(turretAngleRad);
-
-        double camX = CAM_X * cos - CAM_Y * sin;
-        double camY = CAM_X * sin + CAM_Y * cos;
-
-        double camHeading = turretAngleRad + CAM_YAW_OFFSET;
-
-
-        return new Pose2d(camX, camY, new Rotation2d(camHeading));
-    }
-    public static Pose2d getRobotPoseFromLimelight(Pose2d camFieldPose, Pose2d camRobotPose) {
-        // Robot heading = camera heading - camera relative heading
-        double robotHeading = camFieldPose.getHeading() - camRobotPose.getHeading();
-
-        double cos = Math.cos(robotHeading);
-        double sin = Math.sin(robotHeading);
-
-        // Rotate camera offset into FIELD frame
-        double offsetX = camRobotPose.getX() * cos - camRobotPose.getY() * sin;
-        double offsetY = camRobotPose.getX() * sin + camRobotPose.getY() * cos;
-
-        double robotX = camFieldPose.getX() - offsetX;
-        double robotY = camFieldPose.getY() - offsetY;
-
-        return new Pose2d(robotX, robotY, new Rotation2d(robotHeading));
     }
     double movingCase = 1;
     double timerDiddyMoment;
@@ -171,19 +131,31 @@ public class TurretTest extends LinearOpMode {
         if(movingCase ==1){
             targetDegrees3 = -180;
         }if(movingCase ==2){
-            targetDegrees3 = -120;
+            targetDegrees3 = -150;
         }if(movingCase ==3){
-            targetDegrees3 = -60;
+            targetDegrees3 = -120;
         }if(movingCase ==4){
-            targetDegrees3 = 0;
+            targetDegrees3 = -90;
         }if(movingCase ==5){
-            targetDegrees3 = 60;
+            targetDegrees3 = -60;
         }if(movingCase ==6){
+            targetDegrees3 = -30;
+        }if(movingCase ==7){
+            targetDegrees3 = 0;
+        }if(movingCase ==8){
+            targetDegrees3 = 30;
+        }if(movingCase ==9){
+            targetDegrees3 = 60;
+        }if(movingCase ==10){
+            targetDegrees3 = 90;
+        }if(movingCase ==11){
             targetDegrees3 = 120;
+        }if(movingCase ==12){
+            targetDegrees3 = 150;
         }
-        if(turretTimer.checkAtSeconds(1+timerDiddyMoment)){
+        if(turretTimer.checkAtSeconds(0.5+timerDiddyMoment)){
             timerDiddyMoment = turretTimer.timer.seconds() - turretTimer.curtime;
-            if(movingCase ==6){
+            if(movingCase ==12){
                 movingCase = 1;
             }
             else {
@@ -278,15 +250,6 @@ public class TurretTest extends LinearOpMode {
 
 
             // Invert so CCW is positive
-            turretPoseRad = Math.toRadians(-turretDeg);
-
-            Pose2d camPoseRobot = getCameraPoseRobotFrame(turretPoseRad);
-
-            telemetry.addData("Turret deg", Math.toDegrees(turretPoseRad));
-
-            telemetry.addData("Cam X (m)", camPoseRobot.getX());
-            telemetry.addData("Cam Y (m)", camPoseRobot.getY());
-            telemetry.addData("Cam Heading deg", Math.toDegrees(camPoseRobot.getHeading()));
 
             if (gamepad1.triangleWasPressed()) mode = Mode.ToTarget;
             if (gamepad1.circleWasPressed()) mode = Mode.DRIVER;
