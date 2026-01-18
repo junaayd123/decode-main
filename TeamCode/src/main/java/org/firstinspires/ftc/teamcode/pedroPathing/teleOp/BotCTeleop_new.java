@@ -17,11 +17,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.IntakeManager;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 
-@TeleOp(name = "Bot C teleop", group = "TeleOp")
-public class BotCTeleop extends OpMode {
+@TeleOp(name = "Bot C teleop_new", group = "TeleOp")
+public class BotCTeleop_new extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
     private boolean alignForFar = false;
@@ -40,7 +41,7 @@ public class BotCTeleop extends OpMode {
     private final Pose redNearShootPose  = new Pose(94, 100, Math.toRadians(220.0));
     private final Pose blueFarShootPose = new Pose(65, 25, Math.toRadians(-61));
     private final Pose redFarShootPose  = new Pose(80, 25, Math.toRadians(-115));
-//    private final Pose redGoal2  = new Pose(144, 144, 0);
+    //    private final Pose redGoal2  = new Pose(144, 144, 0);
 //    private final Pose blueGoal2  = new Pose(0, 144,0);
     private final Pose redHP  = new Pose(42, 25, Math.toRadians(180)); //red human player
     private final Pose blueHP  = new Pose(115, 25,0); // blue human player
@@ -59,10 +60,9 @@ public class BotCTeleop extends OpMode {
     Pose pedroPose, ftcPose;
     int[] ballsInRobot = {0,0,0};
     int greenInSlot;//0 if in left 1 if right, 2 if back
-    private DcMotor intake = null;
+    private IntakeManager intakeManager;
     private Deposition_C depo;
     boolean shootingTest =false;
-    boolean intakeRunning;
     Servo led;
     int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
     private lifters LL;
@@ -109,7 +109,7 @@ public class BotCTeleop extends OpMode {
         turret = new TurretLimelight(hardwareMap);
         LL = new lifters(hardwareMap);
         depo = new Deposition_C(hardwareMap);
-        intake = hardwareMap.get(DcMotor.class, "intake");
+        intakeManager = new IntakeManager(hardwareMap, LL.sensors);
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         g1.copy(gamepad1);
@@ -120,7 +120,6 @@ public class BotCTeleop extends OpMode {
         timer4 = new Timer();
         timer5 = new Timer();
 //        turret.InitLimelight();
-        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         led = hardwareMap.get(Servo.class, "led");
@@ -179,30 +178,42 @@ public class BotCTeleop extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
 
+        // Update intake manager (MUST be called every loop)
+        intakeManager.update();
+
+        // Replace the old intake control with this:
         if (gamepad2.rightBumperWasPressed()) {
-            if (intake.getPower() < -0.5) {
-                intake.setPower(0);
-                intakeRunning = false;
+            if (intakeManager.isCollecting()) {
+                intakeManager.stop();
             } else {
-                intake.setPower(-1);
-                intakeRunning = true;
+                intakeManager.startCollecting();
             }
         }
 
-        if (intakeRunning) {
-            if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
-                timer3.startTimer();
-                intakeRunning = false;
-            }
-        }
-        if(g2.left_bumper){
-            intake.setPower(1);
-        }
-        else if(!g2.left_bumper && !intakeRunning && !timer3.timerIsOn()){
-            intake.setPower(0);
+        // Manual reverse (left bumper)
+        if (g2.left_bumper) {
+            intakeManager.manualReverse();
+        } else if (!g2.left_bumper && !intakeManager.isCollecting() && !intakeManager.isReversing()) {
+            intakeManager.manualStop();
         }
 
-        reverseIntake();
+        // Remove the old reverseIntake() call and timer3 logic
+        // In BotCTeleop_new.java, update your telemetry section:
+
+        telemetry.addLine("=== INTAKE STATUS ===");
+        telemetry.addData("State", intakeManager.getStateString());
+        telemetry.addData("Balls", "%d (L:%d R:%d B:%d)",
+                intakeManager.getBallCount(),
+                LL.sensors.getLeft(),
+                LL.sensors.getRight(),
+                LL.sensors.getBack());
+
+        telemetry.addLine("--- Motor Current ---");
+        telemetry.addData("Current Draw", "%.2f A", intakeManager.getCurrentDraw());
+        telemetry.addData("Peak Current", "%.2f A", intakeManager.getPeakCurrent());
+        telemetry.addData("Avg Current", "%.2f A", intakeManager.getAverageCurrent());
+        telemetry.addData("Overloaded?", intakeManager.isMotorOverloaded() ? "⚠️ YES!" : "No");
+
         if(g1.cross) speed = 0.3;
         else speed = 1;
         if(g2.dpad_down && !preG2.dpad_down){
@@ -441,7 +452,7 @@ public class BotCTeleop extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<120){
-        return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
+            return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
         else return 1650; //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
@@ -473,15 +484,15 @@ public class BotCTeleop extends OpMode {
         if (dist>120) return 0.21;
         else return 0.00132566*dist+0.00291356;
     }
-    private void reverseIntake() {
-        if (timer3.checkAtSeconds(0)) {
-            intake.setPower(1);
-        }
-        if (timer3.checkAtSeconds(0.5)) {
-            intake.setPower(0);
-            timer3.stopTimer();
-        }
-    }
+//    private void reverseIntake() {
+//        if (timer3.checkAtSeconds(0)) {
+//            intake.setPower(1);
+//        }
+//        if (timer3.checkAtSeconds(0.5)) {
+//            intake.setPower(0);
+//            timer3.stopTimer();
+//        }
+//    }
     private void initAprilTag() {
 //        aprilTag = new AprilTagProcessor.Builder()
 //                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
