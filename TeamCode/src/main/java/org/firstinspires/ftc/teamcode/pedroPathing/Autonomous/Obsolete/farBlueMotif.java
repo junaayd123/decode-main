@@ -1,11 +1,13 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
+
+
+
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete; // make sure this aligns with class location
 
 import com.pedropathing.geometry.BezierCurve;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
-
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
@@ -34,15 +36,16 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 @Disabled
 //
-@Autonomous(name = "farRedMotif", group = "Pedro")
-public class farRedMotif extends LinearOpMode {
+@Autonomous(name = "farBlueMotif", group = "Pedro")
+public class farBlueMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
+    private boolean shootingHasWorked = true;
+
     private VisionPortal visionPortal;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
     String motif = null;
-    private boolean shootingHasWorked = true;
 
     // ---------- Shooter subsystems -------------
     // Commented out: depo usage will be removed
@@ -56,41 +59,40 @@ public class farRedMotif extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
-    public ColorSensors sensors;
-
-
+//bb
     // ----- Voltage-comp power (tune these once around ~12.35V) -----
-    private static final double FAR_BASE_POWER_12V = 0.67;   // what worked for FAR at ~12.0V
-    private static final double FAR_BASE_POWER2_12V = 0.675;  // a touch hotter between shots (optional)
+    private static final double FAR_BASE_POWER_12V   = 0.67;   // what worked for FAR at ~12.0V
+    private static final double FAR_BASE_POWER2_12V  = 0.675;  // a touch hotter between shots (optional)
     private static final double CLOSE_BASE_POWER_12V = 0.55;   // what worked for CLOSE at ~12.0V
     private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose start_align_Pose = new Pose(-4.0, 2, Math.toRadians(-180));
-    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201));
+    private final Pose start_align_Pose = new Pose(-4.0, -2, Math.toRadians(-180));
+    private final Pose startPose        = new Pose( 0.0,  0, Math.toRadians(-157.2));
+    private final Pose firstpickupPose  = new Pose(22.5, 20, Math.toRadians(90));
+    private final Pose midPoint1        = new Pose(37,   14, Math.toRadians(90));
+    private final Pose secondpickupPose = new Pose(45, 17, Math.toRadians(90));
 
-    // Your goal pose (exactly as in your movement program)
-    private final Pose firstpickupPose = new Pose(22.5, -20, Math.toRadians(-90));
+    private final Pose midPoint2        = new Pose(44,   4, Math.toRadians(90));
+    private final Pose thirdpickupPose  = new Pose(71, 20, Math.toRadians(90));
+    private final Pose midPoint3        = new Pose(76,   4, Math.toRadians(90));
 
-    private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
-    private final Pose secondpickupPose = new Pose(45.5, -17, Math.toRadians(-90));
+    private final Pose near_shot_Pose   = new Pose(97.5, 17, Math.toRadians(-120));
+    private final Pose infront_of_lever = new Pose(61.5, 37.5, Math.toRadians(180));
 
-    private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
-    private final Pose thirdpickupPose = new Pose(71.5, -20, Math.toRadians(-90));
-    private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
-    private final Pose near_shot_Pose = new Pose(97.5, -17, Math.toRadians(-237));
-    private final Pose infront_of_lever = new Pose(61.5, -37.5, Math.toRadians(-180));
+
 
     private static final double SECOND_HOP_IN = 13.5;
-    boolean shootingHasWorkedNoVelo;
-    private static final double SHOT_DELAY_S = 0.75;  // delay between shots (you already use timing windows below)
+    private static final double SHOT_DELAY_S  = 0.75;  // delay between shots (you already use timing windows below)
 
     // ---------- Upgraded shooter timing ----------
     private Timer timer1;
-    private Timer timer2;
-    private int sequence = 0;
     int shooterSequence;
-
+    public ColorSensors sensors;
+    //b
+    private Timer timer2;
+    boolean shootingHasWorkedNoVelo;
+    private int sequence = 0;
 
     // --------- Voltage-comp helpers (kept) ---------
     private double getBatteryVoltage() {
@@ -100,27 +102,6 @@ public class farRedMotif extends LinearOpMode {
             if (vv > 0) v = Math.max(v, vv);
         }
         return (v > 0) ? v : 12.35;
-    }
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull  = (sensors.getBack()  != 0);
-        boolean leftFull  = (sensors.getLeft()  != 0);
-
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull)  count++;
-        if (leftFull)  count++;
-
-        // Tray full → spit everything else we touch
-        if (count >= 3) {
-            if (intake != null) intake.setPower(1);
-            return;
-        }
-
-        // Tray not full yet → continue grabbing balls
-        if (intake != null) intake.setPower(-1);
     }
 
     /**
@@ -145,10 +126,11 @@ public class farRedMotif extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         // Init subsystems
         depo = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
-        sensors = new ColorSensors(hardwareMap);
         LL = new lift_three(hardwareMap);
         timer1 = new Timer();
         timer2 = new Timer();
+        sensors = new ColorSensors(hardwareMap);
+
 
         intake = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
         d1 = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
@@ -169,6 +151,7 @@ public class farRedMotif extends LinearOpMode {
         timer1.resetTimer();
         timer2.resetTimer();
         stopShooter();
+        //
 
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
@@ -235,11 +218,12 @@ public class farRedMotif extends LinearOpMode {
 
     private void reset() {
         stopShooter();
-        depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
+        depo.setPowerBoth(0.0);
     }
 
     //ss
     private void go_home() {
+
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, startPose)))
@@ -250,7 +234,7 @@ public class farRedMotif extends LinearOpMode {
             follower.update();
             idle();
         }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+        if (intake != null) intake.setPower(0);  // turn off intake after spitting
     }
 
     // ===== Far / Close shot sequence starters (upgraded) =====
@@ -318,6 +302,7 @@ public class farRedMotif extends LinearOpMode {
         double dy = (SECOND_HOP_IN + 18) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
+
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
@@ -334,6 +319,8 @@ public class farRedMotif extends LinearOpMode {
             idle();
         }
         if (intake != null) intake.setPower(1);
+
+
     }
 
     private void second_line_pickup() {
@@ -363,10 +350,12 @@ public class farRedMotif extends LinearOpMode {
             // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
             manageSecondHopIntake();
 
-
             idle();
         }
         if (intake != null) intake.setPower(1);
+
+
+
     }
 
     private void third_line_pickup() {
@@ -382,7 +371,7 @@ public class farRedMotif extends LinearOpMode {
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
         double dx = SECOND_HOP_IN * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 13.5) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 11) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
 
         PathChain second = follower.pathBuilder()
@@ -397,10 +386,12 @@ public class farRedMotif extends LinearOpMode {
             // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
             manageSecondHopIntake();
 
-
             idle();
         }
         if (intake != null) intake.setPower(1);
+
+
+
     }
     private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
         if(!shootingHasWorkedNoVelo) {
@@ -412,7 +403,6 @@ public class farRedMotif extends LinearOpMode {
     }
 
     private void go_close() {
-
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midPoint2, near_shot_Pose)))
@@ -420,8 +410,7 @@ public class farRedMotif extends LinearOpMode {
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
-
+        if (intake != null) intake.setPower(0);
     }
     private void go_close_2() {
         Pose cur = follower.getPose();
@@ -431,8 +420,7 @@ public class farRedMotif extends LinearOpMode {
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
-
+        if (intake != null) intake.setPower(0);  // turn off intake after spitting
     }
 
     private boolean isFarShotCycleDone() {
@@ -452,7 +440,7 @@ public class farRedMotif extends LinearOpMode {
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if(timer1.checkAtSeconds(1.0)){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -460,25 +448,54 @@ public class farRedMotif extends LinearOpMode {
 
     }
 
+    /**
+     * Manages intake during the second hop.
+     * If robot already has 1–2 balls in storage, spit out any new ones.
+     * If robot already has 3, completely stop intake.
+     * If robot has 0, intake normally.
+     */
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
+
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            if (intake != null) intake.setPower(1);
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
+    }
+
+
     private void shootMotif(String seq){
         if(timer2.checkAtSeconds(0)) {//first shot
             if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(0.6)) {//second shot
+        if(timer2.checkAtSeconds(0.7)) {//second shot
             LL.allDown();
             if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(1.2)) {//third shot
+        if(timer2.checkAtSeconds(1.3)) {//third shot
             LL.allDown();
             if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
             else shootingHasWorkedNoVelo = LL.lift_purple();
             checkShotNoVelo();
         }
-        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
+        if(timer2.checkAtSeconds(1.9)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();

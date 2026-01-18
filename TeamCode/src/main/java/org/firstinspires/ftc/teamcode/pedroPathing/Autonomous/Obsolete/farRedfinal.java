@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete; // make sure this aligns with class location
 
 import com.pedropathing.geometry.BezierCurve;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -21,8 +21,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -32,12 +32,10 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
-//
-//hi..
 @Disabled
-@Autonomous(name = "close blue final", group = "Pedro")
-public class closeBluefinal extends LinearOpMode {
+//
+@Autonomous(name = "far red final", group = "Pedro")
+public class farRedfinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
@@ -47,7 +45,8 @@ public class closeBluefinal extends LinearOpMode {
     String motifInit = "empty";
     private boolean shootingHasWorked = true;
 
-    // ---------- Shooter subsystems ----------
+    // ---------- Shooter subsystems -------------
+    // Commented out: depo usage will be removed
     private Deposition depo;
     private lift_three LL;
     private DcMotor intake = null;
@@ -58,37 +57,53 @@ public class closeBluefinal extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
-    double timeOfSecondShot;
+    boolean farparking = false;
+    boolean shootallfar = false;
+    private int linesToCollect = 3; // default to 3
     public ColorSensors sensors;
-    int greenInSlot;//0 if in left 1 if right, 2 if back
-    private final Pose startPose = new Pose(
-            107.313,               // x inches
-            34.687,                // y inches
-            Math.toRadians(135)
-    );
+
+
+    // ----- Voltage-comp power (tune these once around ~12.35V) -----
+    private static final double FAR_BASE_POWER_12V = 0.67;   // what worked for FAR at ~12.0V
+    private static final double FAR_BASE_POWER2_12V = 0.675;  // a touch hotter between shots (optional)
+    private static final double CLOSE_BASE_POWER_12V = 0.55;   // what worked for CLOSE at ~12.0V
+    private static final double CLOSE_BASE_POWER2_12V = 0.55;  // what worked for CLOSE at ~12.0V
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-124));
-    private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(41.25,12,  Math.toRadians(90));
-    private final Pose midpoint1        = new Pose(41.25,4,  Math.toRadians(90.0));
-    private final Pose thirdpickupPose  = new Pose(17,   14,  Math.toRadians(90));
-    private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
-    private final Pose infront_of_lever   = new Pose(59.5, 36.5, Math.toRadians(180));
-    //
+    private final Pose start_align_Pose = new Pose(-4.0, 2, Math.toRadians(-180));
+    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-199));
 
+    // Your goal pose (exactly as in your movement program)
+    private final Pose firstpickupPose = new Pose(22.5, -20, Math.toRadians(-90));
+
+    private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
+    private final Pose secondpickupPose = new Pose(45.5, -17, Math.toRadians(-90));
+
+    private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
+    private final Pose thirdpickupPose = new Pose(71.5, -20, Math.toRadians(-90));
+    private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
+    private final Pose near_shot_Pose = new Pose(97.5, -17, Math.toRadians(-237));
+    private final Pose infront_of_lever = new Pose(61.5, -37.5, Math.toRadians(-180));
+    private final Pose farPark = new Pose(
+            25,
+            -37,
+            Math.toRadians(-180)
+    );
+
+    private static final double SECOND_HOP_IN = 13.5;
     boolean shootingHasWorkedNoVelo;
-    private static final double SECOND_HOP_IN = 19.75;
-    private static final double SHOT_DELAY_S  = 0.75;
-    int shooterSequence;
+    private static final double SHOT_DELAY_S = 0.75;  // delay between shots (you already use timing windows below)
 
-
-    // ---------- Timing for far shots ----------
+    // ---------- Upgraded shooter timing ----------
     private Timer timer1;
     private Timer timer2;
     private int sequence = 0;
+    double timeOfSecondShot;
+    int shooterSequence;
+    int greenInSlot;
 
 
+    // --------- Voltage-comp helpers (kept) ---------
     private double getBatteryVoltage() {
         double v = 0.0;
         for (com.qualcomm.robotcore.hardware.VoltageSensor vs : hardwareMap.voltageSensor) {
@@ -97,8 +112,31 @@ public class closeBluefinal extends LinearOpMode {
         }
         return (v > 0) ? v : 12.35;
     }
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
 
-    /** Set both shooter motors with voltage compensation (base power is what you'd use at 12.0V). */
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            if (intake != null) intake.setPower(1);
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
+    }
+
+    /**
+     * Set both shooter motors with voltage compensation (base power is what you'd use at 12.0V).
+     */
     private void setShooterPowerVoltageComp(double basePowerAt12V) {
         double v = getBatteryVoltage();          // e.g., 13.2V fresh, 12.0V nominal, 11.5V lower
         double compensated = basePowerAt12V * (12.35 / v);
@@ -117,23 +155,22 @@ public class closeBluefinal extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Init subsystems
-        depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
-        LL      = new lift_three(hardwareMap);
+        depo = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
         sensors = new ColorSensors(hardwareMap);
+        LL = new lift_three(hardwareMap);
+        timer1 = new Timer();
+        timer2 = new Timer();
 
-        timer1  = new Timer();
-        timer2  = new Timer();
-
-        intake  = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
-        d1      = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
-        d2      = hardwareMap.get(DcMotor.class, "depo1");
+        intake = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
+        d1 = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
+        d2 = hardwareMap.get(DcMotor.class, "depo1");
 
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Pedro follower (this is fine for Pedro 2.0)
         follower = B_Bot_Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startPose);
+        follower.setStartingPose(start_align_Pose);
 
         initAprilTag();
 
@@ -144,81 +181,126 @@ public class closeBluefinal extends LinearOpMode {
         timer2.resetTimer();
         stopShooter();
 
-        telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
+        telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
 
         while (!isStarted() && !isStopRequested()) {
-            if(motifInit.equals("empty")) InitialFindMotif();
+            // D-pad Up -> 1 line, D-pad Left -> 2 lines, D-pad Right -> 3 lines
+            if (gamepad1.dpadUpWasPressed()){
+                if(linesToCollect ==3){
+                    linesToCollect = 1;
+                }
+                else linesToCollect += 1;
+            }
+            if(gamepad1.crossWasPressed()){
+                farparking = !farparking;
+            }
+            if(gamepad1.circleWasPressed()) shootallfar = !shootallfar;
+
+            telemetry.addLine("Select # of lines using dpad up");
+            telemetry.addLine("Select to park far using cross");
+            telemetry.addLine("Select to shoot all far using circle");
+            telemetry.addData("lines:", linesToCollect);
+            if(farparking) telemetry.addLine("parking far");
+            else telemetry.addLine("park at gate");
+            if(shootallfar) telemetry.addLine("shoot all lines from far");
+            else telemetry.addLine("last 2 lines will shoot close");
+            if (motifInit.equals("empty")) InitialFindMotif();
 
             if (motifInit.equals("ppg")) {
-                motif = "pgp";
-                motifInit="empty";
-            }
-            else if (motifInit.equals("pgp")){
-                motif = "gpp";
-                motifInit="empty";
-            }
-            else if (motifInit.equals("gpp")){
                 motif = "ppg";
-                motifInit="empty";
+                motifInit = "empty";
+            } else if (motifInit.equals("pgp")) {
+                motif = "pgp";
+                motifInit = "empty";
+            } else if (motifInit.equals("gpp")) {
+                motif = "gpp";
+                motifInit = "empty";
             }
-            telemetry.addData("Motif Pattern:", motif);
-            telemetry.addData("Looking for motif...", "");
+
+            telemetry.addData("Motif", motif);
             telemetry.update();
             idle();
-            sleep(10);
         }
 
 
         waitForStart();
         if (isStopRequested()) return;
 
+        first_align_movement();
+        three_far_shots();
+        if (linesToCollect >= 1) {
+            first_line_pickup();
+            reset();
+            go_home();
+            three_far_shots();
+        }
+        if (linesToCollect >= 2) {
+            second_line_pickup();
+            reset();
+            if(shootallfar){
+                go_home();
+                three_far_shots();
+            }
+            else {
+                go_close();
+                three_close_shots();
+            }
+        }
+        if (linesToCollect >= 3) {
+            third_line_pickup();
+            reset();
+            if(shootallfar){
+                go_home();
+                three_far_shots();
+            }
+            else {
+                go_close_2();
+                three_close_shots();
+            }
+        }
 
+        reset();
+        if(farparking) parkFar();
+        else go_infront();
 
-        go_back();
-        pauseBeforeShooting(0.4);
-        three_close_shots();
-        depo.setPowerBoth(0);
-        first_line_pickup();
-        reset();
-        go_close();
-        three_close_shots();
-        depo.setPowerBoth(0);
-        second_line_pickup();
-        reset();
-        go_close();
-        three_close_shots();
-        depo.setPowerBoth(0);
-        third_line_pickup();
-        reset();
-        go_close();
-        three_close_shots();
-        depo.setPowerBoth(0);
-        go_infront();
-
+        telemetry.addLine("✅ Done: fired shots + completed paths.");
         telemetry.update();
         sleep(500);
-
     }
-    private void go_infront(){
+    private void parkFar(){
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, infront_of_lever)))
+                .addPath(new Path(new BezierLine(cur, farPark)))
+                .setLinearHeadingInterpolation(cur.getHeading(),farPark.getHeading())
+                .build();
+        follower.followPath(home, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+
+    }
+
+    private void first_align_movement() {
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(start_align_Pose, startPose)))
+                .setLinearHeadingInterpolation(start_align_Pose.getHeading(), startPose.getHeading())
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+    }
+
+    private void go_infront() {
+        Pose cur = follower.getPose();
+        PathChain home = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur,infront_of_lever)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        if (intake != null) intake.setPower(0);
-
-    }
-    private void go_back(){
-
-        Pose cur = follower.getPose();
-        PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
-                .build();
-        follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
             idle();
@@ -228,14 +310,27 @@ public class closeBluefinal extends LinearOpMode {
     private void reset() {
         stopShooter();
         depo.setPowerBoth(0.0);              // COMMENTED OUT (depo)
-
     }
 
+    //ss
+    private void go_home() {
+        Pose cur = follower.getPose();
+        PathChain home = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, startPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), startPose.getHeading())
+                .build();
+        follower.followPath(home, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+    }
 
-    // ===== Far shot logic (exact from your teleOp) =====
+    // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_New_auto);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
@@ -246,23 +341,7 @@ public class closeBluefinal extends LinearOpMode {
 //        LL.close();
 
     }
-    private void pauseBeforeShooting(double seconds) {
-        Timer pause = new Timer();
-        pause.startTimer();
-        while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
-            follower.update();   // safe even if idle
-            idle();
-        }
-    }
-    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
-        if(!shootingHasWorkedNoVelo) {
-            depo.setTargetVelocity(0);
-            timer2.stopTimer();
-            LL.allDown();
-            shooterSequence = 0;
-        }
-    }
-    //ss
+
     private void three_far_shots() {
         LL.set_angle_far_auto();
         startFarShot();
@@ -325,69 +404,23 @@ public class closeBluefinal extends LinearOpMode {
         }
     }
 
-
-    private void first_line_pickup(){
-        intake.setPower(-1);
-        // ===== 2) Movement: your two-hop Pedro path =====
+    private void first_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        // path 1
         PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(nearshotpose, firstpickupPose)))
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .addPath(new Path(new BezierLine(startPose, firstpickupPose)))
+                .setLinearHeadingInterpolation(startPose.getHeading(), firstpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
-        // calculations to move forward
+        // path 2 (forward hop)
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+7.5) * Math.sin(heading);
-        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-        Path p2 = new Path(new BezierLine(cur, secondGoal));
-
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(p2)
-                .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
-                .build();
-        follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
-            idle();
-        }
-        if (intake != null) intake.setPower(1);
-
-    }
-    private void second_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(nearshotpose,secondpickupPose))) //add the midpoint
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(),secondpickupPose.getHeading())
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-
-        // calculations to move forward
-        Pose cur = follower.getPose();
-        double heading = cur.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 18) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
-        follower.setMaxPower(0.7);
-        // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
@@ -403,36 +436,28 @@ public class closeBluefinal extends LinearOpMode {
 
             idle();
         }
-        follower.setMaxPower(1);
         if (intake != null) intake.setPower(1);
-
     }
-    private void third_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        Pose cur = follower.getPose();
+
+    private void second_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
-                .setTimeoutConstraint(0.2)
+                .addPath(new Path(new BezierCurve(startPose, midPoint1, secondpickupPose)))
+                .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
 
-        // calculations to move forward
-        Pose cur1 = follower.getPose();
-        double heading = cur1.getHeading();
+        Pose cur = follower.getPose();
+        double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
-        Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
+        double dy = (SECOND_HOP_IN + 22) * Math.sin(heading);
+        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
-        // second movement - 13 inch forward
         PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur1, secondGoal)))
+                .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -446,46 +471,71 @@ public class closeBluefinal extends LinearOpMode {
         }
         if (intake != null) intake.setPower(1);
     }
-    /**
-     * Manages intake during the second hop.
-     * If robot already has 1–2 balls in storage, spit out any new ones.
-     * If robot already has 3, completely stop intake.
-     * If robot has 0, intake normally.
-     */
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
 
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull  = (sensors.getBack()  != 0);
-        boolean leftFull  = (sensors.getLeft()  != 0);
-
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull)  count++;
-        if (leftFull)  count++;
-
-        // Tray full → spit everything else we touch
-        if (count >= 3) {
-            if (intake != null) intake.setPower(1);
-            return;
-        }
-
-        // Tray not full yet → continue grabbing balls
-        if (intake != null) intake.setPower(-1);
-    }
-
-    private void go_close(){
+    private void third_line_pickup() {
+        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
         Pose cur = follower.getPose();
-        PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midPoint3, thirdpickupPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
                 .build();
-        follower.followPath(close_shot, true);
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+
+        Pose cur1 = follower.getPose();
+        double heading = cur1.getHeading();
+        double dx = SECOND_HOP_IN * Math.cos(heading);
+        double dy = (SECOND_HOP_IN + 13.5) * Math.sin(heading);
+        Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
+
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur1, secondGoal)))
+                .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
+                .build();
+        follower.followPath(second, true);
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
             idle();
         }
-        intake.setPower(0);
+        if (intake != null) intake.setPower(1);
+    }
+    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
+        if(!shootingHasWorkedNoVelo) {
+            depo.setTargetVelocity(0);
+            timer2.stopTimer();
+            LL.allDown();
+            shooterSequence = 0;
+        }
+    }
+
+    private void go_close() {
+
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midPoint2, near_shot_Pose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+
+    }
+    private void go_close_2() {
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, near_shot_Pose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
+
     }
 
     private boolean isFarShotCycleDone() {
@@ -627,12 +677,7 @@ public class closeBluefinal extends LinearOpMode {
         }
     }
 
-    private void checkShot() {
-        if (!shootingHasWorked) {
-            LL.allDown();
-            shootingHasWorked = true;
-        }
-    }
+
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -657,30 +702,17 @@ public class closeBluefinal extends LinearOpMode {
     private void initOpenCV() {
         // LEAVE BLANK
     }
+
     private void InitialFindMotif() {
         try {
-            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-            telemetry.addData("# AprilTags Detected", currentDetections.size());
-
-            // Step through the list of detections and display info for each one.
-            for (AprilTagDetection detection : currentDetections) {
-                if (detection.metadata != null) {
-
-                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                    // Only use tags that don't have Obelisk in them
-                    if (detection.metadata.name.contains("Obelisk")) {
-                        motifInit = (detection.id == 21) ? "gpp" : (detection.id == 22) ? "pgp" : "ppg";
-                        telemetry.addData("motif: ", motif);
-                    }   // end for() loop
-
-                    // Add "key" information to telemetry
-                    telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
-                    telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
-
+            List<AprilTagDetection> detections = aprilTag.getDetections();
+            for (AprilTagDetection detection : detections) {
+                if (detection.metadata != null &&
+                        detection.metadata.name.contains("Obelisk")) {
+                    motifInit = (detection.id == 21) ? "gpp"
+                            : (detection.id == 22) ? "pgp" : "ppg";
                 }
             }
-        } catch (Exception e) {
-            telemetry.addData("Exception:", e);
-        }
+        } catch (Exception ignored) {}
     }
 }
