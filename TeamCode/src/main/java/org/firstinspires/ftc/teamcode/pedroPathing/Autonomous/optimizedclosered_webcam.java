@@ -58,6 +58,7 @@ public class optimizedclosered_webcam extends OpMode {
     private String motif = "empty";
     private int gateHitCount = 0;
     private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
+    private boolean intakeRunning = false;  // ✅ ADD THIS
 
     // ========== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.335;
@@ -65,6 +66,7 @@ public class optimizedclosered_webcam extends OpMode {
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
     private static final int TOTAL_GATE_CYCLES = 2;
+    private static final double SETTLE_TIME = 0.3;  // ✅ ADD THIS - time to settle before shooting
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -243,6 +245,14 @@ public class optimizedclosered_webcam extends OpMode {
             case 1: // Wait to reach near shot pose
                 depo.updatePID();  // ✅ Keep updating PID
                 if (!follower.isBusy()) {
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(101);  // ✅ Go to new settling state
+                }
+                break;
+
+            case 101: // ✅ NEW STATE - Settle before first shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1); // Start shooting
                     setPathState(2);
                 }
@@ -277,9 +287,16 @@ public class optimizedclosered_webcam extends OpMode {
 
             case 5: // Wait for second bezier path
                 manageSecondHopIntake();
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(105);  // ✅ Go to settling state
+                }
+                break;
+            case 105: // ✅ NEW STATE - Settle before second shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(6);
                 }
                 break;
@@ -322,9 +339,17 @@ public class optimizedclosered_webcam extends OpMode {
 
             case 10: // Gate - return to shooting position
                 manageSecondHopIntake();
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(110);  // ✅ Go to settling state
+                }
+                break;
+
+            case 110: // ✅ NEW STATE - Settle before gate shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(11);
                 }
                 break;
@@ -372,8 +397,16 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 15: // Wait until back at shooting pose
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
                 if (!follower.isBusy()) {
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(115);  // ✅ Go to settling state
+                }
+                break;
+
+            case 115: // ✅ NEW STATE - Settle before final shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(16);
                 }
@@ -581,19 +614,28 @@ public class optimizedclosered_webcam extends OpMode {
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
 
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull = (sensors.getBack() != 0);
-        boolean leftFull = (sensors.getLeft() != 0);
+        // Check if all slots are full
+        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
 
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull) count++;
-        if (leftFull) count++;
-
-        if (count >= 3) {
-            intake.setPower(0.5); // Spit out
+        if (intakeRunning) {
+            if (allFull) {
+                // All slots full - trigger reverse sequence
+                actionTimer.resetTimer();
+                intakeRunning = false;
+            }
         } else {
-            intake.setPower(-1); // Continue intake
+            // Not currently intaking - check if we should start
+            if (!allFull) {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
+        }
+
+        // Handle reverse sequence when full (like reverseIntake() in teleop)
+        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
+            intake.setPower(1); // Reverse for 0.5 seconds
+        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
+            intake.setPower(0); // Stop after reverse
         }
     }
 

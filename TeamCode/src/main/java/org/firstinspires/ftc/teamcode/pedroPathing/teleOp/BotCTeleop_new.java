@@ -364,7 +364,7 @@ public class BotCTeleop_new extends OpMode {
         distanceToGoal = cur.distanceFrom(targett);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("align to tag",alignToTags);
-        telemetry.addData("yaw to tag", turret.yawToTag);
+        
         telemetry.addData("shooter sequence",shooterSequence);
         telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");

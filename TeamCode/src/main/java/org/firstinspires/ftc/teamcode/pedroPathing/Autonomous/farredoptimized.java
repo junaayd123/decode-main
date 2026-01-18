@@ -29,7 +29,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 import java.util.List;
 //
 @Autonomous(name = "farredoptimized ", group = "Pedro")
-public class botCredFar_optimized extends OpMode {
+public class farredoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
     private Follower follower;
@@ -58,6 +58,7 @@ public class botCredFar_optimized extends OpMode {
     private String motif = "empty";
     private int gateHitCount = 0;
     private int shotCycleCount = 0;  // ADD THIS - tracks how many 3-ball cycles completed
+    private boolean intakeRunning = false;  // ✅ ADD THIS
 
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.335;
@@ -567,19 +568,28 @@ public class botCredFar_optimized extends OpMode {
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
 
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull = (sensors.getBack() != 0);
-        boolean leftFull = (sensors.getLeft() != 0);
+        // Check if all slots are full
+        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
 
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull) count++;
-        if (leftFull) count++;
-
-        if (count >= 3) {
-            intake.setPower(0.5); // Spit out
+        if (intakeRunning) {
+            if (allFull) {
+                // All slots full - trigger reverse sequence
+                actionTimer.resetTimer();
+                intakeRunning = false;
+            }
         } else {
-            intake.setPower(-1); // Continue intake
+            // Not currently intaking - check if we should start
+            if (!allFull) {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
+        }
+
+        // Handle reverse sequence when full (like reverseIntake() in teleop)
+        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
+            intake.setPower(1); // Reverse for 0.5 seconds
+        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
+            intake.setPower(0); // Stop after reverse
         }
     }
 
