@@ -35,7 +35,7 @@ public class Deposition_C {
     //    public double farPower2  = 0.70;
     public double farVelo_auto = 1675;
     public double closeVelo_New = 1250; //use for new bot
-    public double closeVelo_New_auto = 1290; //use for new bot
+    public double closeVelo_New_auto = 1305; //use for new bot
 
 
     private double powerOutput = 0.0;

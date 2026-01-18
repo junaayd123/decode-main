@@ -27,8 +27,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-//
-@Autonomous(name = "C-Bot Close Red (Webcam)", group = "Pedro")
+
+@Autonomous(name = "C-Bot Close Red OPTIMIZED", group = "Pedro")
 public class optimizedclosered_webcam extends OpMode {
 
     // ========== SUBSYSTEMS ==========
@@ -57,11 +57,10 @@ public class optimizedclosered_webcam extends OpMode {
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
-
-    private int scenario = 3;
+    private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.40;
+    private static final double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
@@ -83,8 +82,6 @@ public class optimizedclosered_webcam extends OpMode {
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
 
-
-
     // ========== PATHS ==========
     private PathChain goBackPath;
     private PathChain bezierFirstPath;
@@ -95,28 +92,6 @@ public class optimizedclosered_webcam extends OpMode {
     private PathChain firstLineSecondHopPath;
     private PathChain thirdLinePickupPath;
     private Pose thirdPickupPose;
-
-
-    //scenario 1: Go back shoot preload 3
-    //1. Go to second line pickup
-    //2. Shoot 3
-    //3. Gate open pickup
-    //4. Shoot 3
-    //5. Third line pickup
-    //6. Shoot 3
-    //7. First line pickup
-    //8. Shoot 3
-
-    //scenario 4:
-    //1.Go back shoot preload 3
-    //2.Go to second line pickup
-    //3.Shoot 3
-    //4.Gate open pickup
-    //5. Shoot 3
-    //6. Third line pickup
-    //7. Shoot 3
-    //8. First line pickup
-    //9. Shoot 3
 
     @Override
     public void init() {
@@ -155,7 +130,7 @@ public class optimizedclosered_webcam extends OpMode {
         // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam)");
+        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
         telemetry.update();
     }
 
@@ -176,6 +151,7 @@ public class optimizedclosered_webcam extends OpMode {
         opmodeTimer.resetTimer();
         turret.setDegreesTarget(-44.5);
         turret.setPid();
+        shotCycleCount = 0;
         setPathState(0);
         setActionState(0);
     }
@@ -187,12 +163,13 @@ public class optimizedclosered_webcam extends OpMode {
         turret.toTargetInDegrees();
 
         // Run state machines
-        autonomousPathUpdate(3);
+        autonomousPathUpdate();
         autonomousActionUpdate();
 
         // Telemetry
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
+        telemetry.addData("Shot Cycle", shotCycleCount);
 
         // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
@@ -251,251 +228,162 @@ public class optimizedclosered_webcam extends OpMode {
     }
 
     // ========== PATH STATE MACHINE ==========
-    public void autonomousPathUpdate(double scenario) {
-        if (scenario == 2){
-            //Go back shoot 3
-            //Go to second line pickup
-            //Shoot 3
-            //Gate open pickup
-            //Shoot 3
-            //Third Line pickup
-            //Shoot 3
-            //First Line pickup
-            //Shoot 3
-            switch (pathState) {
-                case 0: // Go back to near shot pose
-                    buildGoBackPath();
-                    follower.followPath(goBackPath, true);
-                    setPathState(1);
-                    break;
+    public void autonomousPathUpdate() {
+        switch (pathState) {
+            case 0: // Go back to near shot pose - START FLYWHEEL
+                // ✅ Start spinning flywheel at the very beginning
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                case 1: // Wait to reach near shot pose
-                    if (!follower.isBusy()) {
-                        setActionState(1); // Start shooting
-                        setPathState(2);
-                    }
-                    break;
+                buildGoBackPath();
+                follower.followPath(goBackPath, true);
+                setPathState(1);
+                break;
 
-                case 2: // Wait for shooting to complete
-                    if (actionState == 0) { // Shooting done
-                        turret.setDegreesTarget(-15);
-                        setPathState(3);
-                    }
-                    break;
+            case 1: // Wait to reach near shot pose
+                depo.updatePID();  // ✅ Keep updating PID
+                if (!follower.isBusy()) {
+                    setActionState(1); // Start shooting
+                    setPathState(2);
+                }
+                break;
 
-                case 3: // Bezier curve pickup - first path
-                    buildBezierPaths();
+            case 2: // Wait for shooting to complete
+                if (actionState == 0) { // Shooting done
+                    turret.setDegreesTarget(-15);
+                    setPathState(3);
+                }
+                break;
+
+            case 3: // Bezier curve pickup - first path
+                buildBezierPaths();
+                manageSecondHopIntake();
+                follower.followPath(bezierFirstPath, true);
+                setPathState(4);
+                break;
+
+            case 4: // Wait for first bezier path
+                if (!follower.isBusy()) {
                     manageSecondHopIntake();
-                    follower.followPath(bezierFirstPath, true);
-                    setPathState(4);
-                    break;
 
-                case 4: // Wait for first bezier path
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        follower.followPath(bezierSecondPath, true);
-                        setPathState(5);
-                    }
-                    break;
+                    // ✅ Start spinning flywheel BEFORE next path
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                case 5: // Wait for second bezier path
-                    manageSecondHopIntake();
-                    if (!follower.isBusy()) {
-                        setActionState(1); // Start shooting
-                        setPathState(6);
-                    }
-                    break;
+                    follower.followPath(bezierSecondPath, true);
+                    setPathState(5);
+                }
+                break;
 
-                // ===== Third  LINE PICKUP =====
-                case 6: // Drive straight to first line pickup
-                    manageSecondHopIntake();
-                    buildLinePickupPaths();
-                    follower.followPath(thirdLinePickupPath, true);
-                    setPathState(7);
-                    break;
+            case 5: // Wait for second bezier path
+                manageSecondHopIntake();
+                depo.updatePID();  // ✅ Keep updating PID during drive
+                if (!follower.isBusy()) {
+                    setActionState(1); // Start shooting
+                    setPathState(6);
+                }
+                break;
 
-                case 7: // Wait until pickup reached
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        setPathState(8);
-                    }
-                    break;
+            case 6: // Wait for shooting cycle 2
+                if (actionState == 0) {
+                    gateHitCount = 0; // Reset counter
+                    setPathState(7); // Start gate cycles
+                }
+                break;
 
-                case 8: // Drive straight back to shooting pose
-                    buildReturnToShootingPath();
-                    follower.followPath(goBackPath, true);
+            // ===== GATE CYCLE LOOP =====
+            case 7: // Gate - go to gate
+                double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                buildGatePaths(waitTime);
+                intake.setPower(-1);
+                follower.followPath(gateFirstPath, true);
+                setPathState(8);
+                break;
+
+            case 8: // Gate - wait at gate position
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
                     setPathState(9);
-                    break;
+                }
+                break;
 
-                // First line pickup
-                case 9: // Wait until back at shooting pose
-                    if (!follower.isBusy()) {
-                        setActionState(1);
-                        setPathState(10);
-                    }
-                    break;
-                case 10:
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        follower.followPath(thirdLinePickupPath, true);
-                        setPathState(11);
-                        break;
-                    }
-                case 11:
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        setPathState(12);
-                    }
-                    break;
-                case 12:
-                    buildReturnToShootingPath();
-                    follower.followPath(goBackPath, true);
-                    setPathState(13);
-                    break;
-                case 13: // Final shooting sequence
-                    if (!follower.isBusy()) {
-                        setActionState(1);
-                        setPathState(10);
-                    }
-                    break;
-                case 14: // Final shooting sequence
-                    if (actionState == 0) {
-                        setPathState(-1);
-                    }
-                    break;
-            }
+            case 9: // Gate - pause to collect artifacts
+                double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
 
-        }
-        else if (scenario == 3 || scenario == 4) {
-            switch (pathState) {
-                case 0: // Go back to near shot pose
-                    buildGoBackPath();
-                    follower.followPath(goBackPath, true);
-                    setPathState(1);
-                    break;
+                    // ✅ Start spinning flywheel BEFORE return path
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                case 1: // Wait to reach near shot pose
-                    if (!follower.isBusy()) {
-                        setActionState(1); // Start shooting
-                        setPathState(2);
+                    follower.followPath(gateSecondPath, true);
+                    setPathState(10);
+                }
+                break;
+
+            case 10: // Gate - return to shooting position
+                manageSecondHopIntake();
+                depo.updatePID();  // ✅ Keep updating PID during drive
+                if (!follower.isBusy()) {
+                    setActionState(1); // Start shooting
+                    setPathState(11);
+                }
+                break;
+
+            case 11: // Wait for shooting to complete
+                if (actionState == 0) {
+                    gateHitCount++;
+
+                    if (gateHitCount < TOTAL_GATE_CYCLES) {
+                        setPathState(7); // Loop back to gate cycle
+                    } else {
+                        setPathState(12); // Move to first line pickup
                     }
-                    break;
+                }
+                break;
 
-                case 2: // Wait for shooting to complete
-                    if (actionState == 0) { // Shooting done
-                        turret.setDegreesTarget(-15);
-                        setPathState(3);
-                    }
-                    break;
+            // ===== FIRST LINE PICKUP =====
+            case 12: // Drive straight to first line pickup
+                // ✅ Start spinning flywheel BEFORE going to pickup
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                case 3: // Bezier curve pickup - first path
-                    buildBezierPaths();
+                manageSecondHopIntake();
+                buildLinePickupPaths();
+                follower.followPath(firstLinePickupPath, true);
+                setPathState(13);
+                break;
+
+            case 13: // Wait until pickup reached
+                depo.updatePID();  // ✅ Keep updating PID during drive
+                if (!follower.isBusy()) {
                     manageSecondHopIntake();
-                    follower.followPath(bezierFirstPath, true);
-                    setPathState(4);
-                    break;
+                    setPathState(14);
+                }
+                break;
 
-                case 4: // Wait for first bezier path
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        follower.followPath(bezierSecondPath, true);
-                        setPathState(5);
-                    }
-                    break;
+            case 14: // Drive straight back to shooting pose
+                // ✅ Start spinning flywheel BEFORE return path
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                case 5: // Wait for second bezier path
-                    manageSecondHopIntake();
-                    if (!follower.isBusy()) {
-                        setActionState(1); // Start shooting
-                        setPathState(6);
-                    }
-                    break;
+                buildReturnToShootingPath();
+                follower.followPath(goBackPath, true);
+                setPathState(15);
+                break;
 
-                case 6: // Wait for shooting cycle 2
-                    if (actionState == 0) {
-                        gateHitCount = 0; // Reset counter
-                        setPathState(7); // Start gate cycles
-                    }
-                    break;
+            case 15: // Wait until back at shooting pose
+                depo.updatePID();  // ✅ Keep updating PID during drive
+                if (!follower.isBusy()) {
+                    setActionState(1);
+                    setPathState(16);
+                }
+                break;
 
-                // ===== GATE CYCLE LOOP =====
-                case 7: // Gate - go to gate
-                    double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                    buildGatePaths(waitTime);
-                    intake.setPower(-1);
-                    follower.followPath(gateFirstPath, true);
-                    setPathState(8);
-                    break;
-
-                case 8: // Gate - wait at gate position
-                    if (!follower.isBusy()) {
-                        actionTimer.resetTimer();
-                        setPathState(9);
-                    }
-                    break;
-
-                case 9: // Gate - pause to collect artifacts
-                    double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                    if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-                        follower.followPath(gateSecondPath, true);
-                        setPathState(10);
-                    }
-                    break;
-
-                case 10: // Gate - return to shooting position
-                    manageSecondHopIntake();
-                    if (!follower.isBusy()) {
-                        setActionState(1); // Start shooting
-                        setPathState(11);
-                    }
-                    break;
-
-                case 11: // Wait for shooting to complete
-                    if (actionState == 0) {
-                        gateHitCount++;
-
-                        if (gateHitCount < TOTAL_GATE_CYCLES) {
-                            setPathState(7); // Loop back to gate cycle
-                        } else {
-                            setPathState(12); // Move to first line pickup
-                        }
-                    }
-                    break;
-
-                // ===== FIRST LINE PICKUP =====
-                case 12: // Drive straight to first line pickup
-                    manageSecondHopIntake();
-                    buildLinePickupPaths();
-                    follower.followPath(firstLinePickupPath, true);
-                    setPathState(13);
-                    break;
-
-                case 13: // Wait until pickup reached
-                    if (!follower.isBusy()) {
-                        manageSecondHopIntake();
-                        setPathState(14);
-                    }
-                    break;
-
-                case 14: // Drive straight back to shooting pose
-                    buildReturnToShootingPath();
-                    follower.followPath(goBackPath, true);
-                    setPathState(15);
-                    break;
-
-                case 15: // Wait until back at shooting pose
-                    if (!follower.isBusy()) {
-                        setActionState(1);
-                        setPathState(16);
-                    }
-                    break;
-
-                case 16: // Final shooting sequence
-                    if (actionState == 0) {
-                        setPathState(-1);
-                    }
-                    break;
-            }
+            case 16: // Final shooting sequence
+                if (actionState == 0) {
+                    setPathState(-1);
+                }
+                break;
         }
     }
 
@@ -508,7 +396,15 @@ public class optimizedclosered_webcam extends OpMode {
             case 1: // Initialize shooting
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-                setActionState(2);
+
+                // ✅ Check if already at speed (from pre-spinning)
+                if (depo.reachedTargetHighTolerance()) {
+                    greenInSlot = getGreenPos();
+                    shootTimer.resetTimer();
+                    setActionState(3);  // Skip wait, go straight to shooting!
+                } else {
+                    setActionState(2);  // Still need to wait
+                }
                 break;
 
             case 2: // Wait for shooter to spin up
@@ -522,12 +418,21 @@ public class optimizedclosered_webcam extends OpMode {
 
             case 3: // Execute shooting sequence
                 depo.updatePID();
-                executeShootingSequence();
+
+                // Use random shooting for first 2 cycles (6 balls), then motif
+                boolean useRandomShooting = (shotCycleCount < 2);
+
+                if (useRandomShooting) {
+                    shootThreeRandom();
+                } else {
+                    executeShootingSequence();
+                }
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
+                    shotCycleCount++;
                     setActionState(0);
                 }
                 break;
@@ -553,40 +458,61 @@ public class optimizedclosered_webcam extends OpMode {
 
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.backUp();
         }
     }
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.backUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.leftUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.rightUp();
         }
     }
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.backUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.leftUp();
+        }
+    }
+
+    private void shootThreeRandom() {
+        double t = shootTimer.getElapsedTimeSeconds();
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
+            LL.leftUp();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
+            LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+            LL.backUp();
         }
     }
 
@@ -619,8 +545,6 @@ public class optimizedclosered_webcam extends OpMode {
                 .addPath(new Path(new BezierCurve(firstpickupPose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(firstpickupPose.getHeading(), nearshotpose2.getHeading(), 0.8)
                 .build();
-
-
     }
 
     private void buildGatePaths(double waitTime) {
@@ -633,7 +557,7 @@ public class optimizedclosered_webcam extends OpMode {
 
         gateSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, outfromgate, nearshotpose2)))
-                .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), nearshotpose2.getHeading())
+                .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), nearshotpose2.getHeading(), 0.3)
                 .build();
     }
 
@@ -642,10 +566,6 @@ public class optimizedclosered_webcam extends OpMode {
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
-                .build();
-        thirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, thirdPickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), thirdPickupPose.getHeading())
                 .build();
     }
 

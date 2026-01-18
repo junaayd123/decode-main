@@ -70,7 +70,7 @@ public class botCredFar_optimized extends OpMode {
     private final Pose startPose = new Pose(7, 7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose firstPickupPose = new Pose(57, 35, Math.toRadians(0));
+    private final Pose ThirdPickupPose = new Pose(57, 35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
@@ -92,7 +92,7 @@ public class botCredFar_optimized extends OpMode {
     private PathChain bezierSecondPath;
     private PathChain gateFirstPath;
     private PathChain gateSecondPath;
-    private PathChain firstLinePickupPath;
+    private PathChain ThirdLinePickupPath;
     private PathChain firstLineSecondHopPath;
 
     @Override
@@ -346,8 +346,8 @@ public class botCredFar_optimized extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12: // Drive straight to first line pickup
                 manageSecondHopIntake();
-                buildFirstLinePickupPaths();
-                follower.followPath(firstLinePickupPath, true);
+//                buildThirdLinePickupPaths();
+                follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
                 break;
 
@@ -531,6 +531,10 @@ public class botCredFar_optimized extends OpMode {
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
                 .setTimeoutConstraint(0.15)
                 .build();
+        ThirdLinePickupPath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(midpoint2, ThirdPickupPose)))
+                .setLinearHeadingInterpolation(midpoint2.getHeading(), ThirdPickupPose.getHeading())
+                .build();
     }
 
     private void buildGatePaths(double waitTime) {
@@ -548,13 +552,7 @@ public class botCredFar_optimized extends OpMode {
                 .build();
     }
 
-    private void buildFirstLinePickupPaths() {
-        Pose cur = follower.getPose();
-        firstLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(midpoint2, firstPickupPose)))
-                .setLinearHeadingInterpolation(midpoint2.getHeading(), firstPickupPose.getHeading())
-                .build();
-    }
+
 
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
