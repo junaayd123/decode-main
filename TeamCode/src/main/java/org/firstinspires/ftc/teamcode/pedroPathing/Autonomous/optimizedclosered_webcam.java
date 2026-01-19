@@ -78,8 +78,8 @@ public class optimizedclosered_webcam extends OpMode {
     private final Pose firstpickupPose = new Pose(56, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.2, 56.1, Math.toRadians(34));
-    private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
+    private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
+    private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
@@ -336,6 +336,7 @@ public class optimizedclosered_webcam extends OpMode {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_close();
                     depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    buildGatePathsBack();
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -592,10 +593,12 @@ public class optimizedclosered_webcam extends OpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1.6)
                 .build();
-
+    }
+    private void buildGatePathsBack() {
+        Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(infront_of_lever_new, outfromgate, nearshotpose2)))
-                .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), nearshotpose2.getHeading(), 0.3)
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
                 .build();
     }
 
