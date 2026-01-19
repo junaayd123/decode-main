@@ -183,6 +183,11 @@ public class optimizedclosered_webcam extends OpMode {
                 telemetry.addData("Sequence", "First Line Pickup");
             }
         }
+        if (pathState == -1){
+            telemetry.addData("Auto Status", "Complete");
+            return;
+        }
+
 
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
@@ -585,7 +590,7 @@ public class optimizedclosered_webcam extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.2)
+                .setTimeoutConstraint(1.6)
                 .build();
 
         gateSecondPath = follower.pathBuilder()

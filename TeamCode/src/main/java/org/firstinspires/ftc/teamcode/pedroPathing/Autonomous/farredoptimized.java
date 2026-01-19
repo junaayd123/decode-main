@@ -27,8 +27,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-//
-@Autonomous(name = "farredoptimized ", group = "Pedro")
+
+@Autonomous(name = "C-Bot Far Red OPTIMIZED", group = "Pedro")
 public class farredoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
@@ -57,8 +57,8 @@ public class farredoptimized extends OpMode {
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
-    private int shotCycleCount = 0;  // ADD THIS - tracks how many 3-ball cycles completed
-    private boolean intakeRunning = false;  // ✅ ADD THIS
+    private int shotCycleCount = 0;
+    private boolean intakeRunning = false;
 
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.335;
@@ -66,6 +66,7 @@ public class farredoptimized extends OpMode {
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
     private static final int TOTAL_GATE_CYCLES = 2;
+    private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7, 7, Math.toRadians(0));
@@ -133,7 +134,7 @@ public class farredoptimized extends OpMode {
         // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam)");
+        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
         telemetry.update();
     }
 
@@ -153,8 +154,8 @@ public class farredoptimized extends OpMode {
     public void start() {
         opmodeTimer.resetTimer();
         turret.setDegreesTarget(-69.2);
-//        turret.setPid();
-        shotCycleCount = 0;  // ADD THIS - reset shot counter at start
+        turret.setPid();
+        shotCycleCount = 0;
         setPathState(0);
         setActionState(0);
     }
@@ -172,6 +173,7 @@ public class farredoptimized extends OpMode {
         // Telemetry
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
+        telemetry.addData("Shot Cycle", shotCycleCount);
 
         // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
@@ -182,6 +184,11 @@ public class farredoptimized extends OpMode {
             } else {
                 telemetry.addData("Sequence", "First Line Pickup");
             }
+        }
+
+        if (pathState == -1) {
+            telemetry.addData("Auto Status", "Complete");
+            return;
         }
 
         telemetry.addData("X", follower.getPose().getX());
@@ -232,18 +239,25 @@ public class farredoptimized extends OpMode {
     // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
-            case 0: // Go back to near shot pose
+            case 0: // Start - spin up flywheel
                 // ✅ Start spinning flywheel at the very beginning
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVelo_New);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
-
                 break;
 
-            case 1: // Wait to reach near shot pose
+            case 1: // Wait for flywheel to spin up
                 depo.updatePID();  // ✅ Keep updating PID
-                if (!follower.isBusy()) {
+                if (depo.reachedTargetHighTolerance()) {
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(101);  // ✅ Go to settling state
+                }
+                break;
+
+            case 101: // ✅ NEW STATE - Settle before first shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1); // Start shooting
                     setPathState(2);
                 }
@@ -251,24 +265,21 @@ public class farredoptimized extends OpMode {
 
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
-//                    turret.setDegreesTarget(-15);
                     intake.setPower(-1);
                     SHOOT_INTERVAL = 0.335;
                     setPathState(3);
-
                 }
                 break;
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
+                manageSecondHopIntake();
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
 
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
-
                     // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVelo_New);
@@ -282,7 +293,15 @@ public class farredoptimized extends OpMode {
                 manageSecondHopIntake();
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(105);  // ✅ Go to settling state
+                }
+                break;
+
+            case 105: // ✅ NEW STATE - Settle before second shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(6);
                 }
                 break;
@@ -298,7 +317,7 @@ public class farredoptimized extends OpMode {
             case 7: // Gate - go to gate
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePaths(waitTime);
-                intake.setPower(-1);
+                manageSecondHopIntake();
                 follower.followPath(gateFirstPath, true);
                 setPathState(8);
                 break;
@@ -312,8 +331,8 @@ public class farredoptimized extends OpMode {
 
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                buildGatePathBack(waitTime2);
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVelo_New);
@@ -327,7 +346,15 @@ public class farredoptimized extends OpMode {
                 manageSecondHopIntake();
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(110);  // ✅ Go to settling state
+                }
+                break;
+
+            case 110: // ✅ NEW STATE - Settle before gate shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(11);
                 }
                 break;
@@ -344,17 +371,21 @@ public class farredoptimized extends OpMode {
                 }
                 break;
 
-            // ===== FIRST LINE PICKUP =====
-            case 12: // Drive straight to first line pickup
+            // ===== THIRD LINE PICKUP =====
+            case 12: // Drive straight to third line pickup
+                // ✅ Start spinning flywheel BEFORE going to pickup
+                LL.set_angle_far();
+                depo.setTargetVelocity(depo.farVelo_New);
+
                 manageSecondHopIntake();
-//                buildThirdLinePickupPaths();
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
                 break;
 
             case 13: // Wait until pickup reached
+                manageSecondHopIntake();
+                depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
                     setPathState(14);
                 }
                 break;
@@ -372,6 +403,14 @@ public class farredoptimized extends OpMode {
             case 15: // Wait until back at shooting pose
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
+                    actionTimer.resetTimer();  // ✅ Start settle timer
+                    setPathState(115);  // ✅ Go to settling state
+                }
+                break;
+
+            case 115: // ✅ NEW STATE - Settle before final shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(16);
                 }
@@ -394,7 +433,15 @@ public class farredoptimized extends OpMode {
             case 1: // Initialize shooting
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVelo_New);
-                setActionState(2);
+
+                // ✅ Check if already at speed (from pre-spinning)
+                if (depo.reachedTargetHighTolerance()) {
+                    greenInSlot = getGreenPos();
+                    shootTimer.resetTimer();
+                    setActionState(3);  // Skip wait, go straight to shooting!
+                } else {
+                    setActionState(2);  // Still need to wait
+                }
                 break;
 
             case 2: // Wait for shooter to spin up
@@ -408,12 +455,16 @@ public class farredoptimized extends OpMode {
 
             case 3: // Execute shooting sequence
                 depo.updatePID();
+
+                // Use random shooting for first 2 cycles (6 balls), then motif
                 boolean useRandomShooting = (shotCycleCount < 2);
+
                 if (useRandomShooting) {
                     shootThreeRandom();
                 } else {
                     executeShootingSequence();
                 }
+
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
@@ -459,7 +510,6 @@ public class farredoptimized extends OpMode {
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.backUp();
         } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
@@ -475,7 +525,6 @@ public class farredoptimized extends OpMode {
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.rightUp();
         } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
@@ -491,13 +540,15 @@ public class farredoptimized extends OpMode {
 
     private void shootThreeRandom() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.allDown();
             LL.backUp();
         }
     }
@@ -532,6 +583,7 @@ public class farredoptimized extends OpMode {
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
                 .setTimeoutConstraint(0.15)
                 .build();
+
         ThirdLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(midpoint2, ThirdPickupPose)))
                 .setLinearHeadingInterpolation(midpoint2.getHeading(), ThirdPickupPose.getHeading())
@@ -542,18 +594,18 @@ public class farredoptimized extends OpMode {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
-                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.2)
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.3)
+                .setTimeoutConstraint(1.6)
                 .build();
-
+    }
+    private void buildGatePathBack(double waitTime) {
+        Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(infront_of_lever_adj, midpoint3, farshotpose)))
-                .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), farshotpose.getHeading())
+                .addPath(new Path(new BezierCurve(cur, midpoint3, farshotpose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading(), 0.3)
                 .setTimeoutConstraint(0.15)
                 .build();
     }
-
-
 
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
@@ -567,7 +619,7 @@ public class farredoptimized extends OpMode {
     // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
-
+        intake.setPower(-1);
         // Check if all slots are full
         boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
 
