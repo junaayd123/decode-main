@@ -72,17 +72,17 @@ public class farblueoptimized extends OpMode {
     private final Pose startPose = new Pose(12, -7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose ThirdPickupPose = new Pose(57, -35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13, -60, Math.toRadians(0));
+    private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(23, -61, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(23, -35, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(25, -50, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(59, -59, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(56, -61, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(62, -62, Math.toRadians(-34));
-    private final Pose infront_of_lever_adj = new Pose(63.25, -65, Math.toRadians(-34));
+    private final Pose infront_of_lever_new = new Pose(58, -65, Math.toRadians(-43));
+    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-43));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
@@ -153,7 +153,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(64);
+        turret.setDegreesTarget(69.5);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -242,7 +242,7 @@ public class farblueoptimized extends OpMode {
             case 0: // Start - spin up flywheel
                 // ✅ Start spinning flywheel at the very beginning
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVelo_New);
+                depo.setTargetVelocity(depo.farVeloblue);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
                 break;
@@ -282,7 +282,7 @@ public class farblueoptimized extends OpMode {
                 if (!follower.isBusy()) {
                     // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVelo_New);
+                    depo.setTargetVelocity(depo.farVeloblue);
 
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
@@ -335,7 +335,7 @@ public class farblueoptimized extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVelo_New);
+                    depo.setTargetVelocity(depo.farVeloblue);
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -375,7 +375,7 @@ public class farblueoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVelo_New);
+                depo.setTargetVelocity(depo.farVeloblue);
 
                 manageSecondHopIntake();
                 follower.followPath(ThirdLinePickupPath, true);
@@ -393,7 +393,7 @@ public class farblueoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVelo_New);
+                depo.setTargetVelocity(depo.farVeloblue);
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -432,7 +432,7 @@ public class farblueoptimized extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVelo_New);
+                depo.setTargetVelocity(depo.farVeloblue);
 
                 // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
@@ -593,8 +593,8 @@ public class farblueoptimized extends OpMode {
     private void buildGatePaths(double waitTime) {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
-                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.3)
+                .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
+                .setLinearHeadingInterpolation(cur.getHeading(), 0.3)
                 .setTimeoutConstraint(1.6)
                 .build();
     }
