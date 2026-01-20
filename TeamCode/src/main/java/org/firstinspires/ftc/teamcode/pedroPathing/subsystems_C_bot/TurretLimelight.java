@@ -48,6 +48,7 @@ public class TurretLimelight {
         pid.setPID(p,i,d);
     }
     public void toTargetInTicks(){
+        currentPos = TurretMotor.getCurrentPosition();
         double error = target - currentPos;
         if (Math.abs(error) <= tolerance) {
             power = 0.0;

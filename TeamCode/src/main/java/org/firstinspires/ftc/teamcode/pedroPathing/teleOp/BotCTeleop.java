@@ -77,7 +77,7 @@ public class BotCTeleop extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(72,140,0);
+    private final Pose redGoal = new Pose(72,144,0);
     private final Pose blueGoalfar = new Pose(-68,144,0);
     private final Pose redGoalfar = new Pose(68,144,0);
 
@@ -92,6 +92,7 @@ public class BotCTeleop extends OpMode {
     boolean tagDetected;
     double turretDeg;
     Timer turretTimer;
+    double totalHedOffset;
 
 
     private void initAprilTag() {
@@ -175,6 +176,7 @@ public class BotCTeleop extends OpMode {
 
 
     double headingTotag;
+    boolean flywheelEarlyStart;
     @Override
     public void init() {
         turret = new TurretLimelight(hardwareMap);
@@ -212,7 +214,7 @@ public class BotCTeleop extends OpMode {
         timer4.resetTimer();
         timer5.resetTimer();
         turretTimer.resetTimer();
-        tagInitializing = true;
+//        tagInitializing = true;
     }
 
     @Override
@@ -228,6 +230,7 @@ public class BotCTeleop extends OpMode {
             if(bluealliance) turret.setBlueAlliance();
             else turret.setRedAlliance();
         }
+        follower.getTotalHeading();
 //        if(g1.ps && g1.startWasPressed()){//invert pose
 //            Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
 //            follower.setPose(invert);
@@ -247,6 +250,15 @@ public class BotCTeleop extends OpMode {
         flippedAngle = ((flippedAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
 
         headingTotag = flippedAngle+Math.PI;
+        double robHeading = follower.getTotalHeading()-totalHedOffset;
+        if(bluealliance) {
+            while (robHeading >= Math.PI * 2) robHeading -= 2 * Math.PI;
+            while (robHeading < 0) robHeading += 2 * Math.PI;
+        }
+        else{
+            while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
+            while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
+        }
 
         if (gamepad2.rightBumperWasPressed()) {
             if (intake.getPower() < -0.5) {
@@ -257,11 +269,19 @@ public class BotCTeleop extends OpMode {
                 intakeRunning = true;
             }
         }
+        if(shooting){
+            intake.setPower(0);
+            intakeRunning = false;
+        }
 
         if (intakeRunning) {
+            led.setPosition(0.28);
+            led2.setPosition(0.28);
             if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
                 timer3.startTimer();
                 intakeRunning = false;
+                led.setPosition(0.5);
+                led2.setPosition(0.5);
             }
         }
         if(g2.left_bumper){
@@ -284,7 +304,7 @@ public class BotCTeleop extends OpMode {
             alignToTags = !alignToTags;
         }
         if(mode == Mode.faceGoal){
-            turret.toTargetInDegrees2(Math.toDegrees(cur.getHeading() - headingTotag));
+            turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
         }
         if(mode == Mode.nothing){
             turret.TurretMotor.setPower(0);
@@ -299,13 +319,18 @@ public class BotCTeleop extends OpMode {
                 mode = Mode.nothing;
             }
             else{
-//                turretTimer.startTimer();
+                turretTimer.startTimer();
                 mode = Mode.findTag;
-                movingCase = 1;
-                timerDiddyMoment = 0;
-                tagInitializing = true;
+                turret.setDegreesTarget(0);
                 led.setPosition(0.34);
+//                movingCase = 1;
+//                timerDiddyMoment = 0;
             }
+        }
+        if(turretTimer.checkAtSeconds(1)){
+            tagInitializing = true;
+//            led.setPosition(0.34);
+            turretTimer.stopTimer();
         }
         if (tagInitializing) {
             updateAprilTagLocalization();
@@ -317,12 +342,12 @@ public class BotCTeleop extends OpMode {
                 telemetry.addData("local hed",Math.toDegrees(pedroPose.getHeading()));
                 telemetry.addData("turret angle",turretDeg);
                 follower.setPose(pedroPose.getPose());
+                totalHedOffset = follower.getTotalHeading()-pedroPose.getHeading();
                 tagInitializing = false;
-                led.setPosition(0.5);
-                turretTimer.stopTimer();
+                led.setPosition(0.6);
             }
             else{
-//                moveDiddyTurret();
+
             }
         }
         if(distanceToGoal>120) shootinterval = 0.4;
@@ -342,10 +367,22 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(!shootingTest && shooting){
-            depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+        if(!shootingTest){
+            if(shooting) depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
             LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
+            if(flywheelEarlyStart) {
+                if (LL.sensors.getLeft() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getRight() != 0) {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                }
+                else if(!shooting && timer1.timerIsOff()){
+                    depo.setTargetVelocity(0);
+                }
+            }
         }
+        if(g2.dpadLeftWasPressed()){
+            flywheelEarlyStart = !flywheelEarlyStart;
+        }
+
         if(g2.square && !preG2.square){//gpp
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
@@ -419,6 +456,7 @@ public class BotCTeleop extends OpMode {
         telemetry.addData("X", cur.getX());
         telemetry.addData("y", cur.getY());
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
+        telemetry.addData("total heading", Math.toDegrees(follower.getTotalHeading()-totalHedOffset));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
         if(depo.reachedTargetHighTolerance()){
             if (shooting) {
