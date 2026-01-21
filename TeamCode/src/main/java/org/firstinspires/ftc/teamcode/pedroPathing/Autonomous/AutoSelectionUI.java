@@ -15,6 +15,7 @@ import com.pedropathing.geometry.*;
 import com.pedropathing.math.*;
 import com.pedropathing.paths.*;
 import com.pedropathing.telemetry.SelectableOpMode;
+import org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.AutoSelectableOpMode;
 import com.pedropathing.util.*;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -25,14 +26,14 @@ import java.util.List;
 
 /**
  * We start in the UI thing idk bruhburhbuoerwhboierjbioerw
- * Btw I made this using SelectableOpMode from the Pedro Pathing package so if you move this file out it's going to break.
+ * I created a file called AutoSelectableOpMode which is directly related to SelectableOpMode from Pedro Pathing
  *
  * @author Junaayd Shaikh - 23918 Super Sigma Robotics
  * @version 1.0
  */
 @Configurable
 @Autonomous(name = "Autonomous Selection")
-public class AutoSelectionUI extends SelectableOpMode {
+public class AutoSelectionUI extends AutoSelectableOpMode {
     public static Follower follower;
 
     @IgnoreConfigurable
@@ -48,19 +49,15 @@ public class AutoSelectionUI extends SelectableOpMode {
         super("(DO NOT USE YET DO NOT USE YET THIS IS JUST A LAYOUT DO NOT USE) Select an Autonomous", s -> {
             s.folder("Close Red", l -> {
                 l.add("Optimized Close Red", optimizedclosered_webcam::new);
-                l.add("optimizedcloseblue", optimizedcloseblue_webcam::new);
             });
             s.folder("Far Red", l -> {
-                l.add("optimizedclosered", optimizedclosered_webcam::new);
-                l.add("optimizedcloseblue", optimizedcloseblue_webcam::new);
+                l.add("Optimized Far Red", farredoptimized::new);
             });
             s.folder("Close Blue", l -> {
-                l.add("optimizedclosered", optimizedclosered_webcam::new);
-                l.add("optimizedcloseblue", optimizedcloseblue_webcam::new);
+                l.add("Optimized Close Blue", optimizedcloseblue_webcam::new);
             });
             s.folder("Far Blue", l -> {
-                l.add("optimizedclosered", optimizedclosered_webcam::new);
-                l.add("optimizedcloseblue", optimizedcloseblue_webcam::new);
+                l.add("Optimized Far Blue", farblueoptimized::new);
             });
             /*s.folder("Automatic", a -> {
                 a.add("Forward Velocity Tuner", ForwardVelocityTuner::new);

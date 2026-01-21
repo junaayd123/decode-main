@@ -72,7 +72,7 @@ public class farredoptimized extends OpMode {
     private final Pose startPose = new Pose(7, 7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose ThirdPickupPose = new Pose(57, 35, Math.toRadians(0));
+    private final Pose ThirdPickupPose = new Pose(59, 35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
@@ -217,21 +217,9 @@ public class farredoptimized extends OpMode {
 
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                // Check yaw angle to determine which face we're looking at
-                double yaw = detection.ftcPose.yaw;
-
-                // Using red side logic (blueSide = false)
-                if (yaw > 40 && yaw < 90) {
-                    // First check position
-                    if (detection.id == 21) motif = "pgp";
-                    if (detection.id == 22) motif = "ppg";
-                    if (detection.id == 23) motif = "gpp";
-                } else if (yaw > -80 && yaw < -40) {
-                    // Second check position
+                    if (detection.id == 21) motif = "gpp";
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
-                    if (detection.id == 21) motif = "gpp";
-                }
             }
         }
     }
