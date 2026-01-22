@@ -28,7 +28,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "C-Bot Far Blue OPTIMIZED", group = "Pedro")
+@Autonomous(name = "Farblue optimized", group = "Pedro")
 public class farblueoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
@@ -267,11 +267,12 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 4: // Wait for first bezier path
+                intake.setPower(-1);
                 if (!follower.isBusy()) {
                     // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloblue);
-
+                    intake.setPower(-1);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -305,7 +306,7 @@ public class farblueoptimized extends OpMode {
             case 7: // Gate - go to gate
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePaths(waitTime);
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 follower.followPath(gateFirstPath, true);
                 setPathState(8);
                 break;
@@ -607,7 +608,8 @@ public class farblueoptimized extends OpMode {
     // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
-        intake.setPower(-1);
+        // ❌ REMOVE: intake.setPower(-1);
+
         // Check if all slots are full
         boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
 

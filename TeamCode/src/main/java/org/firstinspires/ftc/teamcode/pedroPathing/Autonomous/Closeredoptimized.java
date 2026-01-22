@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "C-Bot Close Red OPTIMIZED", group = "Pedro")
-public class optimizedclosered_webcam extends OpMode {
+@Autonomous(name = "Closered optimized", group = "Pedro")
+public class Closeredoptimized extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -272,14 +272,13 @@ public class optimizedclosered_webcam extends OpMode {
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
 
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
 
                     // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_close();
@@ -291,7 +290,7 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 5: // Wait for second bezier path
-                manageSecondHopIntake();
+                intake.setPower(1);
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -299,6 +298,7 @@ public class optimizedclosered_webcam extends OpMode {
                 }
                 break;
             case 105: // ✅ NEW STATE - Settle before second shot
+                intake.setPower(0);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -344,7 +344,7 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 10: // Gate - return to shooting position
-                manageSecondHopIntake();
+                intake.setPower(1);
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -353,6 +353,7 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 110: // ✅ NEW STATE - Settle before gate shot
+                intake.setPower(0);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -378,7 +379,7 @@ public class optimizedclosered_webcam extends OpMode {
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
                 setPathState(13);
@@ -411,6 +412,7 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 115: // ✅ NEW STATE - Settle before final shot
+                intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -419,6 +421,7 @@ public class optimizedclosered_webcam extends OpMode {
                 break;
 
             case 16: // Final shooting sequence
+                intake.setPower(0);
                 if (actionState == 0) {
                     setPathState(-1);
                 }

@@ -27,9 +27,9 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-//
-@Autonomous(name = "C-Bot Close Blue (Webcam)", group = "Pedro")
-public class optimizedcloseblue_webcam extends OpMode {
+
+@Autonomous(name = "Closeblue optimized", group = "Pedro")
+public class Closeblueoptimized extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -57,15 +57,18 @@ public class optimizedcloseblue_webcam extends OpMode {
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
+    private int shotCycleCount = 0;
+    private boolean intakeRunning = false;
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.40;
+    private static final double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
     private static final int TOTAL_GATE_CYCLES = 2;
+    private static final double SETTLE_TIME = 0.3;
 
-    // ========== POSES ==========
+    // ========== POSES - CORRECTLY MIRRORED FROM CLOSE RED ==========
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
@@ -75,8 +78,8 @@ public class optimizedcloseblue_webcam extends OpMode {
     private final Pose firstpickupPose = new Pose(56, -55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(59.2, -57.1, Math.toRadians(-28));
-    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+    private final Pose infront_of_lever_new = new Pose(58.2, -56.1, Math.toRadians(-28));
+    private final Pose outfromgate = new Pose(50, -55, Math.toRadians(-42));  // ✅ FIXED: was -50
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
     private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
@@ -89,16 +92,16 @@ public class optimizedcloseblue_webcam extends OpMode {
     private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
     private PathChain firstLineSecondHopPath;
+    private PathChain thirdLinePickupPath;
+    private Pose thirdPickupPose;
 
     @Override
     public void init() {
-        // Initialize timers
         pathTimer = new Timer();
         actionTimer = new Timer();
         opmodeTimer = new Timer();
         shootTimer = new Timer();
 
-        // Initialize subsystems
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
@@ -111,23 +114,19 @@ public class optimizedcloseblue_webcam extends OpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        // Initialize launcher
         LL.allDown();
         LL.set_angle_min();
         stopShooter();
 
-        // Initialize turret
         turret.resetTurretEncoder();
         turret.setDegreesTarget(96.4);
 
-        // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam)");
+        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
         telemetry.update();
     }
 
@@ -135,10 +134,7 @@ public class optimizedcloseblue_webcam extends OpMode {
     public void init_loop() {
         turret.setPid();
         turret.toTargetInDegrees();
-
-        // Detect motif from AprilTags using webcam
         detectMotifFromAprilTags();
-
         telemetry.addData("Motif Detected", motif);
         telemetry.update();
     }
@@ -148,25 +144,23 @@ public class optimizedcloseblue_webcam extends OpMode {
         opmodeTimer.resetTimer();
         turret.setDegreesTarget(44.5);
         turret.setPid();
+        shotCycleCount = 0;
         setPathState(0);
         setActionState(0);
     }
 
     @Override
     public void loop() {
-        // Update follower and subsystems
         follower.update();
         turret.toTargetInDegrees();
 
-        // Run state machines
         autonomousPathUpdate();
         autonomousActionUpdate();
 
-        // Telemetry
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
+        telemetry.addData("Shot Cycle", shotCycleCount);
 
-        // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
         } else if (pathState >= 12 && pathState <= 17) {
@@ -177,6 +171,11 @@ public class optimizedcloseblue_webcam extends OpMode {
             }
         }
 
+        if (pathState == -1) {
+            telemetry.addData("Auto Status", "Complete");
+            return;
+        }
+
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
@@ -184,7 +183,6 @@ public class optimizedcloseblue_webcam extends OpMode {
         telemetry.update();
     }
 
-    // ========== APRILTAG VISION METHODS ==========
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -203,17 +201,13 @@ public class optimizedcloseblue_webcam extends OpMode {
 
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                // Check yaw angle to determine which face we're looking at
                 double yaw = detection.ftcPose.yaw;
 
-                // Using red side logic (blueSide = false)
                 if (yaw > 40 && yaw < 90) {
-                    // First check position
                     if (detection.id == 21) motif = "pgp";
                     if (detection.id == 22) motif = "ppg";
                     if (detection.id == 23) motif = "gpp";
                 } else if (yaw > -80 && yaw < -40) {
-                    // Second check position
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
                     if (detection.id == 21) motif = "gpp";
@@ -222,61 +216,81 @@ public class optimizedcloseblue_webcam extends OpMode {
         }
     }
 
-    // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
-            case 0: // Go back to near shot pose
+            case 0:
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
                 break;
 
-            case 1: // Wait to reach near shot pose
+            case 1:
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();
+                    setPathState(101);
+                }
+                break;
+
+            case 101:
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(2);
                 }
                 break;
 
-            case 2: // Wait for shooting to c   omplete
-                if (actionState == 0) { // Shooting done
+            case 2:
+                if (actionState == 0) {
                     turret.setDegreesTarget(7);
                     setPathState(3);
                 }
                 break;
 
-            case 3: // Bezier curve pickup - first path
+            case 3:
                 buildBezierPaths();
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
 
-            case 4: // Wait for first bezier path
+            case 4:
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
                 break;
 
-            case 5: // Wait for second bezier path
-                manageSecondHopIntake();
+            case 5:
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();
+                    setPathState(105);
+                }
+                break;
+
+            case 105:
+                intake.setPower(1);
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(6);
                 }
                 break;
 
-            case 6: // Wait for shooting cycle 2
+            case 6:
+                intake.setPower(0);
                 if (actionState == 0) {
-                    gateHitCount = 0; // Reset counter
-                    setPathState(7); // Start gate cycles
+                    gateHitCount = 0;
+                    setPathState(7);
                 }
                 break;
 
-            // ===== GATE CYCLE LOOP =====
-            case 7: // Gate - go to gate
+            case 7:
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePaths(waitTime);
                 intake.setPower(-1);
@@ -284,74 +298,97 @@ public class optimizedcloseblue_webcam extends OpMode {
                 setPathState(8);
                 break;
 
-            case 8: // Gate - wait at gate position
+            case 8:
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(9);
                 }
                 break;
 
-            case 9: // Gate - pause to collect artifacts
+            case 9:
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
                 break;
 
-            case 10: // Gate - return to shooting position
-                manageSecondHopIntake();
-                intake.setPower(1); //TESTING
+            case 10:
+                intake.setPower(1);
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
-                    setActionState(1); // Start shooting
+                    actionTimer.resetTimer();
+                    setPathState(110);
+                }
+                break;
+
+            case 110:
+                intake.setPower(0);
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
                     setPathState(11);
                 }
                 break;
 
-            case 11: // Wait for shooting to complete
+            case 11:
                 if (actionState == 0) {
                     gateHitCount++;
-
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
-                        setPathState(7); // Loop back to gate cycle
+                        setPathState(7);
                     } else {
-                        setPathState(12); // Move to first line pickup
+                        setPathState(12);
                     }
                 }
                 break;
 
-            // ===== FIRST LINE PICKUP =====
-            case 12: // Drive straight to first line pickup
-                manageSecondHopIntake();
-                buildFirstLinePickupPaths();
+            case 12:
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                intake.setPower(-1);
+                buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
                 setPathState(13);
                 break;
 
-            case 13: // Wait until pickup reached
+            case 13:
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
                     setPathState(14);
+                    manageSecondHopIntake();
                 }
                 break;
 
-            case 14: // Drive straight back to shooting pose
+            case 14:
+                LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
 
-            case 15: // Wait until back at shooting pose
-                intake.setPower(1);
+            case 15:
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(115);
+                }
+                break;
+
+            case 115:
+                intake.setPower(1);
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(16);
                 }
                 break;
 
-            case 16: // Final shooting sequence
+            case 16:
+                intake.setPower(0);
                 if (actionState == 0) {
                     setPathState(-1);
                 }
@@ -359,19 +396,24 @@ public class optimizedcloseblue_webcam extends OpMode {
         }
     }
 
-    // ========== ACTION STATE MACHINE (SHOOTING) ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
-            case 0: // Idle
+            case 0:
                 break;
 
-            case 1: // Initialize shooting
+            case 1:
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-                setActionState(2);
+                if (depo.reachedTargetHighTolerance()) {
+                    greenInSlot = getGreenPos();
+                    shootTimer.resetTimer();
+                    setActionState(3);
+                } else {
+                    setActionState(2);
+                }
                 break;
 
-            case 2: // Wait for shooter to spin up
+            case 2:
                 depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -380,21 +422,27 @@ public class optimizedcloseblue_webcam extends OpMode {
                 }
                 break;
 
-            case 3: // Execute shooting sequence
+            case 3:
                 depo.updatePID();
-                executeShootingSequence();
+                boolean useRandomShooting = (shotCycleCount < 2);
+
+                if (useRandomShooting) {
+                    shootThreeRandom();
+                } else {
+                    executeShootingSequence();
+                }
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
+                    shotCycleCount++;
                     setActionState(0);
                 }
                 break;
         }
     }
 
-    // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
         if (motif.equals("gpp")) {
             if (greenInSlot == 0) shootLRB();
@@ -413,40 +461,61 @@ public class optimizedcloseblue_webcam extends OpMode {
 
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.backUp();
         }
     }
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.backUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.rightUp();
         }
     }
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL) {
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2) {
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.backUp();
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
             LL.allDown();
+        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.leftUp();
+        }
+    }
+
+    private void shootThreeRandom() {
+        double t = shootTimer.getElapsedTimeSeconds();
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
+            LL.leftUp();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
+            LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();
+        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+            LL.backUp();
         }
     }
 
@@ -458,7 +527,6 @@ public class optimizedcloseblue_webcam extends OpMode {
         return 2;
     }
 
-    // ========== PATH BUILDING METHODS ==========
     private void buildGoBackPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
@@ -486,16 +554,19 @@ public class optimizedcloseblue_webcam extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.2)
-                .build();
-
-        gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(infront_of_lever_new, outfromgate, nearshotpose2)))
-                .setLinearHeadingInterpolation(infront_of_lever_new.getHeading(), nearshotpose2.getHeading())
+                .setTimeoutConstraint(1.6)
                 .build();
     }
 
-    private void buildFirstLinePickupPaths() {
+    private void buildGatePathsBack() {
+        Pose cur = follower.getPose();
+        gateSecondPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
+                .build();
+    }
+
+    private void buildLinePickupPaths() {
         Pose cur = follower.getPose();
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
@@ -511,23 +582,27 @@ public class optimizedcloseblue_webcam extends OpMode {
                 .build();
     }
 
-    // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
 
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull = (sensors.getBack() != 0);
-        boolean leftFull = (sensors.getLeft() != 0);
+        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
 
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull) count++;
-        if (leftFull) count++;
-
-        if (count >= 3) {
-            intake.setPower(0.5); // Spit out
+        if (intakeRunning) {
+            if (allFull) {
+                actionTimer.resetTimer();
+                intakeRunning = false;
+            }
         } else {
-            intake.setPower(-1); // Continue intake
+            if (!allFull) {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
+        }
+
+        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
+            intake.setPower(1);
+        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
+            intake.setPower(0);
         }
     }
 
