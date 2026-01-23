@@ -73,20 +73,21 @@ public class farblueoptimized extends OpMode {
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
     private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(23, -61, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(19, -61, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(56, -61, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(56, -63, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(58, -65, Math.toRadians(-43));
-    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-43));
+    private final Pose infront_of_lever_new = new Pose(59, -60, Math.toRadians(-32));
+    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-34));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
     private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
+
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -153,7 +154,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(68.5);
+        turret.setDegreesTarget(67); //not 67 anymore :(
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -586,7 +587,7 @@ public class farblueoptimized extends OpMode {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
-                .setLinearHeadingInterpolation(cur.getHeading(), 0.3)
+                .setLinearHeadingInterpolation(cur.getHeading(),infront_of_lever_new.getHeading(),0.3)
                 .setTimeoutConstraint(1.6)
                 .build();
     }
