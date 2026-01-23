@@ -78,8 +78,8 @@ public class BotCTeleop extends OpMode {
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
     private final Pose redGoal = new Pose(72,144,0);
-    private final Pose blueGoalfar = new Pose(-68,144,0);
-    private final Pose redGoalfar = new Pose(68,144,0);
+    private final Pose blueGoalfar = new Pose(-65,144,0);
+    private final Pose redGoalfar = new Pose(65,144,0);
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -237,13 +237,15 @@ public class BotCTeleop extends OpMode {
 //            blueStartPose = !blueStartPose;
 //        }
         turret.updateEncoderPos();
-        Pose targett;
-        if(distanceToGoal>120) {
+        Pose targett;//used for turret alignment can be both red or blue and far or close
+        Pose targett2;//used to calculate distanceToGoal can only be red or blue close
+        if(distanceToGoal>125) {
             targett = bluealliance ? blueGoalfar : redGoalfar;
         }
         else{
             targett = bluealliance ? blueGoal : redGoal;
         }
+        targett2 = bluealliance ? blueGoal : redGoal;
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
         double flippedAngle = rawAngle + Math.PI;
@@ -252,8 +254,8 @@ public class BotCTeleop extends OpMode {
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
         if(bluealliance) {
-            while (robHeading >= Math.PI * 2) robHeading -= 2 * Math.PI;
-            while (robHeading < 0) robHeading += 2 * Math.PI;
+            while (robHeading >= Math.PI * 2 - Math.toRadians(-60)) robHeading -= 2 * Math.PI;
+            while (robHeading < Math.toRadians(-60)) robHeading += 2 * Math.PI;
         }
         else{
             while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
@@ -261,6 +263,7 @@ public class BotCTeleop extends OpMode {
         }
 
         if (gamepad2.rightBumperWasPressed()) {
+            LL.allDown();
             if (intake.getPower() < -0.5) {
                 intake.setPower(0);
                 intakeRunning = false;
@@ -350,7 +353,7 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(distanceToGoal>120) shootinterval = 0.4;
+        if(distanceToGoal>125) shootinterval = 0.4;
         else shootinterval = 0.35;
         if(g2.cross && !preG2.cross){//shoot 3 close
             if(!LL.checkNoBalls()) {
@@ -380,7 +383,12 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.dpadLeftWasPressed()){
-            flywheelEarlyStart = !flywheelEarlyStart;
+            timer1.stopTimer();
+            intakeRunning = false;
+            shooting = false;
+            intake.setPower(0);
+            depo.setTargetVelocity(0);
+            LL.allDown();
         }
 
         if(g2.square && !preG2.square){//gpp
@@ -444,7 +452,7 @@ public class BotCTeleop extends OpMode {
         followerstuff();
         telemetry.addData("Alliance Blue?", bluealliance);
         telemetry.addData("start pose Blue?", blueStartPose);
-        distanceToGoal = cur.distanceFrom(targett);// used to be getDistance();
+        distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("align to tag",alignToTags);
         telemetry.addData("shooter sequence",shooterSequence);
@@ -513,9 +521,10 @@ public class BotCTeleop extends OpMode {
         //desmos table for the shooting velo
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
-        if(dist<120){
-        return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
-        else return 1650; //far
+        if(dist<125){
+            return (int) (5.35158*dist+873.83526);
+        }//(3.69593*dist+960.60458); old
+        else return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -543,8 +552,9 @@ public class BotCTeleop extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>120) return 0.21;
-        else return 0.00132566*dist+0.00291356;
+        if (dist>125) return 0.27;
+        else return 0.00180592*dist-0.0205829;
+        //old 0.00132566*dist+0.00291356
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {
