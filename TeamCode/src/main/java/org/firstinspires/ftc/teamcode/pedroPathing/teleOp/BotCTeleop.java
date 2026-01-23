@@ -78,7 +78,7 @@ public class BotCTeleop extends OpMode {
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
     private final Pose redGoal = new Pose(72,144,0);
-    private final Pose blueGoalfar = new Pose(-65,144,0);
+    private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(65,144,0);
 
     //below is all camera stuff
@@ -475,18 +475,18 @@ public class BotCTeleop extends OpMode {
         }
         if(motif.equals("gpp")){
             if(greenInSlot == 0) LRBnoRecovery();
-            else if(greenInSlot == 1) shootRBL();
-            else shootBLR();
+            else if(greenInSlot == 1) RBLnoRecovery();
+            else BLRnoRecovery();
         }
         else if(motif.equals("pgp")){
-            if(greenInSlot == 0) shootBLR();
-            else if(greenInSlot == 1) shootLRB();
-            else shootRBL();
+            if(greenInSlot == 0) BLRnoRecovery();
+            else if(greenInSlot == 1) LRBnoRecovery();
+            else RBLnoRecovery();
         }
         else{
-            if(greenInSlot == 0) shootRBL();
-            else if(greenInSlot == 1) shootBLR();
-            else shootLRB();
+            if(greenInSlot == 0) RBLnoRecovery();
+            else if(greenInSlot == 1) BLRnoRecovery();
+            else LRBnoRecovery();
         }
 
         if(g1.dpad_up&& !preG1.dpad_up){
@@ -524,7 +524,9 @@ public class BotCTeleop extends OpMode {
         if(dist<125){
             return (int) (5.35158*dist+873.83526);
         }//(3.69593*dist+960.60458); old
-        else return (int) (7.14286*dist+589.28571); //far
+        else
+            if(bluealliance) return (int) (7.14286*(7+dist)+589.28571); //far
+            else return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -624,6 +626,50 @@ public class BotCTeleop extends OpMode {
         if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
             LL.allDown();
             LL.backUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void BLRnoRecovery(){
+        if (timer1.checkAtSeconds(0)) {
+            LL.backUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            LL.allDown();
+            LL.leftUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            LL.allDown();
+            LL.rightUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void RBLnoRecovery(){
+        if (timer1.checkAtSeconds(0)) {
+            LL.rightUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            LL.allDown();
+            LL.backUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            LL.allDown();
+            LL.leftUp();
             shooterSequence = 3;
         }
         if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
