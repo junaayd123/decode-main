@@ -420,6 +420,7 @@ public class farblueoptimized extends OpMode {
         switch (actionState) {
             case 0: // Idle
                 break;
+                //
 
             case 1: // Initialize shooting
                 LL.set_angle_far();

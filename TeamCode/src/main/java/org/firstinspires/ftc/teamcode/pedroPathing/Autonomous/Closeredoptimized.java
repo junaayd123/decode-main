@@ -318,6 +318,7 @@ public class Closeredoptimized extends OpMode {
                     setPathState(7); // Start gate cycles
                 }
                 break;
+                //
 
             // ===== GATE CYCLE LOOP =====
             case 7: // Gate - go to gate

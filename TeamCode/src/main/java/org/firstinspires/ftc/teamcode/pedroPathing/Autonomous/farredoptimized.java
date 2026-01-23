@@ -133,6 +133,7 @@ public class farredoptimized extends OpMode {
         // Initialize turret
         turret.resetTurretEncoder();
         turret.setDegreesTarget(-100);
+        //
 
         // Initialize AprilTag vision
         initAprilTag();

@@ -77,6 +77,7 @@
         private final Pose firstPickupPose = new Pose(42, -81, Math.toRadians(0));
         private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
         private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
+        //
         private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
         private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
         private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
