@@ -146,7 +146,7 @@ public class farredoptimized extends OpMode {
         turret.setPid();
         turret.toTargetInDegrees();
 
-        // Detect motif from AprilTags using webcam
+        // Detect motif from  using webcam
         detectMotifFromAprilTags();
 
         telemetry.addData("Motif Detected", motif);
@@ -280,7 +280,6 @@ public class farredoptimized extends OpMode {
                 break;
 
             case 5: // Wait for second bezier path
-                intake.setPower(1);
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -289,7 +288,7 @@ public class farredoptimized extends OpMode {
                 break;
 
             case 105: // ✅ NEW STATE - Settle before second shot
-                intake.setPower(0);
+                intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -298,6 +297,7 @@ public class farredoptimized extends OpMode {
                 break;
 
             case 6: // Wait for shooting cycle 2
+                intake.setPower(0);
                 if (actionState == 0) {
                     gateHitCount = 0; // Reset counter
                     setPathState(7); // Start gate cycles

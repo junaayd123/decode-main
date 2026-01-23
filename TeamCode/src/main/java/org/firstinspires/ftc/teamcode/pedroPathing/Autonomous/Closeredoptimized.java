@@ -72,10 +72,10 @@ public class Closeredoptimized extends OpMode {
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose firstPickupPose = new Pose(42, 81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, 58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose firstpickupPose = new Pose(56, 55, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(56, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
@@ -108,6 +108,9 @@ public class Closeredoptimized extends OpMode {
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
+        turret.setRedAlliance();
+
+
 
         intake = hardwareMap.get(DcMotor.class, "intake");
         d1 = hardwareMap.get(DcMotor.class, "depo");
@@ -116,8 +119,11 @@ public class Closeredoptimized extends OpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+
         // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
+
+
         follower.setStartingPose(startPose);
 
         // Initialize launcher
@@ -290,7 +296,6 @@ public class Closeredoptimized extends OpMode {
                 break;
 
             case 5: // Wait for second bezier path
-                intake.setPower(1);
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -298,7 +303,7 @@ public class Closeredoptimized extends OpMode {
                 }
                 break;
             case 105: // ✅ NEW STATE - Settle before second shot
-                intake.setPower(0);
+                intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -307,6 +312,7 @@ public class Closeredoptimized extends OpMode {
                 break;
 
             case 6: // Wait for shooting cycle 2
+                intake.setPower(0);
                 if (actionState == 0) {
                     gateHitCount = 0; // Reset counter
                     setPathState(7); // Start gate cycles
@@ -412,17 +418,17 @@ public class Closeredoptimized extends OpMode {
                 break;
 
             case 115: // ✅ NEW STATE - Settle before final shot
-                intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(1);
                     setPathState(16);
                 }
                 break;
 
             case 16: // Final shooting sequence
-                intake.setPower(0);
                 if (actionState == 0) {
+                    intake.setPower(0);
                     setPathState(-1);
                 }
                 break;
@@ -579,13 +585,13 @@ public class Closeredoptimized extends OpMode {
     private void buildBezierPaths() {
         Pose cur = follower.getPose();
         bezierFirstPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1, firstpickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .addPath(new Path(new BezierCurve(cur, midpoint1, secondpickuppose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), secondpickuppose.getHeading(), 0.8)
                 .build();
 
         bezierSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(firstpickupPose, midpoint2, nearshotpose2)))
-                .setLinearHeadingInterpolation(firstpickupPose.getHeading(), nearshotpose2.getHeading(), 0.8)
+                .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
+                .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
                 .build();
     }
 

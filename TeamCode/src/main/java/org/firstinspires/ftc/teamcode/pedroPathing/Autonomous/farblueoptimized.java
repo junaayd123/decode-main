@@ -69,7 +69,7 @@ public class farblueoptimized extends OpMode {
     private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
 
     // ========== POSES ==========
-    private final Pose startPose = new Pose(12, -7, Math.toRadians(0));
+    private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
     private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
@@ -129,7 +129,7 @@ public class farblueoptimized extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(90);
+        turret.setDegreesTarget(100);
 
         // Initialize AprilTag vision
         initAprilTag();
@@ -153,7 +153,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(69.5);
+        turret.setDegreesTarget(68.5);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -230,7 +230,7 @@ public class farblueoptimized extends OpMode {
             case 0: // Start - spin up flywheel
                 // ✅ Start spinning flywheel at the very beginning
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblue);
+                depo.setTargetVelocity(depo.farVeloblueauto);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
                 break;
@@ -261,7 +261,6 @@ public class farblueoptimized extends OpMode {
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
-                manageSecondHopIntake();
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
@@ -271,7 +270,7 @@ public class farblueoptimized extends OpMode {
                 if (!follower.isBusy()) {
                     // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloblue);
+                    depo.setTargetVelocity(depo.farVeloblueauto);
                     intake.setPower(-1);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
@@ -279,7 +278,6 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 5: // Wait for second bezier path
-                manageSecondHopIntake();
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -288,6 +286,7 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 105: // ✅ NEW STATE - Settle before second shot
+                intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -296,6 +295,7 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 6: // Wait for shooting cycle 2
+                intake.setPower(0);
                 if (actionState == 0) {
                     gateHitCount = 0; // Reset counter
                     setPathState(7); // Start gate cycles
@@ -324,7 +324,7 @@ public class farblueoptimized extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloblue);
+                    depo.setTargetVelocity(depo.farVeloblueauto);
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -332,7 +332,7 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 10: // Gate - return to shooting position
-                manageSecondHopIntake();
+                intake.setPower(1);
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -342,6 +342,7 @@ public class farblueoptimized extends OpMode {
 
             case 110: // ✅ NEW STATE - Settle before gate shot
                 depo.updatePID();
+                intake.setPower(0);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(11);
@@ -364,15 +365,14 @@ public class farblueoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblue);
-
-                manageSecondHopIntake();
+                depo.setTargetVelocity(depo.farVeloblueauto);
+                intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
                 break;
 
             case 13: // Wait until pickup reached
-                manageSecondHopIntake();
+
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     setPathState(14);
@@ -382,7 +382,7 @@ public class farblueoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblue);
+                depo.setTargetVelocity(depo.farVeloblueauto);
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -400,6 +400,7 @@ public class farblueoptimized extends OpMode {
             case 115: // ✅ NEW STATE - Settle before final shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    intake.setPower(1);
                     setActionState(1);
                     setPathState(16);
                 }
@@ -407,6 +408,7 @@ public class farblueoptimized extends OpMode {
 
             case 16: // Final shooting sequence
                 if (actionState == 0) {
+                    intake.setPower(0);
                     setPathState(-1);
                 }
                 break;
@@ -421,7 +423,7 @@ public class farblueoptimized extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblue);
+                depo.setTargetVelocity(depo.farVeloblueauto);
 
                 // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {

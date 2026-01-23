@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous;
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -10,6 +10,7 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -20,9 +21,11 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 
 import java.util.List;
+@Disabled
 //
-@Autonomous(name = "C-Bot Close Blue (State)", group = "Pedro")
-public class optimizedcloseblue extends OpMode {
+
+@Autonomous(name = "C-Bot Close Red (State)", group = "Pedro")
+public class optimizedclosered extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -53,20 +56,20 @@ public class optimizedcloseblue extends OpMode {
     private static final int TOTAL_GATE_CYCLES = 2; // Only 2 gate cycles now
 
     // ========== POSES ==========
-    private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
-    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(42, -81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
-    private final Pose firstpickupPose = new Pose(56, -55, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34)); //y changed from 57 to 56 on 1/5/2026 - vihaan
-    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
-    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
+    private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
+    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
+    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
+    private final Pose firstPickupPose = new Pose(42, 81, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 58, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
+    private final Pose firstpickupPose = new Pose(56, 55, Math.toRadians(0));
+    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
+    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(57.2, 56.1, Math.toRadians(34)); //y changed from 57 to 56 on 1/5/2026 - vihaan
+    private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
+    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
+    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
+    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -111,7 +114,7 @@ public class optimizedcloseblue extends OpMode {
         turret.limelight.pipelineSwitch(2);
         turret.limelight.start();
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(96.4);
+        turret.setDegreesTarget(-96.4);
 
         telemetry.addLine("State-based Auto initialized");
         telemetry.update();
@@ -138,7 +141,7 @@ public class optimizedcloseblue extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(44.5);
+        turret.setDegreesTarget(-44.5);
         turret.setPid();
         setPathState(0);
         setActionState(0);
@@ -194,7 +197,7 @@ public class optimizedcloseblue extends OpMode {
 
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
-                    turret.setDegreesTarget(15);
+                    turret.setDegreesTarget(-15);
                     setPathState(3);
                 }
                 break;
@@ -458,7 +461,7 @@ public class optimizedcloseblue extends OpMode {
                 .build();
     }
 
-    //    private void buildFirstLinePickupPaths() {
+//    private void buildFirstLinePickupPaths() {
 //        Pose cur = follower.getPose();
 //
 //        // First path: drive to first pickup position
