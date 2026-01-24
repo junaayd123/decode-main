@@ -320,9 +320,9 @@ public class scenariocloseblue extends OpMode {
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
                 } else if (yaw > -80 && yaw < -40) {
-                    if (detection.id == 22) motif = "ppg";
+                    if (detection.id == 21) motif = "ppg";
+                    if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "gpp";
-                    if (detection.id == 21) motif = "pgp";
                 }
             }
         }

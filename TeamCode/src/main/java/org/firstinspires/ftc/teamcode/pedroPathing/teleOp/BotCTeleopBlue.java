@@ -29,8 +29,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop red", group = "TeleOp")
-public class BotCTeleop extends OpMode {
+@TeleOp(name = "Bot C teleop blue", group = "TeleOp")
+public class BotCTeleopBlue extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
     private boolean alignForFar = false;
@@ -172,7 +172,7 @@ public class BotCTeleop extends OpMode {
         }
     }
     private enum Mode { nothing, findTag, faceGoal} //modes of turret
-    private BotCTeleop.Mode mode = Mode.nothing;
+    private BotCTeleopBlue.Mode mode = Mode.nothing;
 
 
     double headingTotag;
@@ -240,12 +240,12 @@ public class BotCTeleop extends OpMode {
         Pose targett;//used for turret alignment can be both red or blue and far or close
         Pose targett2;//used to calculate distanceToGoal can only be red or blue close
         if(distanceToGoal>125) {
-            targett =redGoalfar;
+            targett = blueGoalfar;
         }
         else{
-            targett = redGoal;
+            targett = blueGoal ;
         }
-        targett2 = redGoal;
+        targett2 = blueGoal;
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
         double flippedAngle = rawAngle + Math.PI;
@@ -253,8 +253,8 @@ public class BotCTeleop extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
-            while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
-            while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
+            while (robHeading >= Math.PI * 2 - Math.toRadians(-60)) robHeading -= 2 * Math.PI;
+            while (robHeading < Math.toRadians(-60)) robHeading += 2 * Math.PI;
 
         if (gamepad2.rightBumperWasPressed()) {
             LL.allDown();
@@ -519,7 +519,7 @@ public class BotCTeleop extends OpMode {
             return (int) (5.35158*dist+873.83526);
         }//(3.69593*dist+960.60458); old
         else
-            return (int) (7.14286*dist+589.28571); //far
+        return (int) (7.14286*(7+dist)+589.28571); //far//far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
