@@ -110,11 +110,13 @@ public class scenariocloseblue extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
+    private final Pose back_lever = new Pose(58.3, -52.3, Math.toRadians(-36.5));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
     private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
     private final Pose thirdLinePickupPose = new Pose(56, -45, Math.toRadians(0));  // Third line pickup position
+    private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -126,8 +128,15 @@ public class scenariocloseblue extends OpMode {
     private PathChain firstLineSecondHopPath;
     private PathChain thirdLinePickupPath;
     private PathChain thirdLineReturnPath;
-    Gamepad g1= new Gamepad();
-    Gamepad g2= new Gamepad();
+    private PathChain gatebackPath;
+    private PathChain getOut;
+
+    // ========== CONTROLLER STATE TRACKING ==========
+    private boolean prevDpadDown = false;
+    private boolean prevDpadLeft = false;
+    private boolean prevDpadRight = false;
+    private boolean prevDpadUp = false;
+    private boolean prevCircle = false;
 
     @Override
     public void init() {
@@ -180,28 +189,49 @@ public class scenariocloseblue extends OpMode {
 
         // Detect motif from AprilTags using webcam
         detectMotifFromAprilTags();
-        if (g2.dpad_down) {
+
+        // Handle scenario selection with button press detection
+        // Use gamepad1 for scenario selection (or gamepad2 if preferred)
+        boolean currDpadDown = gamepad1.dpad_down;
+        boolean currDpadLeft = gamepad1.dpad_left;
+        boolean currDpadRight = gamepad1.dpad_right;
+        boolean currDpadUp = gamepad1.dpad_up;
+        boolean currCircle = gamepad1.circle;
+
+        // Detect button presses (transition from not pressed to pressed)
+        if (currDpadDown && !prevDpadDown) {
             currentScenario = Scenario.SCENARIO_1_NO_ALLIANCE;
             telemetry.addLine("Scenario 1 Selected: " +
                     "No alliance auto (15 balls) - 1 gate cycle, has third line pickup");
-        } else if (g2.dpad_left) {
+        } else if (currDpadLeft && !prevDpadLeft) {
             currentScenario = Scenario.SCENARIO_2_3_BALL_ALLIANCE;
             telemetry.addLine("Scenario 2 Selected: " +
                     "Alliance 3 ball auto (18 balls) - 1 gate cycle, has third line pickup");
-        } else if (g2.dpad_right){
+        } else if (currDpadRight && !prevDpadRight) {
             currentScenario = Scenario.SCENARIO_4_9_BALL_ALLIANCE;
             telemetry.addLine("Scenario 4 Selected: " +
                     "Alliance 9 ball auto (21 balls) - 2 gate cycles, custom wait times");
-        } else if (g2.dpad_up){
+        } else if (currDpadUp && !prevDpadUp) {
             currentScenario = Scenario.SCENARIO_5_EXCESS_CYCLE;
             telemetry.addLine("Scenario 5 Selected: " +
                     "Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times");
-        } else if (g2.circle){
+        } else if (currCircle && !prevCircle) {
             currentScenario = Scenario.SCENARIO_3_6_BALL_ALLIANCE;
             telemetry.addLine("Scenario 3 Selected: " +
                     "Alliance 6 ball auto (21 balls) - 2 gate cycles, no third line pickup");
         }
 
+        // Update previous button states
+        prevDpadDown = currDpadDown;
+        prevDpadLeft = currDpadLeft;
+        prevDpadRight = currDpadRight;
+        prevDpadUp = currDpadUp;
+        prevCircle = currCircle;
+
+        telemetry.addLine("Use D-Pad or Circle to select scenario:");
+        telemetry.addLine("DPad Down = Scenario 1 | DPad Left = Scenario 2");
+        telemetry.addLine("DPad Right = Scenario 4 | DPad Up = Scenario 5");
+        telemetry.addLine("Circle = Scenario 3 (Default)");
         telemetry.addData("Motif Detected", motif);
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.addData("Gate Cycles", currentScenario.gateCycles);
@@ -286,15 +316,13 @@ public class scenariocloseblue extends OpMode {
 
                 // Using blue side logic
                 if (yaw > 40 && yaw < 90) {
-                    // First check position
-                    if (detection.id == 21) motif = "pgp";
-                    if (detection.id == 22) motif = "ppg";
-                    if (detection.id == 23) motif = "gpp";
-                } else if (yaw > -80 && yaw < -40) {
-                    // Second check position
+                    if (detection.id == 21) motif = "gpp";
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
-                    if (detection.id == 21) motif = "gpp";
+                } else if (yaw > -80 && yaw < -40) {
+                    if (detection.id == 22) motif = "ppg";
+                    if (detection.id == 23) motif = "gpp";
+                    if (detection.id == 21) motif = "pgp";
                 }
             }
         }
@@ -556,8 +584,19 @@ public class scenariocloseblue extends OpMode {
 
             case 16: // Final shooting sequence
                 if (actionState == 0) {
-                    intake.setPower(0);
-                    setPathState(-1);
+                    intake.setPower(1);
+                    buildGetOutPath();
+                    setPathState(17);
+                }
+                break;
+            case 17:
+                intake.setPower(0);
+                follower.followPath(getOut, true);
+                setPathState(18);
+                break;
+            case 18:
+                if (!follower.isBusy()) {
+                    setPathState(-1); // Auto complete
                 }
                 break;
         }
@@ -768,6 +807,15 @@ public class scenariocloseblue extends OpMode {
         thirdLineReturnPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
+                .build();
+    }
+
+    private void buildGetOutPath() {
+        Pose cur = follower.getPose();
+        getOut = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, outPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), outPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
     }
 
