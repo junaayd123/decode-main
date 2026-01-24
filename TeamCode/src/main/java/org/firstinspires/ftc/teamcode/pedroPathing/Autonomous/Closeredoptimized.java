@@ -79,10 +79,13 @@ public class Closeredoptimized extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
+    private final Pose back_lever = new Pose(58.3, 52.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
+    private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
+    private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -93,6 +96,8 @@ public class Closeredoptimized extends OpMode {
     private PathChain firstLinePickupPath;
     private PathChain firstLineSecondHopPath;
     private PathChain thirdLinePickupPath;
+    private PathChain gatebackPath;
+    private PathChain getOut;
     private Pose thirdPickupPose;
 
     @Override
@@ -133,7 +138,7 @@ public class Closeredoptimized extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-96.4);
+        turret.setDegreesTarget(-105);
 
         // Initialize AprilTag vision
         initAprilTag();
@@ -318,7 +323,7 @@ public class Closeredoptimized extends OpMode {
                     setPathState(7); // Start gate cycles
                 }
                 break;
-                //
+            //
 
             // ===== GATE CYCLE LOOP =====
             case 7: // Gate - go to gate
@@ -330,6 +335,19 @@ public class Closeredoptimized extends OpMode {
                 break;
 
             case 8: // Gate - wait at gate position
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(99);
+                }
+                break;
+            case 99: // Gate - go to back_lever
+                double waitTime1 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+
+                intake.setPower(-1);
+                follower.followPath(gatebackPath, true);
+                setPathState(102);
+                break;
+            case 102: // Gate - wait at back_lever position
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -422,15 +440,27 @@ public class Closeredoptimized extends OpMode {
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
-                    intake.setPower(1);
+
                     setPathState(16);
                 }
                 break;
 
             case 16: // Final shooting sequence
                 if (actionState == 0) {
-                    intake.setPower(0);
-                    setPathState(-1);
+
+                    intake.setPower(1);
+                    buildGetOutPath();
+                    setPathState(17);
+                }
+                break;
+            case 17:
+                intake.setPower(0);
+                follower.followPath(getOut, true);
+                setPathState(18);
+                break;
+            case 18:
+                if (!follower.isBusy()) {
+                    setPathState(-1); // Auto complete
                 }
                 break;
         }
@@ -601,13 +631,19 @@ public class Closeredoptimized extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.6)
+                .setTimeoutConstraint(1.1)
+                .build();
+
+        gatebackPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
+                .setTimeoutConstraint(0.1)
                 .build();
     }
     private void buildGatePathsBack() {
         Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .addPath(new Path(new BezierCurve(cur, outfromgate1, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
                 .build();
     }
@@ -625,6 +661,15 @@ public class Closeredoptimized extends OpMode {
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
+                .build();
+    }
+
+    private void buildGetOutPath() {
+        Pose cur = follower.getPose();
+        getOut = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, outPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), outPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
     }
 

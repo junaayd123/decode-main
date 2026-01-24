@@ -82,11 +82,13 @@ public class farblueoptimized extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(59, -60, Math.toRadians(-32));
-    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-32));
-    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
-    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
+    private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
+    private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
+//    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-32));
+//    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+//    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
+//    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
+//    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
 
 
     // ========== PATHS ==========
@@ -97,6 +99,8 @@ public class farblueoptimized extends OpMode {
     private PathChain gateSecondPath;
     private PathChain ThirdLinePickupPath;
     private PathChain firstLineSecondHopPath;
+    private PathChain gatebackPath;
+    private PathChain getOut;
 
     @Override
     public void init() {
@@ -154,7 +158,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(67); //67777777777777!
+        turret.setDegreesTarget(66);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -306,13 +310,26 @@ public class farblueoptimized extends OpMode {
             // ===== GATE CYCLE LOOP =====
             case 7: // Gate - go to gate
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                buildGatePaths(waitTime);
+                buildGatePaths();
                 intake.setPower(-1);
                 follower.followPath(gateFirstPath, true);
                 setPathState(8);
                 break;
 
             case 8: // Gate - wait at gate position
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(99);
+                }
+                break;
+            case 99: // Gate - go to gate
+                double waitTime1 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+
+                intake.setPower(-1);
+                follower.followPath(gatebackPath, true);
+                setPathState(102);
+                break;
+            case 102: // Gate - wait at gate position
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -410,11 +427,23 @@ public class farblueoptimized extends OpMode {
             case 16: // Final shooting sequence
                 if (actionState == 0) {
                     intake.setPower(0);
-                    setPathState(-1);
+                    buildGetOutPath();
+                    setPathState(17);
+                }
+                break;
+            case 17:
+                follower.followPath(getOut, true);
+                setPathState(18);
+                break;
+            case 18:
+                if (!follower.isBusy()) {
+                    setPathState(-1); // Auto complete
                 }
                 break;
         }
     }
+
+
 
     // ========== ACTION STATE MACHINE (SHOOTING) ==========
     public void autonomousActionUpdate() {
@@ -574,7 +603,7 @@ public class farblueoptimized extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondLinePickupPose, midpoint1, farshotpose)))
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
                 .build();
 
         ThirdLinePickupPath = follower.pathBuilder()
@@ -583,12 +612,18 @@ public class farblueoptimized extends OpMode {
                 .build();
     }
 
-    private void buildGatePaths(double waitTime) {
+    private void buildGatePaths() {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(),infront_of_lever_new.getHeading(),0.3)
                 .setTimeoutConstraint(1.6)
+                .build();
+
+        gatebackPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
+                .setTimeoutConstraint(0.2)
                 .build();
     }
     private void buildGatePathBack(double waitTime) {
@@ -596,7 +631,15 @@ public class farblueoptimized extends OpMode {
         gateSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading(), 0.3)
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
+                .build();
+    }
+    private void buildGetOutPath() {
+        Pose cur = follower.getPose();
+        getOut = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, outPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), outPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
     }
 
@@ -605,39 +648,11 @@ public class farblueoptimized extends OpMode {
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading())
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
                 .build();
     }
 
     // ========== UTILITY METHODS ==========
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-        // ❌ REMOVE: intake.setPower(-1);
-
-        // Check if all slots are full
-        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-
-        if (intakeRunning) {
-            if (allFull) {
-                // All slots full - trigger reverse sequence
-                actionTimer.resetTimer();
-                intakeRunning = false;
-            }
-        } else {
-            // Not currently intaking - check if we should start
-            if (!allFull) {
-                intake.setPower(-1);
-                intakeRunning = true;
-            }
-        }
-
-        // Handle reverse sequence when full (like reverseIntake() in teleop)
-        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
-            intake.setPower(1); // Reverse for 0.5 seconds
-        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
-            intake.setPower(0); // Stop after reverse
-        }
-    }
 
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);

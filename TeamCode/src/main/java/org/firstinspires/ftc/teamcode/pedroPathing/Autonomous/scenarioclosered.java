@@ -151,23 +151,7 @@ public class scenarioclosered extends OpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        if (g2.dpad_down) {
-            currentScenario = Scenario.SCENARIO_1_NO_ALLIANCE;
-            telemetry.addLine("Scenario 1 Selected: " +
-                    "No alliance auto (15 balls) - 1 gate cycle, has third line pickup");
-        } else if (g2.dpad_left) {
-            currentScenario = Scenario.SCENARIO_2_3_BALL_ALLIANCE;
-            telemetry.addLine("Scenario 2 Selected: " +
-                    "Alliance 3 ball auto (18 balls) - 1 gate cycle, has third line pickup");
-        } else if (g2.dpad_right){
-            currentScenario = Scenario.SCENARIO_4_9_BALL_ALLIANCE;
-            telemetry.addLine("Scenario 4 Selected: " +
-                    "Alliance 9 ball auto (21 balls) - 2 gate cycles, custom wait times");
-        } else if (g2.dpad_up){
-            currentScenario = Scenario.SCENARIO_5_EXCESS_CYCLE;
-            telemetry.addLine("Scenario 5 Selected: " +
-                    "Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times");
-        }
+
 
 
         // Initialize follower
@@ -198,6 +182,27 @@ public class scenarioclosered extends OpMode {
 
         // Detect motif from AprilTags using webcam
         detectMotifFromAprilTags();
+        if (g2.dpad_down) {
+            currentScenario = Scenario.SCENARIO_1_NO_ALLIANCE;
+            telemetry.addLine("Scenario 1 Selected: " +
+                    "No alliance auto (15 balls) - 1 gate cycle, has third line pickup");
+        } else if (g2.dpad_left) {
+            currentScenario = Scenario.SCENARIO_2_3_BALL_ALLIANCE;
+            telemetry.addLine("Scenario 2 Selected: " +
+                    "Alliance 3 ball auto (18 balls) - 1 gate cycle, has third line pickup");
+        } else if (g2.dpad_right){
+            currentScenario = Scenario.SCENARIO_4_9_BALL_ALLIANCE;
+            telemetry.addLine("Scenario 4 Selected: " +
+                    "Alliance 9 ball auto (21 balls) - 2 gate cycles, custom wait times");
+        } else if (g2.dpad_up){
+            currentScenario = Scenario.SCENARIO_5_EXCESS_CYCLE;
+            telemetry.addLine("Scenario 5 Selected: " +
+                    "Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times");
+        } else if (g2.circle){
+            currentScenario = Scenario.SCENARIO_3_6_BALL_ALLIANCE;
+            telemetry.addLine("Scenario 3 Selected: " +
+                    "Alliance 6 ball auto (21 balls) - 2 gate cycles, no third line pickup");
+        }
 
         telemetry.addData("Motif Detected", motif);
         telemetry.addData("Scenario", currentScenario.name());
