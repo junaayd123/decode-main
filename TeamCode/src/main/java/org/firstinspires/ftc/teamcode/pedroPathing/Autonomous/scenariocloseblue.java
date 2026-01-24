@@ -29,8 +29,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "scenarioclosered", group = "Pedro")
-public class scenarioclosered extends OpMode {
+@Autonomous(name = "scenariocloseblue", group = "Pedro")
+public class scenariocloseblue extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -89,30 +89,32 @@ public class scenarioclosered extends OpMode {
     private String motif = "empty";
     private int gateHitCount = 0;
     private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
-    private boolean intakeRunning = false;  // ✅ ADD THIS
+    private boolean intakeRunning = false;
     private boolean thirdLineDone = false;  // Track if third line pickup completed
 
     // ========== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
-    private static final double SETTLE_TIME = 0.3;  // ✅ ADD THIS - time to settle before shooting
+    private static final double SETTLE_TIME = 0.3;  // Time to settle before shooting
 
-    // ========== POSES ==========
-    private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
-    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 58, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(56, 55, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
-    private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
-    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
-    private final Pose thirdLinePickupPose = new Pose(56, 45, Math.toRadians(0));  // Third line pickup position
+    // ========== POSES - CORRECTLY MIRRORED FROM CLOSE RED ==========
+    // Close Red: X positive, Y positive, heading positive
+    // Close Blue: X positive, Y negative, heading negative
+    private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
+    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
+    private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
+    private final Pose firstPickupPose = new Pose(42, -81, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
+    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
+    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
+    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
+    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
+    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
+    private final Pose thirdLinePickupPose = new Pose(56, -45, Math.toRadians(0));  // Third line pickup position
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -140,17 +142,14 @@ public class scenarioclosered extends OpMode {
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
-        turret.setRedAlliance();
+        turret.setBlueAlliance();
 
         intake = hardwareMap.get(DcMotor.class, "intake");
         d1 = hardwareMap.get(DcMotor.class, "depo");
         d2 = hardwareMap.get(DcMotor.class, "depo1");
-        g1.copy(gamepad1);
-        g2.copy(gamepad2);
 
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
         if (g2.dpad_down) {
             currentScenario = Scenario.SCENARIO_1_NO_ALLIANCE;
             telemetry.addLine("Scenario 1 Selected: " +
@@ -169,7 +168,6 @@ public class scenarioclosered extends OpMode {
                     "Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times");
         }
 
-
         // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -181,7 +179,7 @@ public class scenarioclosered extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-96.4);
+        turret.setDegreesTarget(96.4);
 
         // Initialize AprilTag vision
         initAprilTag();
@@ -209,7 +207,7 @@ public class scenarioclosered extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-44.5);
+        turret.setDegreesTarget(44.5);
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
@@ -281,7 +279,7 @@ public class scenarioclosered extends OpMode {
                 // Check yaw angle to determine which face we're looking at
                 double yaw = detection.ftcPose.yaw;
 
-                // Using red side logic (blueSide = false)
+                // Using blue side logic
                 if (yaw > 40 && yaw < 90) {
                     // First check position
                     if (detection.id == 21) motif = "pgp";
@@ -328,7 +326,7 @@ public class scenarioclosered extends OpMode {
 
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
-                    turret.setDegreesTarget(-15);
+                    turret.setDegreesTarget(7);
                     setPathState(3);
                 }
                 break;
