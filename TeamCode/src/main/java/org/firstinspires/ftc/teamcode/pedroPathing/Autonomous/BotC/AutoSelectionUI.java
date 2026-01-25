@@ -1,28 +1,14 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotC;
 
 
-import com.bylazar.configurables.PanelsConfigurables;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.configurables.annotations.IgnoreConfigurable;
-import com.bylazar.field.FieldManager;
-import com.bylazar.field.PanelsField;
-import com.bylazar.field.Style;
-import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.*;
-import com.pedropathing.math.*;
-import com.pedropathing.paths.*;
-import com.pedropathing.telemetry.SelectableOpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.AutoSelectableOpMode;
 import com.pedropathing.util.*;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * We start in the UI thing idk bruhburhbuoerwhboierjbioerw
@@ -48,13 +34,13 @@ public class AutoSelectionUI extends AutoSelectableOpMode {
     public AutoSelectionUI() {
         super("(DO NOT USE YET DO NOT USE YET THIS IS JUST A LAYOUT DO NOT USE) Select an Autonomous", s -> {
             s.folder("Close Red", l -> {
-                l.add("Optimized Close Red", optimizedclosered_webcam::new);
+//                l.add("Optimized Close Red", optimizedclosered_webcam::new);
             });
             s.folder("Far Red", l -> {
                 l.add("Optimized Far Red", farredoptimized::new);
             });
             s.folder("Close Blue", l -> {
-                l.add("Optimized Close Blue", optimizedcloseblue_webcam::new);
+//                l.add("Optimized Close Blue", optimizedcloseblue_webcam::new);
             });
             s.folder("Far Blue", l -> {
                 l.add("Optimized Far Blue", farblueoptimized::new);

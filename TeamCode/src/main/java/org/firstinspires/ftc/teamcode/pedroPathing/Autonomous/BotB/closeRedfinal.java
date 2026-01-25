@@ -1,51 +1,45 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete; // make sure this aligns with class location
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotB; // make sure this aligns with class location
 
+import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
-import com.pedropathing.paths.PathChain;
-
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
-
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
 //
-//hi..
 @Disabled
-@Autonomous(name = "close blue final", group = "Pedro")
-public class closeBluefinal extends LinearOpMode {
+//hi..
+@Autonomous(name = "close red final", group = "Pedro")
+public class closeRedfinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
-    String motif = "empty";
-    String motifInit = "empty";
     private boolean shootingHasWorked = true;
+    public ColorSensors sensors;
 
     // ---------- Shooter subsystems ----------
     private Deposition depo;
@@ -58,35 +52,65 @@ public class closeBluefinal extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
-    double timeOfSecondShot;
-    public ColorSensors sensors;
-    int greenInSlot;//0 if in left 1 if right, 2 if back
-    private final Pose startPose = new Pose(
-            107.313,               // x inches
-            34.687,                // y inches
-            Math.toRadians(135)
-    );
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
-    private final Pose nearshotpose     = new Pose(93.5,  12, Math.toRadians(-124));
-    private final Pose firstpickupPose  = new Pose(66.5, 13,  Math.toRadians(90));
-    private final Pose secondpickupPose = new Pose(41.25,12,  Math.toRadians(90));
-    private final Pose midpoint1        = new Pose(41.25,4,  Math.toRadians(90.0));
-    private final Pose thirdpickupPose  = new Pose(17,   14,  Math.toRadians(90));
-    private final Pose homePose         = new Pose(0.0,  0.0, Math.toRadians(16.2));
-    private final Pose infront_of_lever   = new Pose(59.5, 36.5, Math.toRadians(180));
-    //
+    private final Pose startPose = new Pose(
+            107.313,                // x inches
+            -29.687,                     // y inches og:32
+            Math.toRadians(-135)    // heading (rad)
+    );
 
-    boolean shootingHasWorkedNoVelo;
-    private static final double SECOND_HOP_IN = 19.75;
-    private static final double SHOT_DELAY_S  = 0.75;
-    int shooterSequence;
+    // Your goal pose (exactly as in your movement program)
+    private final Pose nearshotpose = new Pose(
+            90,                    // x inches (forward) og: 72
+            -8.5,                   // y inches (left)
+            Math.toRadians(-224.5)    // heading (rad) at finish
+    );
+    private final Pose firstpickupPose = new Pose(
+            66.5,                    // x inches (forward) og 71.5
+            -6.5,                   // y inches (left) og: 22.5
+            Math.toRadians(-90)    // heading (rad) at finish
+    );
+    private final Pose secondpickupPose = new Pose(
+            43.25,                    // x inches (forward) og 41.25
+            -8,                   // y inches (left) og: 21
+            Math.toRadians(-90)    // heading (rad) at finish
+    );
+    private final Pose midpoint1     = new Pose(43.25,-2,  Math.toRadians(90.0));
 
+    private final Pose thirdpickupPose = new Pose(
+            20,                    // x inches (forward) og 16
+            -9.5,                   // y inches (left) og: 22
+            Math.toRadians(-90)    // heading (rad) at finish
+    );
+    private final Pose homePose = new Pose(
+            0.0,                    // x inches (forward)
+            0.0,            // y inches (left)
+            Math.toRadians(-25.0)    // heading (rad) at finish
+    );
+
+    private final Pose infront_of_lever   = new Pose(61.5, -36, Math.toRadians(180));
+
+
+
+    private static final double SECOND_HOP_IN = 20.0;
+    private static final double SHOT_DELAY_S = 0.75;  // 🔹 delay between shots (tunable)
 
     // ---------- Timing for far shots ----------
     private Timer timer1;
     private Timer timer2;
     private int sequence = 0;
+    boolean shootingHasWorkedNoVelo;
+
+    double timeOfSecondShot;
+    String motifInit = "empty";
+    String motif = "empty";
+    int shooterSequence;
+    int greenInSlot;
+
+
+    // ---------- Timing for far shots ----------
+
 
 
     private double getBatteryVoltage() {
@@ -148,54 +172,45 @@ public class closeBluefinal extends LinearOpMode {
         telemetry.update();
 
         while (!isStarted() && !isStopRequested()) {
-            if(motifInit.equals("empty")) InitialFindMotif();
+            if (motifInit.equals("empty")) InitialFindMotif();
 
             if (motifInit.equals("ppg")) {
-                motif = "pgp";
-                motifInit="empty";
-            }
-            else if (motifInit.equals("pgp")){
                 motif = "gpp";
-                motifInit="empty";
-            }
-            else if (motifInit.equals("gpp")){
+                motifInit = "empty";
+            } else if (motifInit.equals("pgp")) {
                 motif = "ppg";
-                motifInit="empty";
+                motifInit = "empty";
+            } else if (motifInit.equals("gpp")) {
+                motif = "pgp";
+                motifInit = "empty";
             }
-            telemetry.addData("Motif Pattern:", motif);
-            telemetry.addData("Looking for motif...", "");
+
+            telemetry.addData("Motif", motif);
             telemetry.update();
             idle();
-            sleep(10);
         }
-
-
         waitForStart();
         if (isStopRequested()) return;
-
-
 
         go_back();
         pauseBeforeShooting(0.4);
         three_close_shots();
-        depo.setPowerBoth(0);
         first_line_pickup();
         reset();
         go_close();
         three_close_shots();
-        depo.setPowerBoth(0);
         second_line_pickup();
         reset();
         go_close();
         three_close_shots();
-        depo.setPowerBoth(0);
         third_line_pickup();
         reset();
         go_close();
         three_close_shots();
-        depo.setPowerBoth(0);
         go_infront();
 
+
+        telemetry.addLine("ADITI WAD HEREEEEEEE");
         telemetry.update();
         sleep(500);
 
@@ -209,14 +224,15 @@ public class closeBluefinal extends LinearOpMode {
         follower.followPath(home, true);
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);
-
     }
+
     private void go_back(){
 
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) {
@@ -254,15 +270,6 @@ public class closeBluefinal extends LinearOpMode {
             idle();
         }
     }
-    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
-        if(!shootingHasWorkedNoVelo) {
-            depo.setTargetVelocity(0);
-            timer2.stopTimer();
-            LL.allDown();
-            shooterSequence = 0;
-        }
-    }
-    //ss
     private void three_far_shots() {
         LL.set_angle_far_auto();
         startFarShot();
@@ -323,171 +330,8 @@ public class closeBluefinal extends LinearOpMode {
             }
             follower.update();
         }
-    }
-
-
-    private void first_line_pickup(){
-        intake.setPower(-1);
-        // ===== 2) Movement: your two-hop Pedro path =====
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(nearshotpose, firstpickupPose)))
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-
-        // calculations to move forward
-        Pose cur = follower.getPose();
-        double heading = cur.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+7.5) * Math.sin(heading);
-        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-        Path p2 = new Path(new BezierLine(cur, secondGoal));
-
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(p2)
-                .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
-                .build();
-        follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
-            idle();
-        }
-        if (intake != null) intake.setPower(1);
-
-    }
-    private void second_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(nearshotpose,secondpickupPose))) //add the midpoint
-                .setLinearHeadingInterpolation(nearshotpose.getHeading(),secondpickupPose.getHeading())
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-
-        // calculations to move forward
-        Pose cur = follower.getPose();
-        double heading = cur.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
-        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
-
-        follower.setMaxPower(0.7);
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, secondGoal)))
-                .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
-                .build();
-        follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
-            idle();
-        }
-        follower.setMaxPower(1);
-        if (intake != null) intake.setPower(1);
-
-    }
-    private void third_line_pickup(){
-        // ===== 2) Movement: your two-hop Pedro path =====
-        intake.setPower(-1);
-        Pose cur = follower.getPose();
-        PathChain first = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
-                .setTimeoutConstraint(0.2)
-                .build();
-        follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
-
-        // calculations to move forward
-        Pose cur1 = follower.getPose();
-        double heading = cur1.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
-        Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
-
-        // second movement - 13 inch forward
-        PathChain second = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur1, secondGoal)))
-                .setConstantHeadingInterpolation(heading)
-                .build();
-        follower.followPath(second, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
-            idle();
-        }
-        if (intake != null) intake.setPower(1);
-    }
-    /**
-     * Manages intake during the second hop.
-     * If robot already has 1–2 balls in storage, spit out any new ones.
-     * If robot already has 3, completely stop intake.
-     * If robot has 0, intake normally.
-     */
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull  = (sensors.getBack()  != 0);
-        boolean leftFull  = (sensors.getLeft()  != 0);
-
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull)  count++;
-        if (leftFull)  count++;
-
-        // Tray full → spit everything else we touch
-        if (count >= 3) {
-            if (intake != null) intake.setPower(1);
-            return;
-        }
-
-        // Tray not full yet → continue grabbing balls
-        if (intake != null) intake.setPower(-1);
-    }
-
-    private void go_close(){
-        Pose cur = follower.getPose();
-        PathChain close_shot = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
-                .build();
-        follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) {
-            follower.update();
-            idle();
-        }
         intake.setPower(0);
     }
-
     private boolean isFarShotCycleDone() {
         return (sequence == 0 && timer1.timerIsOff());
     }
@@ -585,7 +429,7 @@ public class closeBluefinal extends LinearOpMode {
             shooterSequence = 0;
         }
     }
-    private void shootRBL(){//shoots in right back left order
+    private void shootRBL() {//shoots in right back left order
 //        if (lastShotSlot == -1) return; // nothing scheduled
 
         if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
@@ -595,44 +439,203 @@ public class closeBluefinal extends LinearOpMode {
         }
 
         // Shot 2
-        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+        if (timer1.checkAtSeconds(0.4) && shooterSequence == 1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
             shooterSequence = 2;//sets up to check the depo velocity again
         }
-        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+        if (shooterSequence == 2 && depo.reachedTargetHighTolerance()) { //this if statement is ran after depo reached target
 //            fireNextAvailableShot();//lifts second ball
             LL.backUp();
-            shooterSequence=3;//sets the sequence to check
-            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+            shooterSequence = 3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds() - timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
 
         // Shot 3
-        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+        if (timer1.checkAtSeconds(0.4 + timeOfSecondShot) && shooterSequence == 3) {//at 0.4 seconds after 2nd lift
             LL.allDown();//puts the lifts down
             shooterSequence = 4;
         }
-        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+        if (shooterSequence == 4 && depo.reachedTargetHighTolerance()) {//does the velocity check again
             LL.leftUp();
 //            fireNextAvailableShot();
-            shooterSequence=5;
-            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+            shooterSequence = 5;
+            timeOfSecondShot = timer1.timer.seconds() - timer1.curtime;
         }
 
         // Finish cycle
-        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+        if (timer1.checkAtSeconds(0.4 + timeOfSecondShot) && shooterSequence == 5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
             shooterSequence = 0;
         }
     }
+        //ss
 
-    private void checkShot() {
-        if (!shootingHasWorked) {
-            LL.allDown();
-            shootingHasWorked = true;
+
+
+    private void first_line_pickup(){
+        intake.setPower(-1);
+        // ===== 2) Movement: your two-hop Pedro path =====
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(nearshotpose, firstpickupPose)))
+                .setLinearHeadingInterpolation(nearshotpose.getHeading(), firstpickupPose.getHeading(), 0.8)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
         }
+
+        // calculations to move forward
+        Pose cur = follower.getPose();
+        double heading = cur.getHeading();
+        double dx = (SECOND_HOP_IN) * Math.cos(heading);
+        double dy = (SECOND_HOP_IN+7.5) * Math.sin(heading);
+        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
+        Path p2 = new Path(new BezierLine(cur, secondGoal));
+
+
+        // second movement - 13 inch forward
+        PathChain second = follower.pathBuilder()
+                .addPath(p2)
+                .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
+            idle();
+        }
+
+
     }
+    private void second_line_pickup(){
+        // ===== 2) Movement: your two-hop Pedro path =====
+        intake.setPower(-1);
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(nearshotpose,secondpickupPose))) //add the midpoint
+                .setLinearHeadingInterpolation(nearshotpose.getHeading(),secondpickupPose.getHeading())
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+
+        // calculations to move forward
+        Pose cur = follower.getPose();
+        double heading = cur.getHeading();
+        double dx = (SECOND_HOP_IN) * Math.cos(heading);
+        double dy = (SECOND_HOP_IN+17) * Math.sin(heading);
+        Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
+
+        // second movement - 13 inch forward
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, secondGoal)))
+                .setConstantHeadingInterpolation(heading)
+                .setTimeoutConstraint(0.2)
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
+            idle();
+        }
+
+    }
+    private void third_line_pickup(){
+        // ===== 2) Movement: your two-hop Pedro path =====
+        intake.setPower(-1);
+        Pose cur = follower.getPose();
+        PathChain first = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, thirdpickupPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(),thirdpickupPose.getHeading())
+                .setTimeoutConstraint(0.2)
+                .build();
+        follower.followPath(first, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+
+        // calculations to move forward
+        Pose cur1 = follower.getPose();
+        double heading = cur1.getHeading();
+        double dx = (SECOND_HOP_IN) * Math.cos(heading);
+        double dy = (SECOND_HOP_IN+15.5)* Math.sin(heading);
+        Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
+
+        // second movement - 13 inch forward
+        PathChain second = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur1, secondGoal)))
+                .setConstantHeadingInterpolation(heading)
+                .build();
+        follower.followPath(second, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+
+            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
+            manageSecondHopIntake();
+
+
+            idle();
+        }
+
+
+    }
+    /**
+     * Manages intake during the second hop.
+     * If robot already has 1–2 balls in storage, spit out any new ones.
+     * If robot already has 3, completely stop intake.
+     * If robot has 0, intake normally.
+     */
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
+
+        boolean rightFull = (sensors.getRight() != 0);
+        boolean backFull  = (sensors.getBack()  != 0);
+        boolean leftFull  = (sensors.getLeft()  != 0);
+
+        int count = 0;
+        if (rightFull) count++;
+        if (backFull)  count++;
+        if (leftFull)  count++;
+
+        // Tray full → spit everything else we touch
+        if (count >= 3) {
+            if (intake != null) intake.setPower(1);
+            return;
+        }
+
+        // Tray not full yet → continue grabbing balls
+        if (intake != null) intake.setPower(-1);
+    }
+
+    private void go_close(){
+        if (intake != null) intake.setPower(0);
+        Pose cur = follower.getPose();
+        PathChain close_shot = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midpoint1,nearshotpose)))
+                .setLinearHeadingInterpolation(cur.getHeading(),nearshotpose.getHeading())
+                .build();
+        follower.followPath(close_shot, true);
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        if (intake != null) intake.setPower(1);
+    }
+
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -659,28 +662,14 @@ public class closeBluefinal extends LinearOpMode {
     }
     private void InitialFindMotif() {
         try {
-            List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-            telemetry.addData("# AprilTags Detected", currentDetections.size());
-
-            // Step through the list of detections and display info for each one.
-            for (AprilTagDetection detection : currentDetections) {
-                if (detection.metadata != null) {
-
-                    telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
-                    // Only use tags that don't have Obelisk in them
-                    if (detection.metadata.name.contains("Obelisk")) {
-                        motifInit = (detection.id == 21) ? "gpp" : (detection.id == 22) ? "pgp" : "ppg";
-                        telemetry.addData("motif: ", motif);
-                    }   // end for() loop
-
-                    // Add "key" information to telemetry
-                    telemetry.addLine("\nkey:\nXYZ = X (Right), Y (Forward), Z (Up) dist.");
-                    telemetry.addLine("PRY = Pitch, Roll & Yaw (XYZ Rotation)");
-
+            List<AprilTagDetection> detections = aprilTag.getDetections();
+            for (AprilTagDetection detection : detections) {
+                if (detection.metadata != null &&
+                        detection.metadata.name.contains("Obelisk")) {
+                    motifInit = (detection.id == 21) ? "gpp"
+                            : (detection.id == 22) ? "pgp" : "ppg";
                 }
             }
-        } catch (Exception e) {
-            telemetry.addData("Exception:", e);
-        }
+        } catch (Exception ignored) {}
     }
 }
