@@ -82,7 +82,7 @@ public class Closeblueoptimized extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
-    private final Pose back_lever = new Pose(58.3, -52.3, Math.toRadians(-36.5));
+    private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-36.5));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
 
@@ -216,14 +216,15 @@ public class Closeblueoptimized extends OpMode {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
                 double yaw = detection.ftcPose.yaw;
 
+                // Using blue side logic
                 if (yaw > 40 && yaw < 90) {
                     if (detection.id == 21) motif = "gpp";
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
-                } else if (yaw > -80 && yaw < -40) {
-                    if (detection.id == 22) motif = "ppg";
-                    if (detection.id == 23) motif = "gpp";
-                    if (detection.id == 21) motif = "pgp";
+                } else if (yaw > -90 && yaw < -40) {
+                    if (detection.id == 21) motif = "ppg";
+                    if (detection.id == 22) motif = "gpp";
+                    if (detection.id == 23) motif = "pgp";
                 }
             }
         }
@@ -593,13 +594,13 @@ public class Closeblueoptimized extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.6)
+                .setTimeoutConstraint(1)
                 .build();
 
         gatebackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
-                .setTimeoutConstraint(0.2)
+                .setTimeoutConstraint(0.3)
                 .build();
     }
 

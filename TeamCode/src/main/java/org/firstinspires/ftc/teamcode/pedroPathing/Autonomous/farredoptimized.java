@@ -84,7 +84,7 @@ public class farredoptimized extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
-    private final Pose back_lever = new Pose(63, 58, Math.toRadians(36.5));
+    private final Pose back_lever = new Pose(63, 54, Math.toRadians(37));
     private final Pose infront_of_lever_adj = new Pose(60.75, 60, Math.toRadians(34));
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
@@ -134,7 +134,7 @@ public class farredoptimized extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-100);
+        turret.setDegreesTarget(-98);
         //
 
         // Initialize AprilTag vision
@@ -159,7 +159,7 @@ public class farredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-70.6);
+        turret.setDegreesTarget(-68.6);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -618,13 +618,13 @@ public class farredoptimized extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.3)
-                .setTimeoutConstraint(1.6)
+                .setTimeoutConstraint(1)
                 .build();
 
         gatebackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
-                .setTimeoutConstraint(0.2)
+                .setTimeoutConstraint(0.3)
                 .build();
     }
     private void buildGatePathBack(double waitTime) {

@@ -134,7 +134,7 @@ public class farblueoptimized extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(100);
+        turret.setDegreesTarget(98);
 
         // Initialize AprilTag vision
         initAprilTag();
@@ -617,13 +617,13 @@ public class farblueoptimized extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(),infront_of_lever_new.getHeading(),0.3)
-                .setTimeoutConstraint(1.6)
+                .setTimeoutConstraint(1)
                 .build();
 
         gatebackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
-                .setTimeoutConstraint(0.2)
+                .setTimeoutConstraint(0.3)
                 .build();
     }
     private void buildGatePathBack(double waitTime) {
