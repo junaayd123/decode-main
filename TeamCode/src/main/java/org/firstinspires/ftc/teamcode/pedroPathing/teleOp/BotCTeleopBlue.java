@@ -253,8 +253,8 @@ public class BotCTeleopBlue extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
-            while (robHeading >= Math.PI * 2 - Math.toRadians(-60)) robHeading -= 2 * Math.PI;
-            while (robHeading < Math.toRadians(-60)) robHeading += 2 * Math.PI;
+        while (robHeading >= Math.PI * 2 - Math.toRadians(-60)) robHeading -= 2 * Math.PI;
+        while (robHeading < Math.toRadians(-60)) robHeading += 2 * Math.PI;
 
         if (gamepad2.rightBumperWasPressed()) {
             LL.allDown();
@@ -314,12 +314,14 @@ public class BotCTeleopBlue extends OpMode {
                 tagInitializing = false;
                 led.setPosition(0);
                 mode = Mode.nothing;
+                pauseAprilTagDetection(); // Pause if canceling
             }
             else{
                 turretTimer.startTimer();
                 mode = Mode.findTag;
                 turret.setDegreesTarget(0);
                 led.setPosition(0.34);
+                resumeAprilTagDetection(); // Resume when starting new detection
 //                movingCase = 1;
 //                timerDiddyMoment = 0;
             }
@@ -342,6 +344,7 @@ public class BotCTeleopBlue extends OpMode {
                 totalHedOffset = follower.getTotalHeading()-pedroPose.getHeading();
                 tagInitializing = false;
                 led.setPosition(0.6);
+                pauseAprilTagDetection();
             }
             else{
 
@@ -519,7 +522,7 @@ public class BotCTeleopBlue extends OpMode {
             return (int) (5.35158*dist+873.83526);
         }//(3.69593*dist+960.60458); old
         else
-        return (int) (7.14286*(7+dist)+589.28571); //far//far
+            return (int) (7.14286*(7+dist)+589.28571); //far//far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -797,6 +800,18 @@ public class BotCTeleopBlue extends OpMode {
             timer1.stopTimer();
             shooterSequence = 0;
             lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
+        }
+    }
+    private void pauseAprilTagDetection() {
+        if (visionPortal != null && aprilTag != null) {
+            visionPortal.setProcessorEnabled(aprilTag, false);
+        }
+    }
+
+    // Add this method to resume detection
+    private void resumeAprilTagDetection() {
+        if (visionPortal != null && aprilTag != null) {
+            visionPortal.setProcessorEnabled(aprilTag, true);
         }
     }
 
