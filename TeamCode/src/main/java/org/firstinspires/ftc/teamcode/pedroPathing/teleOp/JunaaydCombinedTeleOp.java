@@ -86,8 +86,8 @@ public class JunaaydCombinedTeleOp extends OpMode {
         g2.copy(gamepad2);
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // ----- turning on pause tag detection -----
         pauseTagDetection=true;
@@ -193,7 +193,7 @@ public class JunaaydCombinedTeleOp extends OpMode {
         telemetry.addData("is alliance blue?",bluealliance);
         telemetry.addData("Launch Position", LL.launchServo.getPosition());
         telemetry.addData("Intake Power", intake.getPower());
-        telemetry.addData("Depo Power", depo.right.getPower());
+        telemetry.addData("Depo Power", depo.bottom.getPower());
         telemetry.update();
     }
 

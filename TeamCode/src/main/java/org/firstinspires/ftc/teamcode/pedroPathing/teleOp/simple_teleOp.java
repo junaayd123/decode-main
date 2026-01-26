@@ -52,8 +52,8 @@ public class simple_teleOp extends OpMode {
         // depo.setDirection(DcMotorSimple.Direction.FORWARD);
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -121,7 +121,7 @@ public class simple_teleOp extends OpMode {
         // Telemetry
         telemetry.addData("Launch Position", LL.launchServo.getPosition());
         telemetry.addData("Intake Power", intake.getPower());
-        telemetry.addData("Depo Power", depo.right.getPower());
+        telemetry.addData("Depo Power", depo.bottom.getPower());
         telemetry.addData("time since run", timer.seconds()-curTime);
         telemetry.update();
     }

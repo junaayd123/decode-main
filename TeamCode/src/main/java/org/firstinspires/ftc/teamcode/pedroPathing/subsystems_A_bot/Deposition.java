@@ -10,8 +10,8 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 public class Deposition {
 
     // --- Motors ---
-    public DcMotorEx left;    // Has encoder
-    public DcMotor right;     // Follower (no encoder)
+    public DcMotorEx top;    // Has encoder
+    public DcMotor bottom;     // Follower (no encoder)
 
     // --- PID controller for velocity ---
     private PIDController pid;
@@ -42,15 +42,15 @@ public class Deposition {
     private double powerOutput = 0.0;
 
     public Deposition(HardwareMap hardwareMap) {
-        left = hardwareMap.get(DcMotorEx.class, "depo");
-        right = hardwareMap.get(DcMotor.class, "depo1");
+        top = hardwareMap.get(DcMotorEx.class, "depo");
+        bottom = hardwareMap.get(DcMotor.class, "depo1");
 
-        left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        top.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        bottom.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-        left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         pid = new PIDController(p, i, d);
     }
@@ -68,21 +68,21 @@ public class Deposition {
     public void updatePID() {
         pid.setPID(p, i, d);
 
-        double currentVelocity = left.getVelocity();  // ticks per second
+        double currentVelocity = top.getVelocity();  // ticks per second
         double pidOutput = pid.calculate(currentVelocity, targetVelocity);
         double ff = kF * targetVelocity;
 
         powerOutput = pidOutput + ff;
         powerOutput = Math.max(-1.0, Math.min(1.0, powerOutput));
 
-        left.setPower(powerOutput);
-        right.setPower(powerOutput);
+        top.setPower(powerOutput);
+        bottom.setPower(powerOutput);
     }
 
     // --- Manual control (driver mode) ---
     public void setPowerBoth(double power) {
-        left.setPower(power);
-        right.setPower(power);
+        top.setPower(power);
+        bottom.setPower(power);
     }
 
     // --- Preset shooting powers ---
@@ -96,7 +96,7 @@ public class Deposition {
     }
 
     // --- Getters for telemetry/debugging ---
-    public double getVelocity() { return left.getVelocity(); }
+    public double getVelocity() { return top.getVelocity(); }
     public double getTargetVelocity() { return targetVelocity; }
     public double getPowerOutput() { return powerOutput; }
 }
