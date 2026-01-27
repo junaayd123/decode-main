@@ -168,7 +168,7 @@ public class LM2FinalTeleOp extends OpMode {
         }
 
         reverseIntake();
-        if(g1.cross) speed = 0.3;
+        if(g1.right_bumper) speed = 0.3;
         else speed = 1;
         if(g2.dpad_down && !preG2.dpad_down){
             shootingTest = !shootingTest;
@@ -179,17 +179,17 @@ public class LM2FinalTeleOp extends OpMode {
                     depo.setTargetVelocity(ourVelo);
                 }
                 else {
-                    depo.shootClose();
+                    depo.setTargetVelocity(-1000);  // ← Use the value directly
                     LL.set_angle_close();
                     motif = "gpp";
                     greenInSlot = 0;
                 }
                 shooting = true;
-
             }
         }
+
         if(g2.square && !preG2.square){//gpp
-            depo.shootClose();
+            depo.setTargetVelocity(-1000);  // ← Use the value directly
             LL.set_angle_close();
             shooting = true;
             motif = "gpp";
@@ -198,30 +198,10 @@ public class LM2FinalTeleOp extends OpMode {
             ballsInRobot[1] = LL.sensors.getRight();
             ballsInRobot[2] = LL.sensors.getBack();
         }
-        if(g2.triangle && !preG2.triangle){//pgp
-            depo.shootClose();
-            LL.set_angle_close();
-            shooting = true;
-            motif = "pgp";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
-        }
-        if(g2.circle && !preG2.circle){//ppg
-            depo.shootClose();
-            LL.set_angle_close();
-            shooting = true;
-            motif = "ppg";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
-        }
 
 
         // ========= WHEN SQUARE PRESSED → DRIVE TO SHOOTING POSE =========
-        if (g1.square && !preG1.square) {
+        if (g1.left_bumper && !preG1.left_bumper) {
 //            if (!follower.isBusy()) {
 //                goToHumanPlayer();
 //            }
