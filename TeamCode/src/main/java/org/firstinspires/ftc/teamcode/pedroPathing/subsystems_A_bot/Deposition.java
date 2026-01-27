@@ -42,8 +42,8 @@ public class Deposition {
     private double powerOutput = 0.0;
 
     public Deposition(HardwareMap hardwareMap) {
-        top = hardwareMap.get(DcMotorEx.class, "depo");
-        bottom = hardwareMap.get(DcMotor.class, "depo1");
+        top = hardwareMap.get(DcMotorEx.class, "depo1");
+        bottom = hardwareMap.get(DcMotor.class, "depo");
 
         top.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         top.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
