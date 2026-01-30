@@ -21,6 +21,11 @@ public class LM2FinalTeleOp extends OpMode {
     private boolean alignForFar = false;
     private double distanceToGoal;
 
+    private Pose homePose = null;
+    private boolean returningHome = false;
+    private double arrivedAtHomeTime = 0;
+    private boolean waitingAtHome = false;
+
     private boolean bluealliance = false;
     private double desiredHeading = 0;
     String motif = "gpp";
@@ -44,7 +49,7 @@ public class LM2FinalTeleOp extends OpMode {
     int greenInSlot;
     private DcMotor intake = null;
     private Deposition depo;
-    boolean shootingTest =false;
+    boolean shootingTest = false;
     boolean intakeRunning;
 
     private lift_three LL;
@@ -59,26 +64,25 @@ public class LM2FinalTeleOp extends OpMode {
     boolean shooting = false;
     boolean shooting2 = false;
 
-    // NEW: Delay variables for depo spin-up
+    private int loopCounter = 0;
+
     boolean waitingToShoot1 = false;
     boolean waitingToShoot6 = false;
     double depoSpinUpTime1 = 0;
     double depoSpinUpTime6 = 0;
 
-    // Separate sequence variables for each timer
     int shooterSequence1;
     int shooterSequence2;
     int shooterSequence6;
 
-    // Separate timing variables
     double timeOfSecondShot1;
     double timeOfSecondShot2;
     double timeOfSecondShot6;
 
-    Gamepad g1= new Gamepad();
-    Gamepad preG2= new Gamepad();
+    Gamepad g1 = new Gamepad();
+    Gamepad preG2 = new Gamepad();
     Gamepad preG1 = new Gamepad();
-    Gamepad g2= new Gamepad();
+    Gamepad g2 = new Gamepad();
 
     private Follower follower;
 
@@ -114,6 +118,7 @@ public class LM2FinalTeleOp extends OpMode {
         depo.kF = 0.00048;
         LL.allDown();
         LL.set_angle_min();
+        LL.resetBallCount();
         timer1.resetTimer();
         timer2.resetTimer();
         timer3.resetTimer();
@@ -129,7 +134,36 @@ public class LM2FinalTeleOp extends OpMode {
         g2.copy(gamepad2);
         depo.updatePID();
 
+        if(loopCounter++ >= 5) {
+            LL.updateBallTracking();
+            loopCounter = 0;
+        }
+
         if(g1.psWasPressed()) bluealliance = !bluealliance;
+
+        // ========= HOME POSITION CONTROL =========
+        if(g1.dpad_right && !preG1.dpad_right) {
+            Pose currentPose = follower.getPose();
+            homePose = new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading());
+            follower.setPose(new Pose(0, 0, 0));
+            telemetry.addLine(">>> HOME POSITION SET <<<");
+        }
+
+        // FIX #2: Use PathChain to return to home instead of manual control
+        // Toggle return to home - press triangle again to cancel
+        if(g1.triangle && !preG1.triangle && homePose != null) {
+            if(returningHome || waitingAtHome) {
+                // Cancel return to home
+                follower.breakFollowing();
+                follower.startTeleopDrive();
+                returningHome = false;
+                waitingAtHome = false;
+                telemetry.addLine(">>> RETURN TO HOME CANCELLED <<<");
+            } else if(!follower.isBusy()) {
+                // Start return to home
+                returnToHome();
+            }
+        }
 
         // ========= INTAKE CONTROL =========
         if (gamepad2.rightBumperWasPressed()) {
@@ -142,11 +176,9 @@ public class LM2FinalTeleOp extends OpMode {
             }
         }
 
-        if (intakeRunning) {
-            if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
-                timer3.startTimer();
-                intakeRunning = false;
-            }
+        if (intakeRunning && LL.getBallCount() >= 3) {
+            timer3.startTimer();
+            intakeRunning = false;
         }
 
         if(g2.left_bumper){
@@ -158,62 +190,38 @@ public class LM2FinalTeleOp extends OpMode {
 
         reverseIntake();
 
-        // ========= SPEED CONTROL =========
-        if(g1.right_bumper) speed = 0.3;
-        else speed = 1;
+        speed = g1.right_bumper ? 0.3 : 1;
 
-        // ========= SHOOTING MODE TOGGLE =========
         if(g2.dpad_down && !preG2.dpad_down){
             shootingTest = !shootingTest;
         }
 
-        // ========= SHOOTING TRIGGERS =========
-        if(g2.cross && !preG2.cross){
-            if(!LL.checkNoBalls()) {
-                if(shootingTest){
-                    depo.setTargetVelocity(ourVelo);
-                }
-                else {
-                    depo.setTargetVelocity(1000);
-                    LL.set_angle_close();
-                    motif = "gpp";
-                    greenInSlot = 0;
-                }
-                shooting = true;
-            }
-        }
-
-        if(g1.triangle && !preG1.triangle) {
-            depo.setTargetVelocity(1000);  // Changed to positive 1000
+        // ─── Shooting triggers ───────────────────────────────────────
+        // FIX #1: Prevent shooting triggers from being pressed while already shooting
+        if(g2.triangle && !preG2.triangle && !timer6.timerIsOn() && !waitingToShoot6) {
+            depo.setTargetVelocity(1300);
             LL.set_angle_close();
             shooting2 = true;
         }
 
-        if(g2.square && !preG2.square){
-            depo.setTargetVelocity(1000);
-            LL.set_angle_close();
-            shooting = true;
-            motif = "gpp";
-            greenInSlot = getGreenPos();
-            ballsInRobot[0] = LL.sensors.getLeft();
-            ballsInRobot[1] = LL.sensors.getRight();
-            ballsInRobot[2] = LL.sensors.getBack();
+        if(g2.square && !preG2.square && !timer6.timerIsOn() && !waitingToShoot6) {
+            depo.setTargetVelocity(1800);
+            LL.set_angle_far_auto();
+            shooting2 = true;
         }
 
-        // ========= DIRECTION TOGGLE =========
         if (g1.left_bumper && !preG1.left_bumper) {
             direction = !direction;
         }
 
-        // ========= AUTO ALIGNMENT =========
         if (g1.circle && !preG1.circle && !follower.isBusy()) {
-            if(distanceToGoal<115) {
+            if(distanceToGoal < 115) {
                 faceAllianceGoal();
                 timer4.startTimer();
             }
             else{
                 goToFarPose();
-                alignForFar=true;
+                alignForFar = true;
             }
         }
 
@@ -224,102 +232,111 @@ public class LM2FinalTeleOp extends OpMode {
 
         quitCorrectingAngle();
 
-        // ========= FORCE TELEOP CONTROL =========
         if (g1.dpad_down && !preG1.dpad_down) {
             follower.breakFollowing();
             follower.startTeleopDrive();
             aligning = false;
+            returningHome = false;
+            waitingAtHome = false;
             telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
         }
 
         followerstuff();
 
-        // ========= TELEMETRY =========
-        telemetry.addData("Alliance Blue?", bluealliance);
-        Pose cur = follower.getPose();
-        distanceToGoal = getDistance();
-        telemetry.addData("first shot", shotSlot1);
-        telemetry.addData("second shot", shotSlot2);
-        telemetry.addData("third shot", shotSlot3);
-        telemetry.addData("shooter sequence 1", shooterSequence1);
-        telemetry.addData("shooter sequence 6", shooterSequence6);
-        telemetry.addData("timer6 on?", timer6.timerIsOn());
-        telemetry.addData("shooting2 flag", shooting2);
-        telemetry.addData("waitingToShoot1", waitingToShoot1);
-        telemetry.addData("waitingToShoot6", waitingToShoot6);
-        telemetry.addData("actual depo velo",depo.getVelocity());
-        telemetry.addData("target depo velo",depo.getTargetVelocity());
-        telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
-        telemetry.addData("distance to goal",distanceToGoal);
-        telemetry.addData("target velocity", ourVelo);
-        telemetry.addData("current angle", LL.launchAngleServo.getPosition());
-        telemetry.addData("X", cur.getX());
-        telemetry.addData("Y", cur.getY());
-        telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
-        telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
-
-        // ========= START SHOOTING SEQUENCES WITH DELAY =========
-        if(depo.reachedTargetHighTolerance()){
+        // ─── SHOOTING SEQUENCE START LOGIC ────────
+        if (depo.reachedTargetHighTolerance()) {
             if (shooting && !waitingToShoot1) {
                 waitingToShoot1 = true;
                 depoSpinUpTime1 = getRuntime();
                 shooting = false;
             }
-            if(shooting2 && !waitingToShoot6){
+            if (shooting2 && !waitingToShoot6) {
                 waitingToShoot6 = true;
                 depoSpinUpTime6 = getRuntime();
                 shooting2 = false;
             }
         }
 
-        // Start timer1 after 1 second delay
-        if(waitingToShoot1 && (getRuntime() - depoSpinUpTime1 >= 1.0) && !timer1.timerIsOn()){
+        // Start timer1 after delay
+        if (waitingToShoot1 && (getRuntime() - depoSpinUpTime1 >= 0.5) && !timer1.timerIsOn()) {
             timer1.startTimer();
             waitingToShoot1 = false;
         }
 
-        // Start timer6 after 1 second delay
-        if(waitingToShoot6 && (getRuntime() - depoSpinUpTime6 >= 1.0) && !timer6.timerIsOn()){
+        // Start timer6 after delay (this is what runs shootThreeRandom)
+        if (waitingToShoot6 && (getRuntime() - depoSpinUpTime6 >= 0.5) && !timer6.timerIsOn()) {
             timer6.startTimer();
             waitingToShoot6 = false;
         }
 
-        // ========= EXECUTE MOTIF-BASED SHOOTING (TIMER 1) =========
-        if(timer1.timerIsOn()) {
-            if(motif.equals("gpp")){
-                if(greenInSlot == 0) shootLRB();
-                else if(greenInSlot == 1) shootRBL();
+        // Execute sequences
+        if (timer1.timerIsOn()) {
+            if (motif.equals("gpp")) {
+                if (greenInSlot == 0) shootLRB();
+                else if (greenInSlot == 1) shootRBL();
                 else shootBLR();
-            }
-            else if(motif.equals("pgp")){
-                if(greenInSlot == 0) shootBLR();
-                else if(greenInSlot == 1) shootLRB();
+            } else if (motif.equals("pgp")) {
+                if (greenInSlot == 0) shootBLR();
+                else if (greenInSlot == 1) shootLRB();
                 else shootRBL();
-            }
-            else{
-                if(greenInSlot == 0) shootRBL();
-                else if(greenInSlot == 1) shootBLR();
+            } else {
+                if (greenInSlot == 0) shootRBL();
+                else if (greenInSlot == 1) shootBLR();
                 else shootLRB();
             }
         }
 
-        // ========= EXECUTE RANDOM SHOOTING SEQUENCE (TIMER 6) =========
-        if(timer6.timerIsOn()) {
+        if (timer6.timerIsOn()) {
             shootThreeRandom();
         }
 
-        // ========= MANUAL ADJUSTMENTS =========
-        if(g1.dpad_up && !preG1.dpad_up){
-            ourVelo+=25;
+        // ─── Debug telemetry ─────────────────────────────────────────
+        telemetry.addData("Alliance", bluealliance ? "Blue" : "Red");
+        telemetry.addData("Ball Count", LL.getBallCount());
+        telemetry.addData("Shooter", String.format("%.0f / %d  at target? %b",
+                depo.getVelocity(), (int)depo.getTargetVelocity(), depo.reachedTargetHighTolerance()));
+        telemetry.addData("shooting2", shooting2);
+        telemetry.addData("waitingToShoot6", waitingToShoot6);
+        telemetry.addData("timer6 running", timer6.timerIsOn());
+        telemetry.addData("Distance to Goal", String.format("%.1f", distanceToGoal));
+        telemetry.addData("Follower Busy", follower.isBusy());
+        telemetry.addData("Returning Home", returningHome);
+        telemetry.addData("Waiting at Home", waitingAtHome);
+        if(waitingAtHome) {
+            double timeRemaining = 0.5 - (getRuntime() - arrivedAtHomeTime);
+            telemetry.addData("Time Until Unlock", String.format("%.2fs", Math.max(0, timeRemaining)));
         }
-        else if(g1.dpad_left && !preG1.dpad_left){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.03);
-        }
-        else if(g1.dpad_right && !preG1.dpad_right){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.03);
-        }
-
+        Pose cur = follower.getPose();
+        telemetry.addData("Position", String.format("(%.1f, %.1f, %.0f°)",
+                cur.getX(), cur.getY(), Math.toDegrees(cur.getHeading())));
         telemetry.update();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  FIXED: Return to home using PathChain
+    // ──────────────────────────────────────────────────────────────
+
+    private void returnToHome() {
+        if(homePose == null) return;
+
+        Pose cur = follower.getPose();
+        Pose targetPose = new Pose(0, 0, 0);
+
+        PathChain homeChain = follower.pathBuilder()
+                .addPath(new BezierLine(cur, targetPose))
+                .setLinearHeadingInterpolation(cur.getHeading(), 0)
+                .build();
+
+        follower.followPath(homeChain);
+        returningHome = true;
+        telemetry.addLine(">>> RETURNING TO HOME <<<");
+    }
+
+    private double getDistanceToHome() {
+        Pose cur = follower.getPose();
+        double x = 0 - cur.getX();
+        double y = 0 - cur.getY();
+        return Math.sqrt(x*x + y*y);
     }
 
     private void reverseIntake() {
@@ -337,8 +354,7 @@ public class LM2FinalTeleOp extends OpMode {
         Pose target = bluealliance ? blueGoal2 : redGoal2;
         double x = target.getX()-cur.getX();
         double y = target.getY()-cur.getY();
-        double hypotenuse = Math.pow(x,2)+Math.pow(y,2);
-        return Math.sqrt(hypotenuse);
+        return Math.sqrt(x*x + y*y);
     }
 
     private void goToFarPose() {
@@ -371,25 +387,35 @@ public class LM2FinalTeleOp extends OpMode {
             follower.breakFollowing();
             follower.startTeleopDrive();
             aligning = false;
-            telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
             timer4.stopTimer();
         }
     }
 
     private void followerstuff() {
         follower.update();
-        telemetry.addData("FollowerBusy", follower.isBusy());
-        telemetry.addData("AligningFlag", aligning);
 
         if (!follower.isBusy() && aligning2) {
             follower.startTeleopDrive();
             aligning2 = false;
-            telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
-        } else if (aligning) {
-            telemetry.addData("AlignStatus", "Running");
         }
 
-        if (!follower.isBusy() && !aligning) {
+        // Handle return to home completion - wait 0.5s before allowing control
+        if (!follower.isBusy() && returningHome && !waitingAtHome) {
+            returningHome = false;
+            waitingAtHome = true;
+            arrivedAtHomeTime = getRuntime();
+            telemetry.addLine(">>> ARRIVED AT HOME - WAITING 0.5s <<<");
+        }
+
+        // Check if we've waited long enough at home
+        if (waitingAtHome && (getRuntime() - arrivedAtHomeTime >= 0.5)) {
+            waitingAtHome = false;
+            follower.startTeleopDrive();
+            telemetry.addLine(">>> HOME POSITION LOCKED - TELEOP ENABLED <<<");
+        }
+
+        // Only allow teleop control when not busy with autonomous actions and not waiting
+        if (!follower.isBusy() && !aligning && !returningHome && !waitingAtHome) {
             if(direction) {
                 follower.setTeleOpDrive(gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true);
             }
@@ -402,42 +428,33 @@ public class LM2FinalTeleOp extends OpMode {
     private int getGreenPos(){
         int pos = LL.sensors.getLeft();
         if(pos==1) return 0;
-        else{
-            pos = LL.sensors.getRight();
-            if(pos==1) return 1;
-            else return 2;
-        }
+        pos = LL.sensors.getRight();
+        return (pos==1) ? 1 : 2;
     }
 
-    // ========= SHOOTING SEQUENCES - TIMER 1 =========
     private void shootLRB() {
         if (timer1.checkAtSeconds(0)) {
             LL.leftUp();
             shooterSequence1 = 1;
         }
-
         if (timer1.checkAtSeconds(0.4) && shooterSequence1==1) {
             LL.allDown();
             shooterSequence1 = 2;
         }
-
         if(shooterSequence1==2 && depo.reachedTargetHighTolerance()){
             LL.rightUp();
             shooterSequence1=3;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==3) {
             LL.allDown();
             shooterSequence1 = 4;
         }
-
         if(shooterSequence1==4 && depo.reachedTargetHighTolerance()){
             LL.backUp();
             shooterSequence1=5;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==5) {
             LL.allDown();
             depo.setTargetVelocity(0);
@@ -446,34 +463,29 @@ public class LM2FinalTeleOp extends OpMode {
         }
     }
 
-    private void shootBLR(){
+    private void shootBLR() {
         if (timer1.checkAtSeconds(0)) {
             LL.backUp();
             shooterSequence1 = 1;
         }
-
         if (timer1.checkAtSeconds(0.4) && shooterSequence1==1) {
             LL.allDown();
             shooterSequence1 = 2;
         }
-
         if(shooterSequence1==2 && depo.reachedTargetHighTolerance()){
             LL.leftUp();
             shooterSequence1=3;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==3) {
             LL.allDown();
             shooterSequence1 = 4;
         }
-
         if(shooterSequence1==4 && depo.reachedTargetHighTolerance()){
             LL.rightUp();
             shooterSequence1=5;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==5) {
             LL.allDown();
             depo.setTargetVelocity(0);
@@ -482,34 +494,29 @@ public class LM2FinalTeleOp extends OpMode {
         }
     }
 
-    private void shootRBL(){
+    private void shootRBL() {
         if (timer1.checkAtSeconds(0)) {
             LL.rightUp();
             shooterSequence1 = 1;
         }
-
         if (timer1.checkAtSeconds(0.4) && shooterSequence1==1) {
             LL.allDown();
             shooterSequence1 = 2;
         }
-
         if(shooterSequence1==2 && depo.reachedTargetHighTolerance()){
             LL.backUp();
             shooterSequence1=3;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==3) {
             LL.allDown();
             shooterSequence1 = 4;
         }
-
         if(shooterSequence1==4 && depo.reachedTargetHighTolerance()){
             LL.leftUp();
             shooterSequence1=5;
             timeOfSecondShot1 = timer1.timer.seconds()-timer1.curtime;
         }
-
         if (timer1.checkAtSeconds(0.4+timeOfSecondShot1) && shooterSequence1==5) {
             LL.allDown();
             depo.setTargetVelocity(0);
@@ -518,40 +525,51 @@ public class LM2FinalTeleOp extends OpMode {
         }
     }
 
-    // ========= RANDOM SHOOTING SEQUENCE - TIMER 6 =========
     private void shootThreeRandom() {
+        // Shot 1: Left
         if (timer6.checkAtSeconds(0)) {
             LL.leftUp();
             shooterSequence6 = 1;
         }
-
-        if (timer6.checkAtSeconds(0.4) && shooterSequence6 == 1) {
+        if (timer6.checkAtSeconds(0.3) && shooterSequence6 == 1) {
             LL.allDown();
             shooterSequence6 = 2;
         }
 
+        // Shot 2: Back
         if(shooterSequence6 == 2 && depo.reachedTargetHighTolerance()) {
             LL.backUp();
             shooterSequence6 = 3;
             timeOfSecondShot6 = timer6.timer.seconds() - timer6.curtime;
         }
-
-        if (timer6.checkAtSeconds(0.4 + timeOfSecondShot6) && shooterSequence6 == 3) {
+        if (shooterSequence6 == 3 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.3)) {
             LL.allDown();
             shooterSequence6 = 4;
         }
 
+        // Shot 3: Right
         if(shooterSequence6 == 4 && depo.reachedTargetHighTolerance()) {
             LL.rightUp();
             shooterSequence6 = 5;
             timeOfSecondShot6 = timer6.timer.seconds() - timer6.curtime;
         }
 
-        if (timer6.checkAtSeconds(0.4 + timeOfSecondShot6) && shooterSequence6 == 5) {
+        // NEW: Final Down movement gets its own time check
+        if (shooterSequence6 == 5 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.3)) {
             LL.allDown();
+            shooterSequence6 = 6; // Move to a "closing" state
+        }
+
+        // NEW: Stop everything only AFTER the servos have had time to move down
+        if (shooterSequence6 == 6 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.5)) {
             depo.setTargetVelocity(0);
+            // If your Deposition class has a stop() or setPower(0)
+            depo.top.setPower(0);
+            depo.bottom.setPower(0);
+
             timer6.stopTimer();
             shooterSequence6 = 0;
+            waitingToShoot6 = false;
         }
     }
 }

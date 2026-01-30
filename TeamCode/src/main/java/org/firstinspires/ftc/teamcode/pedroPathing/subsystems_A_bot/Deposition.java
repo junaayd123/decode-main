@@ -17,7 +17,7 @@ public class Deposition {
     private PIDController pid;
 
     // --- PID constants (dashboard-tunable) ---
-    public static double p = -0.001;
+    public static double p = 0.001;
     public static double i = 0.0;
     public static double d = 0.0;
 
@@ -25,7 +25,7 @@ public class Deposition {
     public  double targetVelocity = 0;
 
     // Optional: motor-specific constant for simple feedforward
-    public static double kF = -0.00048;
+    public static double kF = 0.00048;
 
     // --- Pre-set powers ---
     public double closePower = 0.56;
