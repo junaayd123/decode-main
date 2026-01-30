@@ -25,7 +25,7 @@ public class Deposition_C {
     public double farVeloredauto = 1615;
     public double farVeloblue = 1600;
     //
-    public double farVeloblueauto = 1615;
+    public double farVeloblueauto = 1620;
 
     // Target velocity in ticks per second
     public  double targetVelocity = 0;

@@ -158,7 +158,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(66);
+        turret.setDegreesTarget(64);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
