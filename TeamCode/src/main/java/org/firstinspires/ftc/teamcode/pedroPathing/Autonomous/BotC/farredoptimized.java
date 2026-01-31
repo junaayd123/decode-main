@@ -78,7 +78,7 @@ public class farredoptimized extends OpMode {
 
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(25, 50, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(25, 58, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
@@ -331,6 +331,7 @@ public class farredoptimized extends OpMode {
                 break;
             case 102: // Gate - wait at back_lever position
                 if (!follower.isBusy()) {
+                    buildGatePathBack(GATE_WAIT_TIME_FIRST);
                     actionTimer.resetTimer();
                     setPathState(9);
                 }
@@ -338,7 +339,7 @@ public class farredoptimized extends OpMode {
 
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                buildGatePathBack(waitTime2);
+
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far();
@@ -393,6 +394,7 @@ public class farredoptimized extends OpMode {
             case 13: // Wait until pickup reached
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
+                    buildReturnToShootingPath();
                     setPathState(14);
                     manageSecondHopIntake();
                 }
@@ -402,8 +404,6 @@ public class farredoptimized extends OpMode {
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloredauto);
-
-                buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
