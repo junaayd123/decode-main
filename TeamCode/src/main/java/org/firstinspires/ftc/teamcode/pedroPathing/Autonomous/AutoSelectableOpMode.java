@@ -8,6 +8,13 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+///
+/// This file, edited by ME, junaayd shaikh, taken from SelectableTeleOp
+/// Edited for usage in autonomous selection
+///
+///
+
+
 public abstract class AutoSelectableOpMode extends OpMode {
     private final Selector<Supplier<OpMode>> selector;
     private OpMode selectedOpMode;

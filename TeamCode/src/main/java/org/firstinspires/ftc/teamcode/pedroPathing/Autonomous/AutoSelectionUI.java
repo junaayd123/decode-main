@@ -48,16 +48,16 @@ public class AutoSelectionUI extends AutoSelectableOpMode {
     public AutoSelectionUI() {
         super("(DO NOT USE YET DO NOT USE YET THIS IS JUST A LAYOUT DO NOT USE) Select an Autonomous", s -> {
             s.folder("Close Red", l -> {
-                l.add("Optimized Close Red", optimizedclosered_webcam::new);
+                //l.add("Optimized Close Red", optimizedclosered_webcam::new);
             });
             s.folder("Far Red", l -> {
-                l.add("Optimized Far Red", farredoptimized::new);
+                //l.add("Optimized Far Red", farredoptimized::new);
             });
             s.folder("Close Blue", l -> {
-                l.add("Optimized Close Blue", optimizedcloseblue_webcam::new);
+                //l.add("Optimized Close Blue", optimizedcloseblue_webcam::new);
             });
             s.folder("Far Blue", l -> {
-                l.add("Optimized Far Blue", farblueoptimized::new);
+                //l.add("Optimized Far Blue", farblueoptimized::new);
             });
             /*s.folder("Automatic", a -> {
                 a.add("Forward Velocity Tuner", ForwardVelocityTuner::new);
@@ -77,6 +77,9 @@ public class AutoSelectionUI extends AutoSelectableOpMode {
                 p.add("Circle", Circle::new);*/
             });
         //});
+    }
+    public void onSelect() {
+
     }
 
 }
