@@ -617,7 +617,7 @@ public class farredoptimized extends OpMode {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
-                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.3)
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1)
                 .build();
 
