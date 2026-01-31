@@ -78,14 +78,14 @@ public class farredoptimized extends OpMode {
 
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(25, 58, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
-    private final Pose back_lever = new Pose(63, 54, Math.toRadians(37));
-    private final Pose infront_of_lever_adj = new Pose(60.75, 60, Math.toRadians(34));
+    private final Pose back_lever = new Pose(63, 54, Math.toRadians(38));
+    private final Pose infront_of_lever_adj = new Pose(60.5, 61, Math.toRadians(34));
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -269,6 +269,7 @@ public class farredoptimized extends OpMode {
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
+                LL.set_angle_far_auto();
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
@@ -276,7 +277,7 @@ public class farredoptimized extends OpMode {
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloredauto);
+                    depo.setTargetVelocity(depo.farVeloredauto2);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -343,7 +344,7 @@ public class farredoptimized extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloredauto);
+                    depo.setTargetVelocity(depo.farVeloredauto2);
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -384,7 +385,7 @@ public class farredoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto);
+                depo.setTargetVelocity(depo.farVeloredauto2);
 
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -403,7 +404,7 @@ public class farredoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto);
+                depo.setTargetVelocity(depo.farVeloredauto2);
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
