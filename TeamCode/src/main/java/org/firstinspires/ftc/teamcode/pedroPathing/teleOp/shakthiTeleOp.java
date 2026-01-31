@@ -10,7 +10,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.A_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.launch_lift;
@@ -69,8 +68,8 @@ public class shakthiTeleOp extends OpMode {
         // depo.setDirection(DcMotorSimple.Direction.FORWARD);
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -155,7 +154,7 @@ public class shakthiTeleOp extends OpMode {
         telemetry.addData("is alliance blue?",bluealliance);
         telemetry.addData("Launch Position", LL.launchServo.getPosition());
         telemetry.addData("Intake Power", intake.getPower());
-        telemetry.addData("Depo Power", depo.right.getPower());
+        telemetry.addData("Depo Power", depo.bottom.getPower());
 //        telemetry.addData("time since run", timer.seconds()-curTime);
         telemetry.update();
     }

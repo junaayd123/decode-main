@@ -2,7 +2,7 @@
 // Triangle HELD -> continuous AprilTag localization
 // Square PRESSED -> auto path to red/blue shooting pose, then returns to teleop
 
-package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
+package org.firstinspires.ftc.teamcode.pedroPathing.teleOp.BotB;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;

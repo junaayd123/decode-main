@@ -253,8 +253,8 @@ public class BotCTeleop extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
-            while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
-            while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
+        while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
+        while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
 
         if (gamepad2.rightBumperWasPressed()) {
             LL.allDown();
@@ -314,12 +314,14 @@ public class BotCTeleop extends OpMode {
                 tagInitializing = false;
                 led.setPosition(0);
                 mode = Mode.nothing;
+                pauseAprilTagDetection();
             }
             else{
                 turretTimer.startTimer();
                 mode = Mode.findTag;
                 turret.setDegreesTarget(0);
                 led.setPosition(0.34);
+                resumeAprilTagDetection(); // Resume when starting new detection
 //                movingCase = 1;
 //                timerDiddyMoment = 0;
             }
@@ -342,6 +344,8 @@ public class BotCTeleop extends OpMode {
                 totalHedOffset = follower.getTotalHeading()-pedroPose.getHeading();
                 tagInitializing = false;
                 led.setPosition(0.6);
+
+                pauseAprilTagDetection();
             }
             else{
 
@@ -797,6 +801,18 @@ public class BotCTeleop extends OpMode {
             timer1.stopTimer();
             shooterSequence = 0;
             lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
+        }
+    }
+    private void pauseAprilTagDetection() {
+        if (visionPortal != null && aprilTag != null) {
+            visionPortal.setProcessorEnabled(aprilTag, false);
+        }
+    }
+
+    // Add this method to resume detection
+    private void resumeAprilTagDetection() {
+        if (visionPortal != null && aprilTag != null) {
+            visionPortal.setProcessorEnabled(aprilTag, true);
         }
     }
 
