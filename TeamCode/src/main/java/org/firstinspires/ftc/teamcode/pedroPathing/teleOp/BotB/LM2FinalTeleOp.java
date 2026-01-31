@@ -24,9 +24,9 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 public class LM2FinalTeleOp extends OpMode {
     // Movement Flags
     private boolean aligning = false;
-    private boolean returningHome = false;
-    private double arrivedAtHomeTime = 0;
-    private boolean waitingAtHome = false;
+    private boolean movingToTarget = false;
+    private double arrivedAtTargetTime = 0;
+    private boolean waitingAtTarget = false;
     private boolean bluealliance = false;
 
     // Vision Targets
@@ -36,7 +36,10 @@ public class LM2FinalTeleOp extends OpMode {
 
     // TUNE: Camera lens distance from center of robot
     private double cameraOffsetRadius = 4.0;
-    private double cameraOffsetAngle = 0;
+    private double cameraOffsetAngle = Math.PI; // Camera faces backward (180 degrees)
+
+    // TUNE: Distance from AprilTag when positioning (in inches)
+    private double targetDistanceFromTag = 72.0; // 72 inches (6 feet)
 
     private DcMotor intake = null;
     private Deposition depo;
@@ -59,7 +62,8 @@ public class LM2FinalTeleOp extends OpMode {
     double depoSpinUpTime1 = 0;
     double depoSpinUpTime6 = 0;
     int shooterSequence1, shooterSequence6;
-    double timeOfSecondShot1, timeOfSecondShot6;
+    double timeOfSecondShot6;
+    double timeOfThirdShot6;  // NEW: separate variable for third shot timing
 
     Gamepad g1 = new Gamepad();
     Gamepad preG1 = new Gamepad();
@@ -97,6 +101,7 @@ public class LM2FinalTeleOp extends OpMode {
     public void start(){
         follower.startTeleopDrive();
         depo.setTargetVelocity(0);
+        depo.kF = 0.00048;
         LL.allDown();
         LL.set_angle_min();
     }
@@ -122,24 +127,57 @@ public class LM2FinalTeleOp extends OpMode {
             boolean found = false;
             for (AprilTagDetection detection : detections) {
                 if (detection.metadata != null) {
-                    // Update Pedro's internal location based on camera
-                    double range = detection.ftcPose.range;
-                    double bearing = Math.toRadians(detection.ftcPose.bearing);
-                    double robotHeading = follower.getPose().getHeading();
-
+                    // Get tag position in field coordinates
                     double tagX = detection.metadata.fieldPosition.get(0);
                     double tagY = detection.metadata.fieldPosition.get(1);
 
-                    double theta = robotHeading - bearing;
-                    double robX = tagX - (range * Math.cos(theta));
-                    double robY = tagY - (range * Math.sin(theta));
+                    // Get detection info
+                    double range = detection.ftcPose.range;
+                    double bearing = Math.toRadians(detection.ftcPose.bearing);
+                    double yaw = Math.toRadians(detection.ftcPose.yaw);
 
+                    // Get current robot heading
+                    double robotHeading = follower.getPose().getHeading();
+
+                    // IMPORTANT: Camera faces backward, so we need to account for that
+                    // The bearing from the camera needs to be adjusted for the camera's orientation
+                    double cameraHeading = robotHeading + Math.PI; // Camera is 180° from robot front
+                    double absoluteBearing = cameraHeading + bearing;
+
+                    // Calculate camera position from tag
+                    double cameraX = tagX - (range * Math.cos(absoluteBearing));
+                    double cameraY = tagY - (range * Math.sin(absoluteBearing));
+
+                    // Calculate robot center from camera position
+                    // Camera is behind the robot, so we move forward from camera to get robot center
+                    double cameraOffsetX = cameraOffsetRadius * Math.cos(robotHeading + cameraOffsetAngle);
+                    double cameraOffsetY = cameraOffsetRadius * Math.sin(robotHeading + cameraOffsetAngle);
+                    double robX = cameraX - cameraOffsetX;
+                    double robY = cameraY - cameraOffsetY;
+
+                    // Update robot pose
                     follower.setPose(new Pose(robX, robY, robotHeading));
 
-                    // Set target: 100 inches away, 90 degrees orientation
-                    // Assuming X-axis movement for "away"
-                    visionTargetPose = new Pose(tagX - 100.0, tagY, Math.toRadians(90));
+                    // Calculate current distance from robot to tag
+                    double currentDistance = Math.sqrt(Math.pow(tagX - robX, 2) + Math.pow(tagY - robY, 2));
+
+                    // Calculate the angle from tag to robot (so robot backs up toward tag)
+                    double angleFromTagToRobot = Math.atan2(robY - tagY, robX - tagX);
+
+                    // Position target between tag and current robot position
+                    // Move from tag toward robot by targetDistanceFromTag
+                    double targetX = tagX + (targetDistanceFromTag * Math.cos(angleFromTagToRobot));
+                    double targetY = tagY + (targetDistanceFromTag * Math.sin(angleFromTagToRobot));
+
+                    // Robot should face away from tag (since camera faces backward)
+                    double targetHeading = angleFromTagToRobot;
+
+                    visionTargetPose = new Pose(targetX, targetY, targetHeading);
                     found = true;
+                    telemetry.addLine(">>> TARGET LOCKED <<<");
+                    telemetry.addData("Current Distance", String.format("%.1f inches", currentDistance));
+                    telemetry.addData("Target Distance", String.format("%.1f inches", targetDistanceFromTag));
+
                     break;
                 }
             }
@@ -148,30 +186,74 @@ public class LM2FinalTeleOp extends OpMode {
 
         // ========= 2. TRIANGLE: DRIVE TO SNAPSHOT POSE =========
         if (g1.triangle && !preG1.triangle && visionTargetPose != null) {
-            PathChain alignPath = follower.pathBuilder()
-                    .addPath(new BezierLine(follower.getPose(), visionTargetPose))
-                    .setLinearHeadingInterpolation(follower.getPose().getHeading(), visionTargetPose.getHeading())
-                    .build();
-            follower.followPath(alignPath);
+            if(movingToTarget || waitingAtTarget) {
+                // Cancel movement to target
+                follower.breakFollowing();
+                follower.startTeleopDrive();
+                movingToTarget = false;
+                waitingAtTarget = false;
+                telemetry.addLine(">>> MOVEMENT TO TARGET CANCELLED <<<");
+            } else if(!follower.isBusy()) {
+                // Start movement to target
+                moveToVisionTarget();
+            }
+        }
+
+        // ========= FORCE CANCEL WITH DPAD DOWN =========
+        if (g1.dpad_down && !preG1.dpad_down) {
+            follower.breakFollowing();
+            follower.startTeleopDrive();
+            movingToTarget = false;
+            waitingAtTarget = false;
+            aligning = false;
+            telemetry.addLine(">>> FORCED TELEOP CONTROL RESTORED <<<");
         }
 
         // ========= INTAKE & DRIVE CONTROL =========
         if (g2.right_bumper && !preG2.right_bumper) {
-            if (intake.getPower() < -0.5) intake.setPower(0);
-            else intake.setPower(-1);
+            if (intake.getPower() < -0.5) {
+                intake.setPower(0);
+                intakeRunning = false;
+            } else {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
         }
+
+        if (intakeRunning && LL.getBallCount() >= 3) {
+            timer3.startTimer();
+            intakeRunning = false;
+        }
+
+        if(g2.left_bumper){
+            intake.setPower(1);
+        }
+        else if(!g2.left_bumper && !intakeRunning && !timer3.timerIsOn()){
+            intake.setPower(0);
+        }
+
         reverseIntake();
         speed = g1.right_bumper ? 0.3 : 1;
 
         // ========= SHOOTING LOGIC =========
-        boolean isShooting = timer1.timerIsOn() || timer6.timerIsOn() || waitingToShoot1 || waitingToShoot6;
-
-        if(g2.triangle && !preG2.triangle && !isShooting) {
+        // Prevent shooting triggers from being pressed while already shooting
+        if(g2.triangle && !preG2.triangle && !timer6.timerIsOn() && !waitingToShoot6) {
             depo.setTargetVelocity(1300);
             LL.set_angle_close();
             shooting2 = true;
         }
 
+        if(g2.square && !preG2.square && !timer6.timerIsOn() && !waitingToShoot6) {
+            depo.setTargetVelocity(1800);
+            LL.set_angle_far_auto();
+            shooting2 = true;
+        }
+
+        if (g1.left_bumper && !preG1.left_bumper) {
+            direction = !direction;
+        }
+
+        // ─── SHOOTING SEQUENCE START LOGIC ────────
         if (depo.reachedTargetHighTolerance()) {
             if (shooting2 && !waitingToShoot6) {
                 waitingToShoot6 = true;
@@ -180,22 +262,64 @@ public class LM2FinalTeleOp extends OpMode {
             }
         }
 
+        // Start timer6 after delay (this is what runs shootThreeRandom)
         if (waitingToShoot6 && (getRuntime() - depoSpinUpTime6 >= 0.5) && !timer6.timerIsOn()) {
             timer6.startTimer();
             waitingToShoot6 = false;
         }
 
-        if (timer6.timerIsOn()) shootThreeRandom();
+        // Execute sequences
+        if (timer6.timerIsOn()) {
+            shootThreeRandom();
+        }
 
         followerstuff();
 
+        // ========= TELEMETRY =========
         telemetry.addData("Target Locked", visionTargetPose != null);
+        telemetry.addData("Target Distance Setting", targetDistanceFromTag + " inches");
+        telemetry.addData("Moving to Target", movingToTarget);
+        telemetry.addData("Waiting at Target", waitingAtTarget);
+        telemetry.addData("Ball Count", LL.getBallCount());
+        telemetry.addData("Shooter", String.format("%.0f / %d  at target? %b",
+                depo.getVelocity(), (int)depo.getTargetVelocity(), depo.reachedTargetHighTolerance()));
+        telemetry.addData("shooting2", shooting2);
+        telemetry.addData("waitingToShoot6", waitingToShoot6);
+        telemetry.addData("timer6 running", timer6.timerIsOn());
+        telemetry.addData("shooterSequence6", shooterSequence6);
+        if(waitingAtTarget) {
+            double timeRemaining = 0.5 - (getRuntime() - arrivedAtTargetTime);
+            telemetry.addData("Time Until Unlock", String.format("%.2fs", Math.max(0, timeRemaining)));
+        }
+        telemetry.addData("Robot X", follower.getPose().getX());
+        telemetry.addData("Robot Y", follower.getPose().getY());
+        telemetry.addData("Robot Heading", Math.toDegrees(follower.getPose().getHeading()));
+        if (visionTargetPose != null) {
+            telemetry.addData("Target X", visionTargetPose.getX());
+            telemetry.addData("Target Y", visionTargetPose.getY());
+            telemetry.addData("Target Heading", Math.toDegrees(visionTargetPose.getHeading()));
+        }
         telemetry.update();
     }
 
-    private void shootThreeRandom() {
+    // ========= MOVEMENT TO VISION TARGET =========
+    private void moveToVisionTarget() {
+        if(visionTargetPose == null) return;
 
-        // Shot 1
+        Pose cur = follower.getPose();
+
+        PathChain targetChain = follower.pathBuilder()
+                .addPath(new BezierLine(cur, visionTargetPose))
+                .setLinearHeadingInterpolation(cur.getHeading(), visionTargetPose.getHeading())
+                .build();
+
+        follower.followPath(targetChain);
+        movingToTarget = true;
+        telemetry.addLine(">>> MOVING TO TARGET <<<");
+    }
+
+    private void shootThreeRandom() {
+        // Shot 1: Left
         if (timer6.checkAtSeconds(0)) {
             LL.leftUp();
             shooterSequence6 = 1;
@@ -204,7 +328,8 @@ public class LM2FinalTeleOp extends OpMode {
             LL.allDown();
             shooterSequence6 = 2;
         }
-        // Shot 2
+
+        // Shot 2: Back
         if(shooterSequence6 == 2 && depo.reachedTargetHighTolerance()) {
             LL.backUp();
             shooterSequence6 = 3;
@@ -214,19 +339,26 @@ public class LM2FinalTeleOp extends OpMode {
             LL.allDown();
             shooterSequence6 = 4;
         }
-        // Shot 3
+
+        // Shot 3: Right
         if(shooterSequence6 == 4 && depo.reachedTargetHighTolerance()) {
             LL.rightUp();
             shooterSequence6 = 5;
-            timeOfSecondShot6 = timer6.timer.seconds() - timer6.curtime;
+            timeOfThirdShot6 = timer6.timer.seconds() - timer6.curtime;  // Use separate variable
         }
-        // FINAL: Bring all down and STOP DEPO
-        if (shooterSequence6 == 5 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.3)) {
+
+        // Final Down movement gets its own time check
+        if (shooterSequence6 == 5 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.3)) {
             LL.allDown();
             shooterSequence6 = 6;
         }
-        if (shooterSequence6 == 6 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.5)) {
-            depo.stop(); // Stops motors and target velocity
+
+        // Stop everything only AFTER the servos have had time to move down
+        if (shooterSequence6 == 6 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.5)) {
+            depo.setTargetVelocity(0);
+            depo.top.setPower(0);
+            depo.bottom.setPower(0);
+
             timer6.stopTimer();
             shooterSequence6 = 0;
             waitingToShoot6 = false;
@@ -243,7 +375,24 @@ public class LM2FinalTeleOp extends OpMode {
 
     private void followerstuff() {
         follower.update();
-        if (!follower.isBusy()) {
+
+        // Handle movement to target completion - wait 0.5s before allowing control
+        if (!follower.isBusy() && movingToTarget && !waitingAtTarget) {
+            movingToTarget = false;
+            waitingAtTarget = true;
+            arrivedAtTargetTime = getRuntime();
+            telemetry.addLine(">>> ARRIVED AT TARGET - WAITING 0.5s <<<");
+        }
+
+        // Check if we've waited long enough at target
+        if (waitingAtTarget && (getRuntime() - arrivedAtTargetTime >= 0.5)) {
+            waitingAtTarget = false;
+            follower.startTeleopDrive();
+            telemetry.addLine(">>> TARGET POSITION LOCKED - TELEOP ENABLED <<<");
+        }
+
+        // Only allow teleop control when not busy with autonomous actions and not waiting
+        if (!follower.isBusy() && !movingToTarget && !waitingAtTarget) {
             double ly = direction ? gamepad1.left_stick_y : -gamepad1.left_stick_y;
             double lx = direction ? (gamepad1.right_trigger - gamepad1.left_trigger) : (gamepad1.left_trigger - gamepad1.right_trigger);
             follower.setTeleOpDrive(ly * speed, lx * speed, -gamepad1.right_stick_x * speed, true);
