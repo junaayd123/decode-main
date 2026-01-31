@@ -604,7 +604,7 @@ public class farredoptimized extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondLinePickupPose, midpoint1, farshotpose)))
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
                 .build();
 
         ThirdLinePickupPath = follower.pathBuilder()
@@ -618,7 +618,7 @@ public class farredoptimized extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new, infront_of_lever_adj)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1)
+                .setTimeoutConstraint(0.2)
                 .build();
 
         gatebackPath = follower.pathBuilder()
@@ -632,7 +632,7 @@ public class farredoptimized extends OpMode {
         gateSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading(), 0.3)
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
                 .build();
     }
 
@@ -641,7 +641,7 @@ public class farredoptimized extends OpMode {
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading())
-                .setTimeoutConstraint(0.15)
+                .setTimeoutConstraint(0.1)
                 .build();
     }
 
