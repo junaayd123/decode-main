@@ -198,7 +198,7 @@ public class lift_three {
     public void set_angle_custom(double ang){launchAngleServo.setPosition(ang);}
     public void set_angle_far(){launchAngleServo.setPosition(0.18);}
     public void set_angle_far_auto(){launchAngleServo.setPosition(0.20);}
-    public void set_angle_close(){launchAngleServo.setPosition(0.16);}
+    public void set_angle_close(){launchAngleServo.setPosition(0.17);}
 
     public void allDown(){
         liftBack.setPosition(0);

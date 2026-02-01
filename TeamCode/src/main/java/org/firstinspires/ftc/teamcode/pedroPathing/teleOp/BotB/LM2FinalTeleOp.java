@@ -14,7 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 
@@ -299,7 +299,7 @@ public class LM2FinalTeleOp extends OpMode {
         telemetry.addLine(">>> MOVING TO TARGET <<<");
     }*/
 
-    private void shootThreeRandom() {
+    /*private void shootThreeRandom() {
         // Shot 1: Left
         if (timer6.checkAtSeconds(0) && shooterSequence6 == 0) {
             LL.leftUp();
@@ -344,6 +344,46 @@ public class LM2FinalTeleOp extends OpMode {
         }
 
         if (shooterSequence6 == 6 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.5)) {
+            depo.setTargetVelocity(0);
+            depo.top.setPower(0);
+            depo.bottom.setPower(0);
+            timer6.stopTimer();
+            shooterSequence6 = 0;
+            waitingToShoot6 = false;
+        }
+    }*/
+    private void shootThreeRandom() {
+        // Shot 1: Left
+        if (timer6.checkAtSeconds(0) && shooterSequence6 == 0) {
+            LL.leftUp();
+            shooterSequence6 = 1;
+            return;
+        }
+        if (timer6.checkAtSeconds(0.25) && shooterSequence6 == 1) {
+            LL.allDown();
+            LL.backUp();  // Start shot 2 immediately
+            shooterSequence6 = 2;
+            return;
+        }
+
+        // Shot 2: Back - FIXED TIME
+        if (timer6.checkAtSeconds(0.5) && shooterSequence6 == 2) {
+            LL.allDown();
+            LL.rightUp();  // Start shot 3 immediately
+            shooterSequence6 = 3;
+            return;
+        }
+
+        // Shot 3: Right - FIXED TIME
+        if (timer6.checkAtSeconds(0.75) && shooterSequence6 == 3) {
+            LL.allDown();
+            shooterSequence6 = 4;
+            return;
+        }
+
+        // sets everything to 0
+        // this is where the new function gets used
+        if (timer6.checkAtSecondsTolerance(1.0, 0.1) && shooterSequence6 == 4) {
             depo.setTargetVelocity(0);
             depo.top.setPower(0);
             depo.bottom.setPower(0);
