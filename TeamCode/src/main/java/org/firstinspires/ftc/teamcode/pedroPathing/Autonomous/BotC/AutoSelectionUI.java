@@ -15,7 +15,7 @@ import com.pedropathing.geometry.*;
 import com.pedropathing.math.*;
 import com.pedropathing.paths.*;
 import com.pedropathing.telemetry.SelectableOpMode;
-import org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.AutoSelectableOpMode;
+import org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotC.AutoSelectableOpMode;
 import com.pedropathing.util.*;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;

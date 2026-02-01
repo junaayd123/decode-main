@@ -9,6 +9,10 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
@@ -28,18 +32,18 @@ public class LM2FinalTeleOp extends OpMode {
     private double arrivedAtTargetTime = 0;
     private boolean waitingAtTarget = false;
     private boolean bluealliance = false;
+    private boolean posFound = false;
 
     // Vision Targets
-    private Pose visionTargetPose = null;
-    private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
+    private AprilTagProcessor aprilTag;
 
-    // TUNE: Camera lens distance from center of robot
-    private double cameraOffsetRadius = 4.0;
-    private double cameraOffsetAngle = Math.PI; // Camera faces backward (180 degrees)
+    private Position cameraPosition = new Position(DistanceUnit.INCH,
+            -3, 6, 12, 0);
+    private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES,
+            0, -90, 0, 0);
 
     // TUNE: Distance from AprilTag when positioning (in inches)
-    private double targetDistanceFromTag = 72.0; // 72 inches (6 feet)
 
     private DcMotor intake = null;
     private Deposition depo;
@@ -71,6 +75,11 @@ public class LM2FinalTeleOp extends OpMode {
     Gamepad preG2 = new Gamepad();
 
     private final Pose startPose = new Pose(0,0,0);
+    private final Pose redShootPose = new Pose(84, 84, 45);
+    // other shooting stuff
+    private double headingToGoal = 0; //MAKE THIS IN PEDRO RIGHT-HAND COORDINATES, NOT FTC COORDS
+
+    private String motif = "ppg";
 
     @Override
     public void init() {
@@ -124,68 +133,46 @@ public class LM2FinalTeleOp extends OpMode {
         // ========= 1. SQUARE: TAKE SNAPSHOT & RELOCALIZE =========
         if (g1.square && !preG1.square) {
             List<AprilTagDetection> detections = aprilTag.getDetections();
-            boolean found = false;
+            posFound = false;
             for (AprilTagDetection detection : detections) {
                 if (detection.metadata != null) {
-                    // Get tag position in field coordinates
-                    double tagX = detection.metadata.fieldPosition.get(0);
-                    double tagY = detection.metadata.fieldPosition.get(1);
+                    double ftcX = detection.robotPose.getPosition().x;
+                    double ftcY = detection.robotPose.getPosition().x;
+                    double ftcHeading = detection.robotPose.getOrientation().getYaw(AngleUnit.DEGREES);
 
-                    // Get detection info
+                    // Get other detection info
                     double range = detection.ftcPose.range;
                     double bearing = Math.toRadians(detection.ftcPose.bearing);
                     double yaw = Math.toRadians(detection.ftcPose.yaw);
 
+                    Pose nextPose = new Pose(ftcY+72, -ftcX+72,ftcHeading);
+
                     // Get current robot heading
                     double robotHeading = follower.getPose().getHeading();
 
-                    // IMPORTANT: Camera faces backward, so we need to account for that
-                    // The bearing from the camera needs to be adjusted for the camera's orientation
-                    double cameraHeading = robotHeading + Math.PI; // Camera is 180° from robot front
-                    double absoluteBearing = cameraHeading + bearing;
-
-                    // Calculate camera position from tag
-                    double cameraX = tagX - (range * Math.cos(absoluteBearing));
-                    double cameraY = tagY - (range * Math.sin(absoluteBearing));
-
-                    // Calculate robot center from camera position
-                    // Camera is behind the robot, so we move forward from camera to get robot center
-                    double cameraOffsetX = cameraOffsetRadius * Math.cos(robotHeading + cameraOffsetAngle);
-                    double cameraOffsetY = cameraOffsetRadius * Math.sin(robotHeading + cameraOffsetAngle);
-                    double robX = cameraX - cameraOffsetX;
-                    double robY = cameraY - cameraOffsetY;
-
                     // Update robot pose
-                    follower.setPose(new Pose(robX, robY, robotHeading));
-
-                    // Calculate current distance from robot to tag
-                    double currentDistance = Math.sqrt(Math.pow(tagX - robX, 2) + Math.pow(tagY - robY, 2));
-
-                    // Calculate the angle from tag to robot (so robot backs up toward tag)
-                    double angleFromTagToRobot = Math.atan2(robY - tagY, robX - tagX);
-
-                    // Position target between tag and current robot position
-                    // Move from tag toward robot by targetDistanceFromTag
-                    double targetX = tagX + (targetDistanceFromTag * Math.cos(angleFromTagToRobot));
-                    double targetY = tagY + (targetDistanceFromTag * Math.sin(angleFromTagToRobot));
-
-                    // Robot should face away from tag (since camera faces backward)
-                    double targetHeading = angleFromTagToRobot;
-
-                    visionTargetPose = new Pose(targetX, targetY, targetHeading);
-                    found = true;
+                    follower.setPose(nextPose);
+                    posFound = true;
                     telemetry.addLine(">>> TARGET LOCKED <<<");
-                    telemetry.addData("Current Distance", String.format("%.1f inches", currentDistance));
-                    telemetry.addData("Target Distance", String.format("%.1f inches", targetDistanceFromTag));
-
-                    break;
+                    //telemetry.addData("Current Distance", String.format("%.1f inches", currentDistance));
+                    //telemetry.addData("Target Distance", String.format("%.1f inches", targetDistanceFromTag));
+                } else if (detection.metadata.name.contains("Obelisk")) {
+                    if (detection.id == 21) {
+                        motif = "gpp";
+                    }
+                    if (detection.id == 22) {
+                        motif = "pgp";
+                    }
+                    if (detection.id == 23) {
+                        motif = "ppg";
+                    }
                 }
             }
-            if (!found) telemetry.addLine("!!! NO TAG DETECTED !!!");
+            if (!posFound) telemetry.addLine("!!! NO TAG DETECTED !!!");
         }
 
         // ========= 2. TRIANGLE: DRIVE TO SNAPSHOT POSE =========
-        if (g1.triangle && !preG1.triangle && visionTargetPose != null) {
+        /*if (g1.triangle && !preG1.triangle && visionTargetPose != null) {
             if(movingToTarget || waitingAtTarget) {
                 // Cancel movement to target
                 follower.breakFollowing();
@@ -197,7 +184,7 @@ public class LM2FinalTeleOp extends OpMode {
                 // Start movement to target
                 moveToVisionTarget();
             }
-        }
+        }*/
 
         // ========= FORCE CANCEL WITH DPAD DOWN =========
         if (g1.dpad_down && !preG1.dpad_down) {
@@ -238,7 +225,7 @@ public class LM2FinalTeleOp extends OpMode {
         // ========= SHOOTING LOGIC =========
         // Prevent shooting triggers from being pressed while already shooting
         if(g2.triangle && !preG2.triangle && !timer6.timerIsOn() && !waitingToShoot6) {
-            depo.setTargetVelocity(1300);
+            depo.setTargetVelocity(1350);
             LL.set_angle_close();
             shooting2 = true;
         }
@@ -276,8 +263,8 @@ public class LM2FinalTeleOp extends OpMode {
         followerstuff();
 
         // ========= TELEMETRY =========
-        telemetry.addData("Target Locked", visionTargetPose != null);
-        telemetry.addData("Target Distance Setting", targetDistanceFromTag + " inches");
+        //telemetry.addData("Target Locked", visionTargetPose != null);
+        //telemetry.addData("Target Distance Setting", targetDistanceFromTag + " inches");
         telemetry.addData("Moving to Target", movingToTarget);
         telemetry.addData("Waiting at Target", waitingAtTarget);
         telemetry.addData("Ball Count", LL.getBallCount());
@@ -294,17 +281,11 @@ public class LM2FinalTeleOp extends OpMode {
         telemetry.addData("Robot X", follower.getPose().getX());
         telemetry.addData("Robot Y", follower.getPose().getY());
         telemetry.addData("Robot Heading", Math.toDegrees(follower.getPose().getHeading()));
-        if (visionTargetPose != null) {
-            telemetry.addData("Target X", visionTargetPose.getX());
-            telemetry.addData("Target Y", visionTargetPose.getY());
-            telemetry.addData("Target Heading", Math.toDegrees(visionTargetPose.getHeading()));
-        }
         telemetry.update();
     }
 
     // ========= MOVEMENT TO VISION TARGET =========
-    private void moveToVisionTarget() {
-        if(visionTargetPose == null) return;
+    /*private void moveToVisionTarget() {
 
         Pose cur = follower.getPose();
 
@@ -316,49 +297,56 @@ public class LM2FinalTeleOp extends OpMode {
         follower.followPath(targetChain);
         movingToTarget = true;
         telemetry.addLine(">>> MOVING TO TARGET <<<");
-    }
+    }*/
 
     private void shootThreeRandom() {
         // Shot 1: Left
-        if (timer6.checkAtSeconds(0)) {
+        if (timer6.checkAtSeconds(0) && shooterSequence6 == 0) {
             LL.leftUp();
             shooterSequence6 = 1;
+            return; // Exit after this action
         }
-        if (timer6.checkAtSeconds(0.3) && shooterSequence6 == 1) {
+        if (timer6.checkAtSeconds(0.25) && shooterSequence6 == 1) {
             LL.allDown();
             shooterSequence6 = 2;
+            return;
         }
 
         // Shot 2: Back
-        if(shooterSequence6 == 2 && depo.reachedTargetHighTolerance()) {
+        // THE COMMENTED OUT LINE IS FOR CHECKING IF THE DEPO HAS REACHED THE HIGH TOLERANCE!
+        //if(shooterSequence6 == 2 && depo.reachedTargetHighTolerance()) {
+        if(shooterSequence6 == 2) {
             LL.backUp();
             shooterSequence6 = 3;
             timeOfSecondShot6 = timer6.timer.seconds() - timer6.curtime;
+            return;
         }
-        if (shooterSequence6 == 3 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.3)) {
+        if (shooterSequence6 == 3 && timer6.checkAtSeconds(timeOfSecondShot6 + 0.25)) {
             LL.allDown();
             shooterSequence6 = 4;
+            return;
         }
 
         // Shot 3: Right
-        if(shooterSequence6 == 4 && depo.reachedTargetHighTolerance()) {
+        //again another commented out one for checking flywheel speed
+        //if(shooterSequence6 == 4 && depo.reachedTargetHighTolerance()) {
+        if(shooterSequence6 == 4) {
             LL.rightUp();
             shooterSequence6 = 5;
-            timeOfThirdShot6 = timer6.timer.seconds() - timer6.curtime;  // Use separate variable
+            timeOfThirdShot6 = timer6.timer.seconds() - timer6.curtime;
+            return;
         }
 
-        // Final Down movement gets its own time check
-        if (shooterSequence6 == 5 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.3)) {
+        if (shooterSequence6 == 5 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.25)) {
             LL.allDown();
             shooterSequence6 = 6;
+            return;
         }
 
-        // Stop everything only AFTER the servos have had time to move down
         if (shooterSequence6 == 6 && timer6.checkAtSeconds(timeOfThirdShot6 + 0.5)) {
             depo.setTargetVelocity(0);
             depo.top.setPower(0);
             depo.bottom.setPower(0);
-
             timer6.stopTimer();
             shooterSequence6 = 0;
             waitingToShoot6 = false;
