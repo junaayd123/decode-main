@@ -54,6 +54,7 @@ public class LM2FinalTeleOp extends OpMode {
     private boolean intakeRunning;
     private boolean direction = false;
     private double speed;
+    private double turnSpeed = 0.8;
     private int loopCounter = 0;
 
     // Timers
@@ -102,8 +103,8 @@ public class LM2FinalTeleOp extends OpMode {
                 .build();
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        depo.bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.top.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        depo.bottom.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
     }
 
     @Override
@@ -131,7 +132,7 @@ public class LM2FinalTeleOp extends OpMode {
         if(g1.psWasPressed()) bluealliance = !bluealliance;
 
         // ========= 1. SQUARE: TAKE SNAPSHOT & RELOCALIZE =========
-        if (g1.square && !preG1.square) {
+        /*if (g1.square && !preG1.square) {
             List<AprilTagDetection> detections = aprilTag.getDetections();
             posFound = false;
             for (AprilTagDetection detection : detections) {
@@ -169,6 +170,11 @@ public class LM2FinalTeleOp extends OpMode {
                 }
             }
             if (!posFound) telemetry.addLine("!!! NO TAG DETECTED !!!");
+        }*/
+        // this is temporary
+        if (g1.square && !preG1.square) {
+
+            follower.setPose(startPose);
         }
 
         // ========= 2. TRIANGLE: DRIVE TO SNAPSHOT POSE =========
@@ -185,6 +191,26 @@ public class LM2FinalTeleOp extends OpMode {
                 moveToVisionTarget();
             }
         }*/
+
+        if (g1.triangleWasPressed()) {
+            if(movingToTarget || waitingAtTarget) {
+                // Cancel movement to target
+                follower.breakFollowing();
+                follower.startTeleopDrive();
+                movingToTarget = false;
+                waitingAtTarget = false;
+                telemetry.addLine(">>> MOVEMENT TO TARGET CANCELLED <<<");
+            } else if(!follower.isBusy()) {
+                Pose cur = follower.getPose();
+                // Start movement to target
+                PathChain path = follower.pathBuilder()
+                        .addPath(new BezierLine(cur, startPose))
+                        .setLinearHeadingInterpolation(cur.getHeading(), 0)
+                        .build();
+                follower.followPath(path);
+                movingToTarget = true;
+            }
+        }
 
         // ========= FORCE CANCEL WITH DPAD DOWN =========
         if (g1.dpad_down && !preG1.dpad_down) {
@@ -220,12 +246,12 @@ public class LM2FinalTeleOp extends OpMode {
         }
 
         reverseIntake();
-        speed = g1.right_bumper ? 0.3 : 1;
+        speed = g1.right_bumper ? 0.3 : 0.8;
 
         // ========= SHOOTING LOGIC =========
         // Prevent shooting triggers from being pressed while already shooting
         if(g2.triangle && !preG2.triangle && !timer6.timerIsOn() && !waitingToShoot6) {
-            depo.setTargetVelocity(1350);
+            depo.setTargetVelocity(1300);
             LL.set_angle_close();
             shooting2 = true;
         }
@@ -250,7 +276,7 @@ public class LM2FinalTeleOp extends OpMode {
         }
 
         // Start timer6 after delay (this is what runs shootThreeRandom)
-        if (waitingToShoot6 && (getRuntime() - depoSpinUpTime6 >= 0.5) && !timer6.timerIsOn()) {
+        if (waitingToShoot6 && (getRuntime() - depoSpinUpTime6 >= 0.1) && !timer6.timerIsOn()) {
             timer6.startTimer();
             waitingToShoot6 = false;
         }
@@ -274,6 +300,8 @@ public class LM2FinalTeleOp extends OpMode {
         telemetry.addData("waitingToShoot6", waitingToShoot6);
         telemetry.addData("timer6 running", timer6.timerIsOn());
         telemetry.addData("shooterSequence6", shooterSequence6);
+        telemetry.addData("flywheel top motor power", depo.top.getPower());
+        telemetry.addData("flywheel bottom motor power", depo.bottom.getPower());
         if(waitingAtTarget) {
             double timeRemaining = 0.5 - (getRuntime() - arrivedAtTargetTime);
             telemetry.addData("Time Until Unlock", String.format("%.2fs", Math.max(0, timeRemaining)));
@@ -383,7 +411,7 @@ public class LM2FinalTeleOp extends OpMode {
 
         // sets everything to 0
         // this is where the new function gets used
-        if (timer6.checkAtSecondsTolerance(1.0, 0.1) && shooterSequence6 == 4) {
+        if (timer6.checkAtSecondsTolerance(1.0, 0.3) && shooterSequence6 == 4) {
             depo.setTargetVelocity(0);
             depo.top.setPower(0);
             depo.bottom.setPower(0);
