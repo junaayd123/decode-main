@@ -49,6 +49,8 @@ public class scenariofarred extends OpMode {
 
     // ========== TIMERS ==========
     private Timer pathTimer, actionTimer, opmodeTimer, shootTimer;
+    /** Used only in excess states 31/32 so timeout is from when we entered that state (pathTimer is reset by setPathState). */
+    private Timer excessPathTimeoutTimer;
     private boolean thirdLineDone;
 
 
@@ -62,7 +64,9 @@ public class scenariofarred extends OpMode {
         // 3: Alliance 9 ball - 12 balls: preload → third line → gate → excess
         SCENARIO_3_9_BALL(1, 0, 1, true, 2.0, 1.4),
         // 4: Alliance dominates - 12 balls: preload → third line → excess → excess
-        SCENARIO_4_DOMINATES(0, 0, 2, true, 2.0, 1.4);
+        SCENARIO_4_DOMINATES(0, 0, 2, true, 2.0, 1.4),
+        // 5: 12 balls - preload → third line → second line → first line → get out
+        SCENARIO_5_9MOTIF(0, 0, 0, true, 1.6, 1.2);
 
         public final int gateCycles;
         public final int thirdLinePickup;      // 1 = do third line after first line (Scenario 1 only)
@@ -88,6 +92,9 @@ public class scenariofarred extends OpMode {
     // 3: 9 ball - 12 balls: preload, third line, gate, excess
     // 4: Dominates - 12 balls: preload, third line, excess, excess
     private Scenario currentScenario = Scenario.SCENARIO_2_6_BALL;  // Default to Scenario 2
+
+    /** Scenario 3 only: wait this many seconds (idle) after third line shoot before going to gate. Set in init. */
+    private double scenario3WaitBeforeGateSeconds = 0;
 
     // ========== STATE VARIABLES ==========
     private int pathState;
@@ -161,6 +168,7 @@ public class scenariofarred extends OpMode {
     private boolean prevDpadRight = false;
     private boolean prevDpadUp = false;
     private boolean prevCircle = false;
+    private boolean prevTriangle = false;
 
     @Override
     public void init() {
@@ -169,6 +177,7 @@ public class scenariofarred extends OpMode {
         actionTimer = new Timer();
         opmodeTimer = new Timer();
         shootTimer = new Timer();
+        excessPathTimeoutTimer = new Timer();
 
         // Initialize subsystems
         depo = new Deposition_C(hardwareMap);
@@ -218,23 +227,33 @@ public class scenariofarred extends OpMode {
         boolean currDpadRight = gamepad1.dpad_right;
         boolean currDpadUp = gamepad1.dpad_up;
         boolean currCircle = gamepad1.circle;
+        boolean currTriangle = gamepad1.triangle;
+
+        // Scenario 3: adjust wait time before gate (L bumper = minus 0.5s, R bumper = plus 0.5s)
+        if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
+            if (gamepad1.left_bumper) scenario3WaitBeforeGateSeconds = Math.max(0, scenario3WaitBeforeGateSeconds - 0.5);
+            if (gamepad1.right_bumper) scenario3WaitBeforeGateSeconds += 0.5;
+        }
 
         // Detect button presses (transition from not pressed to pressed)
         if (currDpadDown && !prevDpadDown) {
             currentScenario = Scenario.SCENARIO_1_NO_OR_3_BALL;
-            telemetry.addLine("Scenario 1: No/3 ball - 15 balls, 1 gate, first line, third line");
+            telemetry.addLine("Scenario 1: alliance No/3 ball - 15 balls, 1 gate, first line, third line");
         } else if (currDpadLeft && !prevDpadLeft) {
             currentScenario = Scenario.SCENARIO_2_6_BALL;
-            telemetry.addLine("Scenario 2: 6 ball - 15 balls, 2 gates, first line only");
+            telemetry.addLine("Scenario 2: alliance 6 ball - 15 balls, 2 gates, first line only");
         } else if (currDpadRight && !prevDpadRight) {
             currentScenario = Scenario.SCENARIO_3_9_BALL;
-            telemetry.addLine("Scenario 3: 9 ball - 12 balls, third line, gate, excess");
+            telemetry.addLine("Scenario 3: alliance 9 ball - 12 balls, third line, gate, excess");
         } else if (currDpadUp && !prevDpadUp) {
             currentScenario = Scenario.SCENARIO_4_DOMINATES;
-            telemetry.addLine("Scenario 4: Dominates - 12 balls, third line, excess, excess");
+            telemetry.addLine("Scenario 4: Alliance Dominates - we do 12 balls, third line, excess, excess");
+        } else if (currTriangle && !prevTriangle) {
+            currentScenario = Scenario.SCENARIO_5_9MOTIF;
+            telemetry.addLine("Scenario 5: 3 lines pickup - 12 balls");
         } else if (currCircle && !prevCircle) {
             currentScenario = Scenario.SCENARIO_2_6_BALL;
-            telemetry.addLine("Scenario 2: 6 ball (default)");
+            telemetry.addLine("Scenario 2: alliance 6 ball (default)");
         }
 
         // Update previous button states
@@ -243,15 +262,19 @@ public class scenariofarred extends OpMode {
         prevDpadRight = currDpadRight;
         prevDpadUp = currDpadUp;
         prevCircle = currCircle;
+        prevTriangle = currTriangle;
 
-        telemetry.addLine("Use D-Pad or Circle to select scenario:");
-        telemetry.addLine("DPad Down = 1 (No/3) | DPad Left = 2 (6 ball) | DPad Right = 3 (9 ball)");
-        telemetry.addLine("DPad Up = 4 (Dominates) | Circle = 2 (Default)");
+        telemetry.addLine("Use D-Pad / Triangle / Circle to select scenario:");
+        telemetry.addLine("DPad D=1 | L=2 | R=3 | U=4 | Triangle=5 (Third→Second→First) | Circle=2 (Default)");
         telemetry.addData("Motif Detected", motif);
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.addData("Gate Cycles", currentScenario.gateCycles);
         telemetry.addData("Third Line", currentScenario.thirdLinePickup == 1 ? "Yes" : "No");
         telemetry.addData("Excess Pickups", currentScenario.excessPickups);
+        if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
+            telemetry.addData("Scenario 3: Wait before gate (s)", scenario3WaitBeforeGateSeconds);
+            telemetry.addLine("L/R Bumper: decrease/increase wait");
+        }
         telemetry.update();
     }
 
@@ -380,6 +403,7 @@ public class scenariofarred extends OpMode {
                 break;
 
             case 4: // Wait for first bezier path
+                depo.updatePID();
                 if (isPathComplete()) {
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloredauto2);
@@ -405,15 +429,15 @@ public class scenariofarred extends OpMode {
                 }
                 break;
 
-            case 6: // Wait for shooting cycle 2
+            case 6: // Wait for shooting cycle 2 (after second line shoot)
                 intake.setPower(0);
                 if (actionState == 0) {
                     gateHitCount = 0; // Reset counter
-                    // Check if scenario requires gate cycles
+                    // Scenario 5 (third→second→first): gateCycles=0 → go to first line (12), then case 16 → get out
                     if (currentScenario.gateCycles > 0) {
                         setPathState(7); // Start gate cycles
                     } else {
-                        setPathState(12); // Skip gate cycles, go to first line pickup
+                        setPathState(12); // First line pickup (or Scenario 5: first line then get out)
                     }
                 }
                 break;
@@ -428,6 +452,7 @@ public class scenariofarred extends OpMode {
                 break;
 
             case 8: // Gate - wait at gate position
+                depo.updatePID();
                 if (isPathComplete()) {
                     actionTimer.resetTimer();
                     setPathState(99);
@@ -507,7 +532,7 @@ public class scenariofarred extends OpMode {
 
             case 13: // Wait until first line pickup reached
                 depo.updatePID();
-                if (!follower.isBusy()) {
+                if (isPathComplete()) {
                     setPathState(14);
                     manageSecondHopIntake();
                 }
@@ -598,11 +623,13 @@ public class scenariofarred extends OpMode {
                 if (actionState == 0) {
                     thirdLineDone = true;
                     intake.setPower(0);
-                    // Scenario 3: third line → gate → excess. Scenario 4: third line → excess → excess.
-                    if (currentScenario.excessPickups > 0) {
+                    // Scenario 5: third line → second line → first line → get out
+                    if (currentScenario == Scenario.SCENARIO_5_9MOTIF) {
+                        setPathState(3);   // Go to second line
+                    } else if (currentScenario.excessPickups > 0) {
+                        // Scenario 3: third line → [wait] → gate → excess. Scenario 4: third line → excess → excess.
                         if (currentScenario.gateCycles > 0) {
-                            gateHitCount = 0;
-                            setPathState(7);   // Do gate then excess (Scenario 3)
+                            setPathState(26);  // Scenario 3: wait (or go straight to gate if 0)
                         } else {
                             setPathState(30);  // Go to excess (Scenario 4)
                         }
@@ -610,6 +637,13 @@ public class scenariofarred extends OpMode {
                         buildGetOutPath();
                         setPathState(17);
                     }
+                }
+                break;
+
+            case 26: // Scenario 3 only: idle wait after third line shoot before going to gate (pathTimer reset on enter via setPathState(26))
+                if (pathTimer.getElapsedTimeSeconds() >= scenario3WaitBeforeGateSeconds) {
+                    gateHitCount = 0;
+                    setPathState(7);
                 }
                 break;
 
@@ -621,15 +655,17 @@ public class scenariofarred extends OpMode {
                 buildExcessPath();
                 follower.setMaxPower(EXCESS_PATH_SPEED);  // 0.5 speed for excess area
                 follower.followPath(excessPath, true);
+                excessPathTimeoutTimer.resetTimer();
                 setPathState(31);
                 break;
 
             case 31: // Wait until first motion (61, 9, -10) reached, then start slow strafe in -y
                 depo.updatePID();
                 // Timeout: if path takes more than 1 second, skip it and continue
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 1.0) {
+                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     buildExcessStrafePath();
                     follower.followPath(excessPathStrafe, true);  // still at 0.5 speed
+                    excessPathTimeoutTimer.resetTimer();
                     setPathState(32);
                 }
                 break;
@@ -637,7 +673,7 @@ public class scenariofarred extends OpMode {
             case 32: // Wait until strafe (1.8 s timeout) done
                 depo.updatePID();
                 // Timeout: if path takes more than 1 second, skip it and continue
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 1.0) {
+                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     follower.setMaxPower(1.0);
                     setPathState(33);
                     manageSecondHopIntake();
@@ -881,6 +917,7 @@ public class scenariofarred extends OpMode {
                 .build();
     }
 
+    /** Builds gateFirstPath (to lever) and gatebackPath (to back_lever). Both used in gate cycle; gateSecondPath built in 102. */
     private void buildGatePaths(double waitTime) {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
