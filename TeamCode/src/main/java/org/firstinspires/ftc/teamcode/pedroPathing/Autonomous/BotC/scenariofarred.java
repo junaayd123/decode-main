@@ -121,8 +121,8 @@ public class scenariofarred extends OpMode {
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose midpoint4 = new Pose(22,81, Math.toRadians(0));
-    private final Pose firstPickupPose = new Pose(52, 81, Math.toRadians(0));
+    private final Pose midpoint4 = new Pose(20,83, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(52, 84, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
@@ -398,6 +398,7 @@ public class scenariofarred extends OpMode {
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
                 LL.set_angle_far_auto();
+                intake.setPower(-1);  // ⭐ START INTAKE BEFORE GOING TO SECOND LINE
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
