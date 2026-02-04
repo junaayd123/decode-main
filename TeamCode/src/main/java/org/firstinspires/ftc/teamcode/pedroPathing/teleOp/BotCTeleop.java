@@ -41,6 +41,8 @@ public class BotCTeleop extends OpMode {
     private boolean blueStartPose = false;
     private double desiredHeading = 0;
     String motif = "gpp";
+    String sequence = "rbl";
+    int ballOnRamp;
 
     public boolean tagInitializing;
     int[] ballsInRobot = {0,0,0};
@@ -71,13 +73,14 @@ public class BotCTeleop extends OpMode {
     Gamepad preG1 = new Gamepad();
     Gamepad g2= new Gamepad();
     TurretLimelight turret;
-    boolean alignToTags;
+//    boolean alignToTags;
 
     private Follower follower;
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(72,144,0);
+    private final Pose redGoal = new Pose(64,138,0);
+    private final Pose redGoalFixed = new Pose(72,144,0);
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(65,144,0);
 
@@ -245,7 +248,7 @@ public class BotCTeleop extends OpMode {
         else{
             targett = redGoal;
         }
-        targett2 = redGoal;
+        targett2 = redGoalFixed;
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
         double flippedAngle = rawAngle + Math.PI;
@@ -298,7 +301,9 @@ public class BotCTeleop extends OpMode {
             turret.resetTurretEncoder();
         }
         if(g2.psWasPressed()){
-            alignToTags = !alignToTags;
+            if(motif.equals("gpp")) motif = "pgp";
+            else if(motif.equals("pgp")) motif = "ppg";
+            else motif = "gpp";
         }
         if(mode == Mode.faceGoal){
             turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
@@ -352,8 +357,9 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(distanceToGoal>125) shootinterval = 0.4;
-        else shootinterval = 0.35;
+        else shootinterval = 0.3;
         if(g2.cross && !preG2.cross){//shoot 3 close
+            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -362,7 +368,8 @@ public class BotCTeleop extends OpMode {
                     depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
-                motif = "gpp";
+//                motif = "gpp";
+                ballOnRamp = 0;
                 greenInSlot = 0;
                 shooting = true;
 
@@ -390,6 +397,7 @@ public class BotCTeleop extends OpMode {
         }
 
         if(g2.square && !preG2.square){//gpp
+            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -399,7 +407,8 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-                motif = "gpp";
+//                motif = "gpp";
+                ballOnRamp = 0;
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -408,6 +417,7 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.triangle && !preG2.triangle){//pgp
+            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -417,7 +427,8 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-                motif = "pgp";
+//                motif = "pgp";
+                ballOnRamp = 1;
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -426,6 +437,7 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.circle && !preG2.circle){//ppg
+            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -435,7 +447,8 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-                motif = "ppg";
+//                motif = "ppg";
+                ballOnRamp = 2;
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -448,11 +461,10 @@ public class BotCTeleop extends OpMode {
         // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
 
         followerstuff();
-        telemetry.addData("Alliance Blue?", bluealliance);
-        telemetry.addData("start pose Blue?", blueStartPose);
+        telemetry.addData("motif", motif);
+//        telemetry.addData("start pose Blue?", blueStartPose);
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
-        telemetry.addData("align to tag",alignToTags);
         telemetry.addData("shooter sequence",shooterSequence);
         telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
@@ -464,6 +476,10 @@ public class BotCTeleop extends OpMode {
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
         telemetry.addData("total heading", Math.toDegrees(follower.getTotalHeading()-totalHedOffset));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
+        telemetry.addData("green in slot",greenInSlot);
+//        telemetry.addData("left color",LL.sensors.getLeft());
+//        telemetry.addData("right color",LL.sensors.getRight());
+//        telemetry.addData("back color",LL.sensors.getBack());
         if(depo.reachedTargetHighTolerance()){
             if (shooting) {
                 // Now start timer to shoot the 3 balls
@@ -471,21 +487,24 @@ public class BotCTeleop extends OpMode {
                 shooting = false;
             }
         }
-        if(motif.equals("gpp")){
-            if(greenInSlot == 0) LRBnoRecovery();
-            else if(greenInSlot == 1) RBLnoRecovery();
-            else BLRnoRecovery();
+        if(motif.equals("gpp")) {
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "lrb";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "rbl";
+            else sequence = "blr";
         }
         else if(motif.equals("pgp")){
-            if(greenInSlot == 0) BLRnoRecovery();
-            else if(greenInSlot == 1) LRBnoRecovery();
-            else RBLnoRecovery();
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "blr";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "lrb";
+            else sequence = "rbl";
         }
-        else{
-            if(greenInSlot == 0) RBLnoRecovery();
-            else if(greenInSlot == 1) BLRnoRecovery();
-            else LRBnoRecovery();
+        else{//ppg
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "rbl";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "blr";
+            else sequence = "lrb";
         }
+        if(sequence.equals("lrb")) LRBnoRecovery();
+        else if(sequence.equals("rbl")) RBLnoRecovery();
+        else BLRnoRecovery();
 
         if(g1.dpad_up&& !preG1.dpad_up){
             ourVelo+=25;
@@ -520,7 +539,8 @@ public class BotCTeleop extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            return (int) (5.35158*dist+873.83526);
+            return (int) (4.16622*dist+900.18954);
+//            return (int) (5.35158*dist+873.83526);
         }//(3.69593*dist+960.60458); old
         else
             return (int) (7.14286*dist+589.28571); //far
@@ -551,8 +571,14 @@ public class BotCTeleop extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>125) return 0.27;
-        else return 0.00180592*dist-0.0205829;
+        if (dist>125) return 0.27;//far
+        else{
+//            return 0.00180592*dist-0.0205829;
+            if(dist<58) return 0.06;
+            else if(dist<70) return 0.09;
+            else if(dist<94) return 0.12;
+            else return 0.15;
+        }
         //old 0.00132566*dist+0.00291356
     }
     private void reverseIntake() {
@@ -606,8 +632,8 @@ public class BotCTeleop extends OpMode {
         if(pos==1) return 0;
         else{
             pos = LL.sensors.getRight();
-            if(pos==1) return 1;
-            else return 2;
+            if(pos==1) return 2;
+            else return 1;
         }
     }
     private void LRBnoRecovery(){
