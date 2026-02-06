@@ -55,10 +55,12 @@ public class farblueoptimized extends OpMode {
     private int actionState;
     private int shooterSequence;
     private int greenInSlot;
-    private String motif = "empty";
+    private String motif = "ppg"; // ✅ DEFAULT to "ppg" if no detection
+    private String detectedMotif = ""; // ✅ Track what was actually detected
     private int gateHitCount = 0;
     private int shotCycleCount = 0;
     private boolean intakeRunning = false;
+    private int ballCount = 3;
 
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.335;
@@ -66,7 +68,7 @@ public class farblueoptimized extends OpMode {
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
     private static final int TOTAL_GATE_CYCLES = 2;
-    private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
+    private static final double SETTLE_TIME = 0.3;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
@@ -84,12 +86,6 @@ public class farblueoptimized extends OpMode {
     private final Pose infront_of_lever_new = new Pose(59, -58, Math.toRadians(-32));
     private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
-//    private final Pose infront_of_lever_adj = new Pose(56, -61, Math.toRadians(-32));
-//    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
-//    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
-//    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
-//    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
-
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -139,7 +135,9 @@ public class farblueoptimized extends OpMode {
         // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
+        ballCount = 3;
+
+        telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF FIXED");
         telemetry.update();
     }
 
@@ -148,19 +146,31 @@ public class farblueoptimized extends OpMode {
         turret.setPid();
         turret.toTargetInDegrees();
 
-        // Detect motif from AprilTags using webcam
+        // ✅ Continuously detect motif during init_loop
         detectMotifFromAprilTags();
 
-        telemetry.addData("Motif Detected", motif);
+        telemetry.addData("Detected Motif", detectedMotif.isEmpty() ? "NONE YET" : detectedMotif);
+        telemetry.addData("Will Use", motif);
+        telemetry.addData("Status", detectedMotif.isEmpty() ? "⚠ Waiting for AprilTag..." : "✓ Ready!");
         telemetry.update();
     }
 
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(67);
+        turret.setDegreesTarget(64);
         turret.setPid();
         shotCycleCount = 0;
+        ballCount = 3;
+
+        // ✅ Lock in the final motif (or keep default if nothing detected)
+        if (detectedMotif.isEmpty()) {
+            telemetry.addLine("⚠ WARNING: No AprilTag detected! Using default motif: " + motif);
+        } else {
+            telemetry.addLine("✓ Locked motif: " + motif);
+        }
+        telemetry.update();
+
         setPathState(0);
         setActionState(0);
     }
@@ -179,6 +189,8 @@ public class farblueoptimized extends OpMode {
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
+        telemetry.addData("Ball Count", ballCount);
+        telemetry.addData("Active Motif", motif); // ✅ Show active motif
 
         // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
@@ -199,7 +211,6 @@ public class farblueoptimized extends OpMode {
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
         telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Motif", motif);
         telemetry.update();
     }
 
@@ -222,9 +233,17 @@ public class farblueoptimized extends OpMode {
 
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                if (detection.id == 21) motif = "gpp";
-                if (detection.id == 22) motif = "pgp";
-                if (detection.id == 23) motif = "ppg";
+                // ✅ Update both detected and active motif
+                if (detection.id == 21) {
+                    motif = "gpp";
+                    detectedMotif = "gpp";
+                } else if (detection.id == 22) {
+                    motif = "pgp";
+                    detectedMotif = "pgp";
+                } else if (detection.id == 23) {
+                    motif = "ppg";
+                    detectedMotif = "ppg";
+                }
             }
         }
     }
@@ -233,7 +252,6 @@ public class farblueoptimized extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0: // Start - spin up flywheel
-                // ✅ Start spinning flywheel at the very beginning
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto);
                 SHOOT_INTERVAL = 0.375;
@@ -241,14 +259,14 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 1: // Wait for flywheel to spin up
-                depo.updatePID();  // ✅ Keep updating PID
+                depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(101);  // ✅ Go to settling state
+                    actionTimer.resetTimer();
+                    setPathState(101);
                 }
                 break;
 
-            case 101: // ✅ NEW STATE - Settle before first shot
+            case 101: // Settle before first shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1); // Start shooting
@@ -258,7 +276,8 @@ public class farblueoptimized extends OpMode {
 
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
-                    intake.setPower(-1);
+                    ballCount = 0;
+                    intake.setPower(-1); // Start intake
                     SHOOT_INTERVAL = 0.335;
                     setPathState(3);
                 }
@@ -270,28 +289,38 @@ public class farblueoptimized extends OpMode {
                 setPathState(4);
                 break;
 
-            case 4: // Wait for first bezier path
+            case 4: // Wait for first bezier path (picking up balls)
                 intake.setPower(-1);
                 if (!follower.isBusy()) {
-                    // ✅ Start spinning flywheel BEFORE next path
+                    ballCount = 3;
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloblueauto);
-                    intake.setPower(-1);
+
+                    if (ballCount >= 3) {
+                        intake.setPower(1); // Out-take
+                    } else {
+                        intake.setPower(0);
+                    }
+
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
                 break;
 
             case 5: // Wait for second bezier path
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(105);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(105);
                 }
                 break;
 
-            case 105: // ✅ NEW STATE - Settle before second shot
-                intake.setPower(1);
+            case 105: // Settle before second shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -300,16 +329,15 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 6: // Wait for shooting cycle 2
-                intake.setPower(0);
                 if (actionState == 0) {
-                    gateHitCount = 0; // Reset counter
-                    setPathState(7); // Start gate cycles
+                    ballCount = 0;
+                    gateHitCount = 0;
+                    setPathState(7);
                 }
                 break;
 
             // ===== GATE CYCLE LOOP =====
             case 7: // Gate - go to gate
-                double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePaths();
                 intake.setPower(-1);
                 follower.followPath(gateFirstPath, true);
@@ -317,19 +345,21 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 8: // Gate - wait at gate position
+                intake.setPower(-1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(99);
                 }
                 break;
-            case 99: // Gate - go to gate
-                double waitTime1 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
 
+            case 99: // Gate - move back slightly
                 intake.setPower(-1);
                 follower.followPath(gatebackPath, true);
                 setPathState(102);
                 break;
-            case 102: // Gate - wait at gate position
+
+            case 102: // Gate - wait at back position
+                intake.setPower(-1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -339,28 +369,34 @@ public class farblueoptimized extends OpMode {
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePathBack(waitTime2);
+                intake.setPower(-1);
+
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-                    // ✅ Start spinning flywheel BEFORE return path
+                    ballCount = 3;
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloblueauto);
-
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
                 break;
 
             case 10: // Gate - return to shooting position
-                intake.setPower(1);
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                } else {
+                    intake.setPower(0);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(110);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(110);
                 }
                 break;
 
-            case 110: // ✅ NEW STATE - Settle before gate shot
+            case 110: // Settle before gate shot
                 depo.updatePID();
-                intake.setPower(0);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(11);
@@ -369,19 +405,19 @@ public class farblueoptimized extends OpMode {
 
             case 11: // Wait for shooting to complete
                 if (actionState == 0) {
+                    ballCount = 0;
                     gateHitCount++;
 
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
-                        setPathState(7); // Loop back to gate cycle
+                        setPathState(7);
                     } else {
-                        setPathState(12); // Move to first line pickup
+                        setPathState(12);
                     }
                 }
                 break;
 
             // ===== THIRD LINE PICKUP =====
             case 12: // Drive straight to third line pickup
-                // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto);
                 intake.setPower(-1);
@@ -390,17 +426,23 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 13: // Wait until pickup reached
-
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
+                intake.setPower(-1);
                 if (!follower.isBusy()) {
+                    ballCount = 3;
                     setPathState(14);
                 }
                 break;
 
             case 14: // Drive straight back to shooting pose
-                // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto);
+
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                } else {
+                    intake.setPower(0);
+                }
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -408,17 +450,21 @@ public class farblueoptimized extends OpMode {
                 break;
 
             case 15: // Wait until back at shooting pose
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(115);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(115);
                 }
                 break;
 
-            case 115: // ✅ NEW STATE - Settle before final shot
+            case 115: // Settle before final shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    intake.setPower(1);
                     setActionState(1);
                     setPathState(16);
                 }
@@ -426,43 +472,42 @@ public class farblueoptimized extends OpMode {
 
             case 16: // Final shooting sequence
                 if (actionState == 0) {
+                    ballCount = 0;
                     intake.setPower(0);
                     buildGetOutPath();
                     setPathState(17);
                 }
                 break;
+
             case 17:
                 follower.followPath(getOut, true);
                 setPathState(18);
                 break;
+
             case 18:
                 if (!follower.isBusy()) {
-                    setPathState(-1); // Auto complete
+                    setPathState(-1);
                 }
                 break;
         }
     }
-
-
 
     // ========== ACTION STATE MACHINE (SHOOTING) ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
             case 0: // Idle
                 break;
-                //
 
             case 1: // Initialize shooting
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto);
 
-                // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
-                    setActionState(3);  // Skip wait, go straight to shooting!
+                    setActionState(3);
                 } else {
-                    setActionState(2);  // Still need to wait
+                    setActionState(2);
                 }
                 break;
 
@@ -478,14 +523,8 @@ public class farblueoptimized extends OpMode {
             case 3: // Execute shooting sequence
                 depo.updatePID();
 
-                // Use random shooting for first 2 cycles (6 balls), then motif
-                boolean useRandomShooting = (shotCycleCount < 2);
-
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
+                // ✅ ALWAYS use motif-based shooting from the start
+                executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
@@ -500,18 +539,22 @@ public class farblueoptimized extends OpMode {
 
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
+        // ✅ Use motif from the very first shot
         if (motif.equals("gpp")) {
-            if (greenInSlot == 0) shootLRB();
-            else if (greenInSlot == 1) shootRBL();
-            else shootBLR();
+            // Green-Purple-Purple → shoot green first
+            if (greenInSlot == 0) shootLRB(); // Green is left
+            else if (greenInSlot == 1) shootRBL(); // Green is right
+            else shootBLR(); // Green is back
         } else if (motif.equals("pgp")) {
-            if (greenInSlot == 0) shootBLR();
-            else if (greenInSlot == 1) shootLRB();
-            else shootRBL();
-        } else {
-            if (greenInSlot == 0) shootRBL();
-            else if (greenInSlot == 1) shootBLR();
-            else shootLRB();
+            // Purple-Green-Purple → shoot purple first
+            if (greenInSlot == 0) shootBLR(); // Green is left, so skip it first
+            else if (greenInSlot == 1) shootLRB(); // Green is right, so skip it first
+            else shootRBL(); // Green is back, so skip it first
+        } else { // ppg or default
+            // Purple-Purple-Green → shoot purples first
+            if (greenInSlot == 0) shootRBL(); // Green is left, shoot right then back
+            else if (greenInSlot == 1) shootBLR(); // Green is right, shoot back then left
+            else shootLRB(); // Green is back, shoot left then right
         }
     }
 
@@ -520,11 +563,11 @@ public class farblueoptimized extends OpMode {
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.leftUp();
         } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.rightUp();
         } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.backUp();
         }
@@ -535,11 +578,11 @@ public class farblueoptimized extends OpMode {
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.backUp();
         } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.leftUp();
         } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.rightUp();
         }
@@ -550,28 +593,13 @@ public class farblueoptimized extends OpMode {
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
             LL.rightUp();
         } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
             LL.backUp();
         } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
+            LL.allDown();
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.leftUp();
-        }
-    }
-
-    private void shootThreeRandom() {
-        double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
         }
     }
 
@@ -626,6 +654,7 @@ public class farblueoptimized extends OpMode {
                 .setTimeoutConstraint(0.2)
                 .build();
     }
+
     private void buildGatePathBack(double waitTime) {
         Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
@@ -634,6 +663,7 @@ public class farblueoptimized extends OpMode {
                 .setTimeoutConstraint(0.1)
                 .build();
     }
+
     private void buildGetOutPath() {
         Pose cur = follower.getPose();
         getOut = follower.pathBuilder()
