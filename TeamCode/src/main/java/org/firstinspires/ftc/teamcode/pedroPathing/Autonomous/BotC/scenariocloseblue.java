@@ -171,7 +171,7 @@ public class scenariocloseblue extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(96.4);
+        turret.setDegreesTarget(120);
 
         // Initialize AprilTag vision
         initAprilTag();

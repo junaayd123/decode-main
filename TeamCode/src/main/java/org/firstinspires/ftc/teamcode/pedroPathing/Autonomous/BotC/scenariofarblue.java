@@ -52,7 +52,7 @@ public class scenariofarblue extends OpMode {
     /** Used only in excess states 31/32 so timeout is from when we entered that state (pathTimer is reset by setPathState). */
     private Timer excessPathTimeoutTimer;
     private boolean thirdLineDone;
-    private boolean secondLineDone; // ✅ Track if second line is done in Scenario 5
+    private boolean secondLineDone;
 
     // ========== SCENARIO ENUM ==========
     // FAR: 4 scenarios (1 and 2 merged - same sequence)
@@ -97,12 +97,23 @@ public class scenariofarblue extends OpMode {
     private int actionState;
     private int shooterSequence;
     private int greenInSlot;
-    private String motif = "ppg"; // ✅ DEFAULT to "ppg" if no detection
-    private String detectedMotif = ""; // ✅ Track what was actually detected
+
+    // ========== MOTIF VARIABLES - FIXED ==========
+    /** The motif to use for shooting. LOCKED once detected or at start(). */
+    private String motif = "ppg"; // Default fallback
+    /** What was actually detected from AprilTags. */
+    private String detectedMotif = "";
+    /** Once true, motif cannot change (locked at start()). */
+    private boolean motifLocked = false;
+    /** Count successful AprilTag detections to ensure reliability. */
+    private int motifDetectionCount = 0;
+    /** Require this many consistent detections before locking motif. */
+    private static final int MOTIF_DETECTION_THRESHOLD = 3;
+
     private int gateHitCount = 0;
     private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
     private boolean intakeRunning = false;
-    private int ballCount = 3; // ✅ Track ball count (start with 3 preloaded)
+    private int ballCount = 3; // Track ball count (start with 3 preloaded)
 
     // ========== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.335;
@@ -123,7 +134,7 @@ public class scenariofarblue extends OpMode {
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
-    private final Pose midpoint4 = new Pose(24, -85, Math.toRadians(0));
+    private final Pose midpoint4 = new Pose(30, -80, Math.toRadians(0));
     private final Pose firstPickupPose = new Pose(52, -84, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(56, -62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
@@ -204,9 +215,12 @@ public class scenariofarblue extends OpMode {
         // Initialize AprilTag vision
         initAprilTag();
 
-        ballCount = 3; // ✅ Start with 3 preloaded balls
+        ballCount = 3;
+        motifLocked = false;
+        motifDetectionCount = 0;
+        detectedMotif = "";
 
-        telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF ALWAYS ACTIVE");
+        telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF DETECTION ACTIVE");
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.update();
     }
@@ -216,7 +230,7 @@ public class scenariofarblue extends OpMode {
         turret.setPid();
         turret.toTargetInDegrees();
 
-        // ✅ Continuously detect motif during init_loop
+        // Continuously detect motif during init_loop
         detectMotifFromAprilTags();
 
         // Handle scenario selection with button press detection
@@ -265,6 +279,7 @@ public class scenariofarblue extends OpMode {
         telemetry.addLine("Use D-Pad / Triangle / Circle to select scenario:");
         telemetry.addLine("DPad D=1 | L=2 | R=3 | U=4 | Triangle=5 (Third→Second→First) | Circle=2 (Default)");
         telemetry.addData("Detected Motif", detectedMotif.isEmpty() ? "NONE YET" : detectedMotif);
+        telemetry.addData("Detection Count", motifDetectionCount + "/" + MOTIF_DETECTION_THRESHOLD);
         telemetry.addData("Will Use Motif", motif);
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.addData("Gate Cycles", currentScenario.gateCycles);
@@ -280,28 +295,42 @@ public class scenariofarblue extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-// ✅ Set different turret angle for Scenario 3
-        if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
-            turret.setDegreesTarget(68);  // Set your specific angle for Scenario 3
+
+        // LOCK MOTIF - Cannot change after this point
+        motifLocked = true;
+
+        if (detectedMotif.isEmpty()) {
+            motif = "ppg"; // Use default if nothing detected
+            telemetry.addLine("⚠ WARNING: No AprilTag detected! Using default motif: ppg");
+            telemetry.addLine("Robot will shoot PURPLES FIRST, GREEN LAST in all cycles");
         } else {
-            turret.setDegreesTarget(66.5);  // Default angle for all other scenarios
+            motif = detectedMotif; // Use detected motif
+            telemetry.addLine("✓ LOCKED MOTIF: " + motif);
+            if (motif.equals("gpp")) {
+                telemetry.addLine("Robot will shoot GREEN FIRST, then purples");
+            } else if (motif.equals("pgp")) {
+                telemetry.addLine("Robot will shoot PURPLES FIRST (avoiding middle green)");
+            } else { // ppg
+                telemetry.addLine("Robot will shoot PURPLES FIRST, GREEN LAST");
+            }
+        }
+
+        // Set different turret angle for Scenario 3
+        if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
+            turret.setDegreesTarget(68);
+        } else {
+            turret.setDegreesTarget(66.5);
         }
         turret.setPid();
+
         shotCycleCount = 0;
         gateHitCount = 0;
         thirdLineDone = false;
-        secondLineDone = false; // ✅ Initialize second line flag
+        secondLineDone = false;
         excessPickupCount = 0;
-        ballCount = 3; // ✅ Confirm starting ball count
+        ballCount = 3;
 
-        // ✅ Lock in the final motif
-        if (detectedMotif.isEmpty()) {
-            telemetry.addLine("⚠ WARNING: No AprilTag detected! Using default motif: " + motif);
-        } else {
-            telemetry.addLine("✓ Locked motif: " + motif);
-        }
         telemetry.update();
-
         setPathState(0);
         setActionState(0);
     }
@@ -320,13 +349,23 @@ public class scenariofarblue extends OpMode {
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
-        telemetry.addData("Ball Count", ballCount); // ✅ Show ball count
+        telemetry.addData("Ball Count", ballCount);
+        telemetry.addData("ACTIVE MOTIF", motif + " (LOCKED)");
 
-        // ✅ Show shooting details when in action state 1-3
+        // Show shooting details when in action state 1-3
         if (actionState >= 1 && actionState <= 3) {
-            telemetry.addData("Green Position", greenInSlot == 0 ? "LEFT" : greenInSlot == 1 ? "RIGHT" : "BACK");
-            telemetry.addData("Active Motif", motif);
+            String greenPos = greenInSlot == 0 ? "LEFT" : greenInSlot == 1 ? "RIGHT" : "BACK";
+            telemetry.addData("Green Position", greenPos);
             telemetry.addData("Shoot Timer", String.format("%.2f", shootTimer.getElapsedTimeSeconds()));
+
+            // Show what we're doing based on motif
+            if (motif.equals("gpp")) {
+                telemetry.addLine("Shooting: GREEN first, then purples");
+            } else if (motif.equals("pgp")) {
+                telemetry.addLine("Shooting: PURPLES first (skip middle)");
+            } else {
+                telemetry.addLine("Shooting: PURPLES first, GREEN last");
+            }
         }
 
         // Show current cycle based on state
@@ -340,7 +379,6 @@ public class scenariofarblue extends OpMode {
             telemetry.addData("Sequence", "Excess Area Pickup");
         }
         telemetry.addData("Scenario", currentScenario.name());
-        telemetry.addData("Active Motif", motif); // ✅ Show active motif
 
         if (pathState == -1) {
             telemetry.addData("Auto Status", "Complete");
@@ -353,7 +391,7 @@ public class scenariofarblue extends OpMode {
         telemetry.update();
     }
 
-    // ========== APRILTAG VISION METHODS ==========
+    // ========== APRILTAG VISION METHODS - FIXED ==========
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -367,21 +405,47 @@ public class scenariofarblue extends OpMode {
         visionPortal = builder.build();
     }
 
+    /**
+     * IMPROVED MOTIF DETECTION
+     * - Only updates if motif is not locked
+     * - Requires multiple consistent detections for reliability
+     * - Properly identifies obelisk AprilTags (21, 22, 23)
+     */
     private void detectMotifFromAprilTags() {
+        // Don't update motif after it's locked
+        if (motifLocked) return;
+
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        String newMotif = "";
 
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                // ✅ Update both detected and active motif
+                // Map AprilTag IDs to motifs
                 if (detection.id == 21) {
-                    motif = "gpp";
-                    detectedMotif = "gpp";
+                    newMotif = "gpp"; // Green-Purple-Purple
                 } else if (detection.id == 22) {
-                    motif = "ppg";
-                    detectedMotif = "ppg";
+                    newMotif = "ppg"; // Purple-Purple-Green
                 } else if (detection.id == 23) {
-                    motif = "pgp";
-                    detectedMotif = "pgp";
+                    newMotif = "pgp"; // Purple-Green-Purple
+                }
+
+                // If we detected a valid motif
+                if (!newMotif.isEmpty()) {
+                    // If it matches our previous detection, increment counter
+                    if (newMotif.equals(detectedMotif)) {
+                        motifDetectionCount++;
+                    } else {
+                        // New motif detected - reset counter
+                        detectedMotif = newMotif;
+                        motifDetectionCount = 1;
+                    }
+
+                    // If we've seen this motif enough times, lock it in
+                    if (motifDetectionCount >= MOTIF_DETECTION_THRESHOLD) {
+                        motif = detectedMotif;
+                    }
+
+                    break; // Only process first valid obelisk tag
                 }
             }
         }
@@ -416,9 +480,8 @@ public class scenariofarblue extends OpMode {
             case 2: // Wait for shooting to complete (preload)
                 intake.setPower(-1);
                 if (actionState == 0) {
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
+                    ballCount = 0;
                     SHOOT_INTERVAL = 0.335;
-                    // ✅ Scenario 5 and scenarios 3/4 go to third line first
                     if (currentScenario.skipSecondLine || currentScenario == Scenario.SCENARIO_5_9MOTIF) {
                         setPathState(20);
                     } else {
@@ -436,25 +499,23 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 4: // Wait for first bezier path (collecting balls)
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (isPathComplete()) {
-                    // ✅ Check sensors to verify we actually collected balls
                     int sensedBalls = 0;
                     if (sensors.getLeft() != 0) sensedBalls++;
                     if (sensors.getRight() != 0) sensedBalls++;
                     if (sensors.getBack() != 0) sensedBalls++;
 
-                    ballCount = sensedBalls; // Update based on actual sensor readings
+                    ballCount = sensedBalls;
 
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloblueauto2);
 
-                    // ✅ Only out-take if we have 3+ balls confirmed by sensors
                     if (ballCount >= 3) {
                         intake.setPower(1);
                     } else {
-                        intake.setPower(0); // Don't out-take if we don't have enough
+                        intake.setPower(0);
                     }
 
                     follower.followPath(bezierSecondPath, true);
@@ -464,7 +525,6 @@ public class scenariofarblue extends OpMode {
 
             case 5: // Wait for second bezier path
                 depo.updatePID();
-                // ✅ Continue out-take only if we have balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 }
@@ -486,10 +546,9 @@ public class scenariofarblue extends OpMode {
 
             case 6: // Wait for shooting cycle 2 (after second line shoot)
                 if (actionState == 0) {
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
-                    // ✅ Scenario 5: After second line, go to first line
+                    ballCount = 0;
                     if (currentScenario == Scenario.SCENARIO_5_9MOTIF && secondLineDone) {
-                        setPathState(12); // Go to first line pickup
+                        setPathState(12);
                     } else {
                         gateHitCount = 0;
                         if (currentScenario.gateCycles > 0) {
@@ -511,7 +570,7 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 8: // Gate - wait at gate position
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (isPathComplete()) {
                     actionTimer.resetTimer();
@@ -520,13 +579,13 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 99: // Gate - go to back_lever
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 follower.followPath(gatebackPath, true);
                 setPathState(102);
                 break;
 
             case 102: // Gate - wait at back_lever position
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 if (isPathComplete()) {
                     buildGatePathBack(currentScenario.gateWaitFirst);
                     actionTimer.resetTimer();
@@ -536,16 +595,15 @@ public class scenariofarblue extends OpMode {
 
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? currentScenario.gateWaitFirst : currentScenario.gateWaitLater;
-                intake.setPower(-1); // ✅ Keep collecting during wait
+                intake.setPower(-1);
 
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-                    // ✅ Check sensors to verify we actually collected balls
                     int sensedBalls = 0;
                     if (sensors.getLeft() != 0) sensedBalls++;
                     if (sensors.getRight() != 0) sensedBalls++;
                     if (sensors.getBack() != 0) sensedBalls++;
 
-                    ballCount = sensedBalls; // Update based on actual sensor readings
+                    ballCount = sensedBalls;
                     LL.set_angle_far();
                     depo.setTargetVelocity(depo.farVeloblueauto2);
                     follower.followPath(gateSecondPath, true);
@@ -555,7 +613,6 @@ public class scenariofarblue extends OpMode {
 
             case 10: // Gate - return to shooting position
                 depo.updatePID();
-                // ✅ Only out-take if we have 3+ balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 } else {
@@ -582,14 +639,14 @@ public class scenariofarblue extends OpMode {
                     ballCount = 0;
                     gateHitCount++;
                     if (gateHitCount < currentScenario.gateCycles) {
-                        setPathState(7);  // Loop gates
+                        setPathState(7);
                     } else {
                         if (currentScenario.excessPickups > 0) {
-                            setPathState(30);  // Go to excess
+                            setPathState(30);
                         } else if (currentScenario == Scenario.SCENARIO_2_6_BALL) {
-                            setPathState(20);  // ✅ Scenario 2: Go to THIRD line
+                            setPathState(20);
                         } else {
-                            setPathState(12);  // Scenario 1: Go to first line
+                            setPathState(12);
                         }
                     }
                 }
@@ -606,16 +663,15 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 13: // Wait until first line pickup reached
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (isPathComplete()) {
-                    // ✅ Check sensors to verify we actually collected balls
                     int sensedBalls = 0;
                     if (sensors.getLeft() != 0) sensedBalls++;
                     if (sensors.getRight() != 0) sensedBalls++;
                     if (sensors.getBack() != 0) sensedBalls++;
 
-                    ballCount = sensedBalls; // Update based on actual sensor readings
+                    ballCount = sensedBalls;
                     setPathState(14);
                     manageSecondHopIntake();
                 }
@@ -625,7 +681,6 @@ public class scenariofarblue extends OpMode {
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto2);
 
-                // ✅ Only out-take if we have 3+ balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 } else {
@@ -639,7 +694,6 @@ public class scenariofarblue extends OpMode {
 
             case 15: // Wait until back at far shooting pose
                 depo.updatePID();
-                // ✅ Continue out-take only if we have balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 }
@@ -661,7 +715,7 @@ public class scenariofarblue extends OpMode {
 
             case 16: // Wait for first line shooting to complete
                 if (actionState == 0) {
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
+                    ballCount = 0;
                     if (currentScenario.thirdLinePickup == 1 && !thirdLineDone) {
                         setPathState(20);
                     } else {
@@ -682,16 +736,15 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 21: // Wait until third line pickup reached
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (isPathComplete()) {
-                    // ✅ Check sensors to verify we actually collected balls
                     int sensedBalls = 0;
                     if (sensors.getLeft() != 0) sensedBalls++;
                     if (sensors.getRight() != 0) sensedBalls++;
                     if (sensors.getBack() != 0) sensedBalls++;
 
-                    ballCount = sensedBalls; // Update based on actual sensor readings
+                    ballCount = sensedBalls;
                     setPathState(22);
                     manageSecondHopIntake();
                 }
@@ -701,7 +754,6 @@ public class scenariofarblue extends OpMode {
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto2);
 
-                // ✅ Only out-take if we have 3+ balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 } else {
@@ -715,7 +767,6 @@ public class scenariofarblue extends OpMode {
 
             case 23: // Wait until back at far shooting pose
                 depo.updatePID();
-                // ✅ Continue out-take only if we have balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 }
@@ -738,10 +789,10 @@ public class scenariofarblue extends OpMode {
             case 25: // Wait for third line shooting to complete
                 if (actionState == 0) {
                     thirdLineDone = true;
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
+                    ballCount = 0;
                     if (currentScenario == Scenario.SCENARIO_5_9MOTIF) {
-                        secondLineDone = false; // ✅ Mark that we haven't done second line yet
-                        setPathState(3); // Go to second line pickup (states 3-6)
+                        secondLineDone = false;
+                        setPathState(3);
                     } else if (currentScenario.excessPickups > 0) {
                         if (currentScenario.gateCycles > 0) {
                             setPathState(26);
@@ -775,7 +826,7 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 31: // Wait until first position reached
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     actionTimer.resetTimer();
@@ -784,7 +835,7 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 311: // Wait at first position, then start strafe
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
                     buildExcessStrafePath();
@@ -795,16 +846,15 @@ public class scenariofarblue extends OpMode {
                 break;
 
             case 32: // Wait until strafe done
-                intake.setPower(-1); // ✅ Keep collecting
+                intake.setPower(-1);
                 depo.updatePID();
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
-                    // ✅ Check sensors to verify we actually collected balls
                     int sensedBalls = 0;
                     if (sensors.getLeft() != 0) sensedBalls++;
                     if (sensors.getRight() != 0) sensedBalls++;
                     if (sensors.getBack() != 0) sensedBalls++;
 
-                    ballCount = sensedBalls; // Update based on actual sensor readings
+                    ballCount = sensedBalls;
                     actionTimer.resetTimer();
                     setPathState(321);
                 }
@@ -823,7 +873,6 @@ public class scenariofarblue extends OpMode {
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto2);
 
-                // ✅ Only out-take if we have 3+ balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 } else {
@@ -837,7 +886,6 @@ public class scenariofarblue extends OpMode {
 
             case 34: // Wait until back at far shooting pose
                 depo.updatePID();
-                // ✅ Continue out-take only if we have balls
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 }
@@ -859,7 +907,7 @@ public class scenariofarblue extends OpMode {
 
             case 36: // Wait for excess shooting to complete
                 if (actionState == 0) {
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
+                    ballCount = 0;
                     excessPickupCount++;
                     if (excessPickupCount < currentScenario.excessPickups) {
                         setPathState(30);
@@ -883,7 +931,7 @@ public class scenariofarblue extends OpMode {
         }
     }
 
-    // ========== ACTION STATE MACHINE (SHOOTING) ==========
+    // ========== ACTION STATE MACHINE (SHOOTING) - FIXED ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
             case 0: // Idle
@@ -891,14 +939,14 @@ public class scenariofarblue extends OpMode {
 
             case 1: // Initialize shooting - ALWAYS get green position
                 LL.set_angle_far();
-                // ✅ Use the correct velocity based on path state
+                // Use the correct velocity based on path state
                 if (pathState == 2) {
-                    depo.setTargetVelocity(depo.farVeloblueauto); // First shot (preload)
+                    depo.setTargetVelocity(depo.farVeloblueauto);
                 } else {
-                    depo.setTargetVelocity(depo.farVeloblueauto2); // All other shots
+                    depo.setTargetVelocity(depo.farVeloblueauto2);
                 }
 
-                // ✅ ALWAYS detect green position before shooting
+                // ALWAYS detect green position before shooting
                 greenInSlot = getGreenPos();
 
                 if (depo.reachedTargetHighTolerance()) {
@@ -912,7 +960,7 @@ public class scenariofarblue extends OpMode {
             case 2: // Wait for shooter to spin up
                 depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
-                    // ✅ Re-check green position right before shooting
+                    // Re-check green position right before shooting
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
                     setActionState(3);
@@ -922,7 +970,7 @@ public class scenariofarblue extends OpMode {
             case 3: // Execute shooting sequence - ALWAYS use motif
                 depo.updatePID();
 
-                // ✅ ALWAYS execute motif-based shooting
+                // ALWAYS execute motif-based shooting (no bypasses)
                 executeMotifBasedShooting();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
@@ -930,7 +978,7 @@ public class scenariofarblue extends OpMode {
                     depo.setTargetVelocity(0);
                     stopShooter();
                     shotCycleCount++;
-                    // ✅ Mark second line as done when completing state 6 in Scenario 5
+
                     if (currentScenario == Scenario.SCENARIO_5_9MOTIF && pathState == 6) {
                         secondLineDone = true;
                     }
@@ -940,54 +988,55 @@ public class scenariofarblue extends OpMode {
         }
     }
 
-    // ========== SHOOTING HELPER METHODS ==========
+    // ========== SHOOTING HELPER METHODS - FIXED AND DOCUMENTED ==========
     /**
-     * ✅ ALWAYS executes motif-based shooting - no conditions, no bypasses
+     * ALWAYS executes motif-based shooting - NO CONDITIONS, NO BYPASSES
      *
-     * MOTIF LOGIC:
-     * - "gpp" (Green-Purple-Purple): Shoot GREEN ball first, then purples
-     * - "pgp" (Purple-Green-Purple): Shoot PURPLE balls first (avoiding green in middle)
-     * - "ppg" (Purple-Purple-Green): Shoot PURPLE balls first, green last
+     * MOTIF LOGIC (based on actual game rules):
+     * - "gpp" (Green-Purple-Purple): Shoot GREEN ball FIRST, then purples
+     * - "pgp" (Purple-Green-Purple): Shoot PURPLE balls FIRST (avoiding green in middle slot)
+     * - "ppg" (Purple-Purple-Green): Shoot PURPLE balls FIRST, green LAST
      *
      * SHOOTING ORDER METHODS:
-     * - shootLRB(): Left → Right → Back
+     * - shootLRB(): Left → Right → Back (slots in robot)
      * - shootBLR(): Back → Left → Right
      * - shootRBL(): Right → Back → Left
      *
-     * The method combines motif + green position to determine which shoot order to use.
+     * The method combines the LOCKED motif + detected green position to determine shoot order.
      */
     private void executeMotifBasedShooting() {
-        // Use the motif that was detected (or default "ppg")
+        // Use the LOCKED motif (set at start() and never changes)
         if (motif.equals("gpp")) {
-            // Green-Purple-Purple → shoot green first
+            // Green-Purple-Purple → shoot green FIRST
             if (greenInSlot == 0) {
-                shootLRB(); // Left is green, so shoot Left first
+                shootLRB(); // Left has green → shoot Left first
             } else if (greenInSlot == 1) {
-                shootRBL(); // Right is green, so shoot Right first
+                shootRBL(); // Right has green → shoot Right first
             } else {
-                shootBLR(); // Back is green, so shoot Back first
+                shootBLR(); // Back has green → shoot Back first
             }
         } else if (motif.equals("pgp")) {
-            // Purple-Green-Purple → shoot purple first (skip green in middle)
+            // Purple-Green-Purple → shoot purples FIRST (skip green in middle)
             if (greenInSlot == 0) {
-                shootBLR(); // Left is green, so shoot Back & Right (avoid Left)
+                shootRBL(); // Left has green → shoot Right & Back first (avoid Left)
             } else if (greenInSlot == 1) {
-                shootLRB(); // Right is green, so shoot Left & Back (avoid Right)
+                shootBLR(); // Right has green → shoot Back & Left first (avoid Right)
             } else {
-                shootRBL(); // Back is green, so shoot Right & Left (avoid Back)
+                shootLRB(); // Back has green → shoot Left & Right first (avoid Back)
             }
         } else { // "ppg" or any default
-            // Purple-Purple-Green → shoot purples first, green last
+            // Purple-Purple-Green → shoot purples FIRST, green LAST
             if (greenInSlot == 0) {
-                shootRBL(); // Left is green, so shoot Right & Back first, Left last
+                shootRBL(); // Left has green → shoot Right & Back first, Left last
             } else if (greenInSlot == 1) {
-                shootBLR(); // Right is green, so shoot Back & Left first, Right last
+                shootBLR(); // Right has green → shoot Back & Left first, Right last
             } else {
-                shootLRB(); // Back is green, so shoot Left & Right first, Back last
+                shootLRB(); // Back has green → shoot Left & Right first, Back last
             }
         }
     }
 
+    /** Shoot order: Left → Right → Back */
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
@@ -1003,6 +1052,7 @@ public class scenariofarblue extends OpMode {
         }
     }
 
+    /** Shoot order: Back → Left → Right */
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
@@ -1018,6 +1068,7 @@ public class scenariofarblue extends OpMode {
         }
     }
 
+    /** Shoot order: Right → Back → Left */
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
@@ -1033,12 +1084,16 @@ public class scenariofarblue extends OpMode {
         }
     }
 
+    /**
+     * Detects which slot contains the green ball using color sensors.
+     * Returns: 0 = Left, 1 = Right, 2 = Back
+     */
     private int getGreenPos() {
         int pos = LL.sensors.getLeft();
-        if (pos == 1) return 0;
+        if (pos == 1) return 0; // Left slot has green
         pos = LL.sensors.getRight();
-        if (pos == 1) return 1;
-        return 2;
+        if (pos == 1) return 1; // Right slot has green
+        return 2; // Back slot has green (default)
     }
 
     // ========== PATH BUILDING METHODS ==========
