@@ -107,8 +107,9 @@ public class scenarioclosered extends OpMode {
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
-    private final Pose back_lever = new Pose(58.3, 52.3, Math.toRadians(36.5));
+    private final Pose back_lever = new Pose(58.3, 50.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
+    private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
@@ -430,6 +431,17 @@ public class scenarioclosered extends OpMode {
             case 8: // Gate - wait at gate position
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
+                    setPathState(99);
+                }
+                break;
+            case 99: // Gate - go to back_lever
+                intake.setPower(-1);
+                follower.followPath(gatebackPath, true);
+                setPathState(102);
+                break;
+            case 102: // Gate - wait at back_lever position
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
                     setPathState(9);
                 }
                 break;
@@ -746,13 +758,19 @@ public class scenarioclosered extends OpMode {
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
-                .setTimeoutConstraint(1.6)
+                .setTimeoutConstraint(1)
+                .build();
+
+        gatebackPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
+                .setTimeoutConstraint(0.3)
                 .build();
     }
     private void buildGatePathsBack() {
         Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .addPath(new Path(new BezierCurve(cur, outfromgate1, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
                 .build();
     }
