@@ -52,6 +52,7 @@ public class scenariofarblue extends OpMode {
     /** Used only in excess states 31/32 so timeout is from when we entered that state (pathTimer is reset by setPathState). */
     private Timer excessPathTimeoutTimer;
     private boolean thirdLineDone;
+    private boolean secondLineDone; // ✅ Track if second line is done in Scenario 5
 
     // ========== SCENARIO ENUM ==========
     // FAR: 4 scenarios (1 and 2 merged - same sequence)
@@ -70,7 +71,7 @@ public class scenariofarblue extends OpMode {
         public final int gateCycles;
         public final int thirdLinePickup;      // 1 = do third line after first line (Scenario 1 only)
         public final int excessPickups;        // 0, 1, or 2 - number of excess area pickups
-        public final boolean skipSecondLine;   // true = go to third line right after preload (Scenarios 3, 4)
+        public final boolean skipSecondLine;   // true = go to third line right after preload (Scenarios 3, 4, 5)
         public final double gateWaitFirst;
         public final double gateWaitLater;
 
@@ -122,13 +123,13 @@ public class scenariofarblue extends OpMode {
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
-    private final Pose midpoint4 = new Pose(20, -83, Math.toRadians(0));
+    private final Pose midpoint4 = new Pose(24, -85, Math.toRadians(0));
     private final Pose firstPickupPose = new Pose(52, -84, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(56, -62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(59, -60, Math.toRadians(-32));
+    private final Pose infront_of_lever_new = new Pose(59, -61, Math.toRadians(-32));
     private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
     private final Pose infront_of_lever_adj = new Pose(60.5, -61, Math.toRadians(-34));
     /** Excess ball area - first position, then we strafe in +y (blue). */
@@ -205,7 +206,7 @@ public class scenariofarblue extends OpMode {
 
         ballCount = 3; // ✅ Start with 3 preloaded balls
 
-        telemetry.addLine("State-based Auto initialized (Webcam) - SCENARIO FIXED");
+        telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF ALWAYS ACTIVE");
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.update();
     }
@@ -247,7 +248,7 @@ public class scenariofarblue extends OpMode {
             telemetry.addLine("Scenario 4: Alliance Dominates - we do 12 balls, third line, excess, excess");
         } else if (currTriangle && !prevTriangle) {
             currentScenario = Scenario.SCENARIO_5_9MOTIF;
-            telemetry.addLine("Scenario 5: 3 lines pickup - 12 balls");
+            telemetry.addLine("Scenario 5: 3 lines pickup - 12 balls (Third→Second→First)");
         } else if (currCircle && !prevCircle) {
             currentScenario = Scenario.SCENARIO_2_6_BALL;
             telemetry.addLine("Scenario 2: alliance 6 ball (default)");
@@ -279,11 +280,17 @@ public class scenariofarblue extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(66.5);
+// ✅ Set different turret angle for Scenario 3
+        if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
+            turret.setDegreesTarget(68);  // Set your specific angle for Scenario 3
+        } else {
+            turret.setDegreesTarget(66.5);  // Default angle for all other scenarios
+        }
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
         thirdLineDone = false;
+        secondLineDone = false; // ✅ Initialize second line flag
         excessPickupCount = 0;
         ballCount = 3; // ✅ Confirm starting ball count
 
@@ -314,6 +321,13 @@ public class scenariofarblue extends OpMode {
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
         telemetry.addData("Ball Count", ballCount); // ✅ Show ball count
+
+        // ✅ Show shooting details when in action state 1-3
+        if (actionState >= 1 && actionState <= 3) {
+            telemetry.addData("Green Position", greenInSlot == 0 ? "LEFT" : greenInSlot == 1 ? "RIGHT" : "BACK");
+            telemetry.addData("Active Motif", motif);
+            telemetry.addData("Shoot Timer", String.format("%.2f", shootTimer.getElapsedTimeSeconds()));
+        }
 
         // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
@@ -473,11 +487,16 @@ public class scenariofarblue extends OpMode {
             case 6: // Wait for shooting cycle 2 (after second line shoot)
                 if (actionState == 0) {
                     ballCount = 0; // ✅ Shot 3 balls, now have 0
-                    gateHitCount = 0;
-                    if (currentScenario.gateCycles > 0) {
-                        setPathState(7);
+                    // ✅ Scenario 5: After second line, go to first line
+                    if (currentScenario == Scenario.SCENARIO_5_9MOTIF && secondLineDone) {
+                        setPathState(12); // Go to first line pickup
                     } else {
-                        setPathState(12);
+                        gateHitCount = 0;
+                        if (currentScenario.gateCycles > 0) {
+                            setPathState(7);
+                        } else {
+                            setPathState(12);
+                        }
                     }
                 }
                 break;
@@ -560,15 +579,17 @@ public class scenariofarblue extends OpMode {
 
             case 11: // Wait for shooting to complete
                 if (actionState == 0) {
-                    ballCount = 0; // ✅ Shot 3 balls, now have 0
+                    ballCount = 0;
                     gateHitCount++;
                     if (gateHitCount < currentScenario.gateCycles) {
-                        setPathState(7);
+                        setPathState(7);  // Loop gates
                     } else {
                         if (currentScenario.excessPickups > 0) {
-                            setPathState(30);
+                            setPathState(30);  // Go to excess
+                        } else if (currentScenario == Scenario.SCENARIO_2_6_BALL) {
+                            setPathState(20);  // ✅ Scenario 2: Go to THIRD line
                         } else {
-                            setPathState(12);
+                            setPathState(12);  // Scenario 1: Go to first line
                         }
                     }
                 }
@@ -579,10 +600,8 @@ public class scenariofarblue extends OpMode {
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloblueauto2);
                 intake.setPower(-1);
-//                buildFirstLinePickupPath();
-//                follower.followPath(firstLinePickupPath, true);
-                buildThirdLinePickupPath();
-                follower.followPath(ThirdLinePickupPath, true);
+                buildFirstLinePickupPath();
+                follower.followPath(firstLinePickupPath, true);
                 setPathState(13);
                 break;
 
@@ -721,7 +740,8 @@ public class scenariofarblue extends OpMode {
                     thirdLineDone = true;
                     ballCount = 0; // ✅ Shot 3 balls, now have 0
                     if (currentScenario == Scenario.SCENARIO_5_9MOTIF) {
-                        setPathState(3);
+                        secondLineDone = false; // ✅ Mark that we haven't done second line yet
+                        setPathState(3); // Go to second line pickup (states 3-6)
                     } else if (currentScenario.excessPickups > 0) {
                         if (currentScenario.gateCycles > 0) {
                             setPathState(26);
@@ -869,12 +889,19 @@ public class scenariofarblue extends OpMode {
             case 0: // Idle
                 break;
 
-            case 1: // Initialize shooting
+            case 1: // Initialize shooting - ALWAYS get green position
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                // ✅ Use the correct velocity based on path state
+                if (pathState == 2) {
+                    depo.setTargetVelocity(depo.farVeloblueauto); // First shot (preload)
+                } else {
+                    depo.setTargetVelocity(depo.farVeloblueauto2); // All other shots
+                }
+
+                // ✅ ALWAYS detect green position before shooting
+                greenInSlot = getGreenPos();
 
                 if (depo.reachedTargetHighTolerance()) {
-                    greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
                     setActionState(3);
                 } else {
@@ -885,23 +912,28 @@ public class scenariofarblue extends OpMode {
             case 2: // Wait for shooter to spin up
                 depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
+                    // ✅ Re-check green position right before shooting
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
                     setActionState(3);
                 }
                 break;
 
-            case 3: // Execute shooting sequence
+            case 3: // Execute shooting sequence - ALWAYS use motif
                 depo.updatePID();
 
-                // ✅ ALWAYS use motif-based shooting
-                executeShootingSequence();
+                // ✅ ALWAYS execute motif-based shooting
+                executeMotifBasedShooting();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
                     shotCycleCount++;
+                    // ✅ Mark second line as done when completing state 6 in Scenario 5
+                    if (currentScenario == Scenario.SCENARIO_5_9MOTIF && pathState == 6) {
+                        secondLineDone = true;
+                    }
                     setActionState(0);
                 }
                 break;
@@ -909,23 +941,50 @@ public class scenariofarblue extends OpMode {
     }
 
     // ========== SHOOTING HELPER METHODS ==========
-    private void executeShootingSequence() {
-        // ✅ Use motif from the very first shot
+    /**
+     * ✅ ALWAYS executes motif-based shooting - no conditions, no bypasses
+     *
+     * MOTIF LOGIC:
+     * - "gpp" (Green-Purple-Purple): Shoot GREEN ball first, then purples
+     * - "pgp" (Purple-Green-Purple): Shoot PURPLE balls first (avoiding green in middle)
+     * - "ppg" (Purple-Purple-Green): Shoot PURPLE balls first, green last
+     *
+     * SHOOTING ORDER METHODS:
+     * - shootLRB(): Left → Right → Back
+     * - shootBLR(): Back → Left → Right
+     * - shootRBL(): Right → Back → Left
+     *
+     * The method combines motif + green position to determine which shoot order to use.
+     */
+    private void executeMotifBasedShooting() {
+        // Use the motif that was detected (or default "ppg")
         if (motif.equals("gpp")) {
             // Green-Purple-Purple → shoot green first
-            if (greenInSlot == 0) shootLRB();
-            else if (greenInSlot == 1) shootRBL();
-            else shootBLR();
+            if (greenInSlot == 0) {
+                shootLRB(); // Left is green, so shoot Left first
+            } else if (greenInSlot == 1) {
+                shootRBL(); // Right is green, so shoot Right first
+            } else {
+                shootBLR(); // Back is green, so shoot Back first
+            }
         } else if (motif.equals("pgp")) {
-            // Purple-Green-Purple → shoot purple first
-            if (greenInSlot == 0) shootBLR();
-            else if (greenInSlot == 1) shootLRB();
-            else shootRBL();
-        } else { // ppg or default
-            // Purple-Purple-Green → shoot purples first
-            if (greenInSlot == 0) shootRBL();
-            else if (greenInSlot == 1) shootBLR();
-            else shootLRB();
+            // Purple-Green-Purple → shoot purple first (skip green in middle)
+            if (greenInSlot == 0) {
+                shootBLR(); // Left is green, so shoot Back & Right (avoid Left)
+            } else if (greenInSlot == 1) {
+                shootLRB(); // Right is green, so shoot Left & Back (avoid Right)
+            } else {
+                shootRBL(); // Back is green, so shoot Right & Left (avoid Back)
+            }
+        } else { // "ppg" or any default
+            // Purple-Purple-Green → shoot purples first, green last
+            if (greenInSlot == 0) {
+                shootRBL(); // Left is green, so shoot Right & Back first, Left last
+            } else if (greenInSlot == 1) {
+                shootBLR(); // Right is green, so shoot Back & Left first, Right last
+            } else {
+                shootLRB(); // Back is green, so shoot Left & Right first, Back last
+            }
         }
     }
 
