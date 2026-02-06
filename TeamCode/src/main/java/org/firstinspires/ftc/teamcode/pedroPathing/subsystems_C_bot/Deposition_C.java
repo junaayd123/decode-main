@@ -23,7 +23,7 @@ public class Deposition_C {
     public static double d = 0.0;
     public double farVelo_New = 1650;
     public double farVeloredauto = 1620;
-    public double farVeloredauto2 = 1625;
+    public double farVeloredauto2 = 1585;
     public double farVeloblue = 1600;
     //
     public double farVeloblueauto = 1625;

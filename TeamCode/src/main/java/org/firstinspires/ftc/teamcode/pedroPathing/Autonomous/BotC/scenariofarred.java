@@ -52,6 +52,8 @@ public class scenariofarred extends OpMode {
     /** Used only in excess states 31/32 so timeout is from when we entered that state (pathTimer is reset by setPathState). */
     private Timer excessPathTimeoutTimer;
     private boolean thirdLineDone;
+    private PathChain goBacklastPath;
+    private String lockedMotif;
 
 
     // ========== SCENARIO ENUM ==========
@@ -110,6 +112,10 @@ public class scenariofarred extends OpMode {
     private static double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
     private static final double SETTLE_TIME = 0.3;  // Time to settle before shooting
+    /** Excess area: wait at first position before strafing (seconds). */
+    private static final double EXCESS_WAIT_FIRST_POSITION = 2.0;
+    /** Excess area: wait at second position after strafe before driving back (seconds). */
+    private static final double EXCESS_WAIT_SECOND_POSITION = 1.5;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, 7, Math.toRadians(0));
@@ -121,7 +127,7 @@ public class scenariofarred extends OpMode {
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose midpoint4 = new Pose(20,83, Math.toRadians(0));
+    private final Pose midpoint4 = new Pose(20,90, Math.toRadians(0));
     private final Pose firstPickupPose = new Pose(52, 84, Math.toRadians(0));
     private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
@@ -281,14 +287,18 @@ public class scenariofarred extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-68.6);
+        turret.setDegreesTarget(-70.5);
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
         thirdLineDone = false;
         excessPickupCount = 0;
+        lockedMotif = motif;
         setPathState(0);
         setActionState(0);
+        if (visionPortal != null) {
+            visionPortal.stopStreaming(); // ✅ Lock in the motif
+        }
     }
 
     @Override
@@ -305,6 +315,9 @@ public class scenariofarred extends OpMode {
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
+        telemetry.addData("Current Motif", motif);
+
+
 
         // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
@@ -313,7 +326,7 @@ public class scenariofarred extends OpMode {
             telemetry.addData("Sequence", "First Line Pickup");
         } else if (pathState >= 20 && pathState <= 25) {
             telemetry.addData("Sequence", "Third Line Pickup");
-        } else if (pathState >= 30 && pathState <= 36) {
+        } else if ((pathState >= 30 && pathState <= 36) || pathState == 311 || pathState == 321) {
             telemetry.addData("Sequence", "Excess Area Pickup");
         }
         telemetry.addData("Scenario", currentScenario.name());
@@ -349,8 +362,8 @@ public class scenariofarred extends OpMode {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
                 if (detection.id == 21) motif = "gpp";
-                if (detection.id == 22) motif = "pgp";
-                if (detection.id == 23) motif = "ppg";
+                if (detection.id == 22) motif = "pgp";  // ✅ SWAPPED
+                if (detection.id == 23) motif = "ppg";  // ✅ SWAPPED
             }
         }
     }
@@ -543,7 +556,7 @@ public class scenariofarred extends OpMode {
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloredauto2);
                 buildReturnToShootingPath();
-                follower.followPath(goBackPath, true);
+                follower.followPath(goBacklastPath, true);
                 setPathState(15);
                 break;
 
@@ -660,21 +673,35 @@ public class scenariofarred extends OpMode {
                 setPathState(31);
                 break;
 
-            case 31: // Wait until first motion (61, 9, -10) reached, then start slow strafe in -y
+            case 31: // Wait until first position reached, then go to wait state (2 sec at first position)
                 depo.updatePID();
-                // Timeout: if path takes more than 1 second, skip it and continue
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
+                    actionTimer.resetTimer();
+                    setPathState(311);
+                }
+                break;
+
+            case 311: // Wait 2 seconds at first position (idle), then start strafe
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
                     buildExcessStrafePath();
-                    follower.followPath(excessPathStrafe, true);  // still at 0.5 speed
+                    follower.followPath(excessPathStrafe, true);  // strafe at 0.5 speed
                     excessPathTimeoutTimer.resetTimer();
                     setPathState(32);
                 }
                 break;
 
-            case 32: // Wait until strafe (1.8 s timeout) done
+            case 32: // Wait until strafe to second position done (path timeout 1.8 s)
                 depo.updatePID();
-                // Timeout: if path takes more than 1 second, skip it and continue
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
+                    actionTimer.resetTimer();
+                    setPathState(321);
+                }
+                break;
+
+            case 321: // Wait 1.5 seconds at second position (idle), then drive back to shoot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
                     follower.setMaxPower(1.0);
                     setPathState(33);
                     manageSecondHopIntake();
@@ -764,14 +791,7 @@ public class scenariofarred extends OpMode {
             case 3: // Execute shooting sequence
                 depo.updatePID();
 
-                // Use random shooting for first 2 cycles (6 balls), then motif
-                boolean useRandomShooting = (shotCycleCount < 2);
-
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
+                executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
@@ -786,11 +806,12 @@ public class scenariofarred extends OpMode {
 
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
-        if (motif.equals("gpp")) {
+        String activeMotif = (lockedMotif == null || lockedMotif.equals("empty")) ? "ppg" : lockedMotif;
+        if (lockedMotif.equals("gpp")) {
             if (greenInSlot == 0) shootLRB();
             else if (greenInSlot == 1) shootRBL();
             else shootBLR();
-        } else if (motif.equals("pgp")) {
+        } else if (lockedMotif.equals("pgp")) {
             if (greenInSlot == 0) shootBLR();
             else if (greenInSlot == 1) shootLRB();
             else shootRBL();
@@ -843,21 +864,6 @@ public class scenariofarred extends OpMode {
             LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.leftUp();
-        }
-    }
-
-    private void shootThreeRandom() {
-        double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
         }
     }
 
@@ -945,7 +951,12 @@ public class scenariofarred extends OpMode {
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, farshotpose)))
+                .addPath(new Path(new BezierCurve(cur,farshotpose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading())
+                .setTimeoutConstraint(0.1)
+                .build();
+        goBacklastPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur,midpoint4,farshotpose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), farshotpose.getHeading())
                 .setTimeoutConstraint(0.1)
                 .build();

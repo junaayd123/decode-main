@@ -635,14 +635,7 @@ public class scenarioclosered extends OpMode {
             case 3: // Execute shooting sequence
                 depo.updatePID();
 
-                // Use random shooting for first 2 cycles (6 balls), then motif
-                boolean useRandomShooting = (shotCycleCount < 2);
-
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
+                executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
@@ -714,21 +707,6 @@ public class scenarioclosered extends OpMode {
             LL.allDown();  // 50ms to retract before next ball
         } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
             LL.leftUp();
-        }
-    }
-
-    private void shootThreeRandom() {
-        double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
         }
     }
 
