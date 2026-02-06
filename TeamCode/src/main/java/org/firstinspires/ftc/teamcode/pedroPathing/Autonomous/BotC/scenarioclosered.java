@@ -854,6 +854,7 @@ public class scenarioclosered extends OpMode {
         pathState = pState;
         pathTimer.resetTimer();
     }
+    //
 
     private void setActionState(int aState) {
         actionState = aState;
