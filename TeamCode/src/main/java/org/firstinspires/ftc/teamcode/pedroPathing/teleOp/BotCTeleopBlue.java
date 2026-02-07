@@ -29,7 +29,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop red", group = "TeleOp")
+@TeleOp(name = "Bot C teleop blue", group = "TeleOp")
 public class BotCTeleopBlue extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
@@ -79,10 +79,10 @@ public class BotCTeleopBlue extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(-62,140,0);//used for close turret aim
+    private final Pose redGoal = new Pose(-60,132,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(-72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
-    private final Pose redGoalfar = new Pose(-60,144,0);//used for far turret aim
+    private final Pose redGoalfar = new Pose(-60,132,0);//used for far turret aim
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -506,11 +506,11 @@ public class BotCTeleopBlue extends OpMode {
         //below is old stuff
         if(dist<125){
             if(dist<75){
-                return (int) (4.16622*dist+875.18954); //today 875
+                return (int) (4.16622*(dist+5)+875.18954); //today 875
             }
             else {
 //                return (int) (5.35158*dist+873.83526);//old stuff
-                return (int) (4.16622*dist+915.18954); //today 915
+                return (int) (4.16622*(dist+5)+915.18954); //today 915
             }
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
