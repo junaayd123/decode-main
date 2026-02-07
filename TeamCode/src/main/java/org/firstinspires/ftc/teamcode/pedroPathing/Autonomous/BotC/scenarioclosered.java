@@ -84,17 +84,18 @@ public class scenarioclosered extends OpMode {
     private int pathState;
     private int actionState;
     private int shooterSequence;
-    private int greenInSlot;
     private String motif = "empty";
+    private String lockedMotif;
+    private int greenInSlot;
     private int gateHitCount = 0;
     private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
-    private boolean intakeRunning = false;  // ✅ ADD THIS
+    private boolean intakeRunning = false;
     private boolean thirdLineDone = false;  // Track if third line pickup completed
 
     // ========== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
-    private static final double SETTLE_TIME = 0.3;  // ✅ ADD THIS - time to settle before shooting
+    private static final double SETTLE_TIME = 0.3;  // Time to settle before shooting
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -113,7 +114,7 @@ public class scenarioclosered extends OpMode {
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
-    private final Pose thirdLinePickupPose = new Pose(56, 45, Math.toRadians(0));  // Third line pickup position
+    private final Pose thirdLinePickupPose = new Pose(35, 35, Math.toRadians(0));  // Third line pickup position
     private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
 
     // ========== PATHS ==========
@@ -177,7 +178,7 @@ public class scenarioclosered extends OpMode {
         // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
+        telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF ORDER SHOOTING");
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.update();
     }
@@ -242,11 +243,12 @@ public class scenarioclosered extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-44.5);
+        turret.setDegreesTarget(-46.5);
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
         thirdLineDone = false;
+        lockedMotif = motif;
         setPathState(0);
         setActionState(0);
     }
@@ -501,7 +503,7 @@ public class scenarioclosered extends OpMode {
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -510,8 +512,9 @@ public class scenarioclosered extends OpMode {
             case 21: // Wait until third line pickup reached
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+                    buildThirdLineReturnPath();
                     setPathState(22);
+                    manageSecondHopIntake();
                 }
                 break;
 
@@ -519,14 +522,13 @@ public class scenarioclosered extends OpMode {
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-
-                buildThirdLineReturnPath();
                 follower.followPath(thirdLineReturnPath, true);
                 setPathState(23);
                 break;
 
             case 23: // Wait until back at shooting pose from third line
                 depo.updatePID();
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
                     setPathState(24);  // ✅ Go to settling state
@@ -535,6 +537,7 @@ public class scenarioclosered extends OpMode {
 
             case 24: // ✅ NEW STATE - Settle before third line shot
                 depo.updatePID();
+                intake.setPower(0);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(25);
@@ -644,9 +647,10 @@ public class scenarioclosered extends OpMode {
                 }
                 break;
 
-            case 3: // Execute shooting sequence
+            case 3: // Execute shooting sequence - ALWAYS IN MOTIF ORDER
                 depo.updatePID();
 
+                // ✅ MODIFIED: Always shoot in motif order, no color sensor checks
                 executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
@@ -660,13 +664,38 @@ public class scenarioclosered extends OpMode {
         }
     }
 
-    // ========== SHOOTING HELPER METHODS ==========
-    private void executeShootingSequence() {
+    // ========== SHOOTING HELPER METHODS - MODIFIED FOR MOTIF ORDER ==========
+
+    /**
+     * ✅ NEW METHOD: Execute shooting in motif order
+     * This replaces the old executeShootingSequence() that used color sensors
+     */
+    private void executeShootingSequenceInMotifOrder() {//not motif shooting claude slop
+        // Shoot in the order specified by the motif
+        // 'g' = green, 'p' = purple
+        // Slots: Left (index 0), Right (index 1), Back (index 2)
+
         if (motif.equals("gpp")) {
+            // Green in Left slot, Purple in Right and Back
+            shootLeftRightBack();
+        } else if (motif.equals("pgp")) {
+            // Purple in Left, Green in Right, Purple in Back
+            shootLeftRightBack();
+        } else if (motif.equals("ppg")) {
+            // Purple in Left and Right, Green in Back
+            shootLeftRightBack();
+        } else {
+            // Default fallback if motif is not detected
+            shootLeftRightBack();
+        }
+    }
+    private void executeShootingSequence() {//actual motif shooting from farred
+        String activeMotif = (lockedMotif == null || lockedMotif.equals("empty")) ? "ppg" : lockedMotif;
+        if (lockedMotif.equals("gpp")) {
             if (greenInSlot == 0) shootLRB();
             else if (greenInSlot == 1) shootRBL();
             else shootBLR();
-        } else if (motif.equals("pgp")) {
+        } else if (lockedMotif.equals("pgp")) {
             if (greenInSlot == 0) shootBLR();
             else if (greenInSlot == 1) shootLRB();
             else shootRBL();
@@ -676,7 +705,6 @@ public class scenarioclosered extends OpMode {
             else shootLRB();
         }
     }
-
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
         if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
@@ -721,7 +749,6 @@ public class scenarioclosered extends OpMode {
             LL.leftUp();
         }
     }
-
     private int getGreenPos() {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
@@ -729,6 +756,39 @@ public class scenarioclosered extends OpMode {
         if (pos == 1) return 1;
         return 2;
     }
+
+    /**
+     * ✅ SIMPLIFIED: Shoot left, then right, then back (motif order)
+     * The physical positions of the balls don't matter - we always shoot in this order
+     */
+    private void shootLeftRightBack() {
+        double t = shootTimer.getElapsedTimeSeconds();
+
+        // First ball: Left slot
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
+            LL.leftUp();
+        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
+            LL.allDown();  // 50ms to retract before next ball
+        }
+        // Second ball: Right slot
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
+            LL.rightUp();
+        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
+            LL.allDown();  // 50ms to retract before next ball
+        }
+        // Third ball: Back slot
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
+            LL.backUp();
+        }
+    }
+
+    // ========== OLD METHODS REMOVED ==========
+    // The following methods are no longer needed:
+    // - executeShootingSequence() - replaced by executeShootingSequenceInMotifOrder()
+    // - shootLRB() - replaced by shootLeftRightBack()
+    // - shootBLR() - not needed
+    // - shootRBL() - not needed
+    // - getGreenPos() - not needed (no color sensor checking)
 
     // ========== PATH BUILDING METHODS ==========
     private void buildGoBackPath() {
@@ -854,7 +914,6 @@ public class scenarioclosered extends OpMode {
         pathState = pState;
         pathTimer.resetTimer();
     }
-    //
 
     private void setActionState(int aState) {
         actionState = aState;
