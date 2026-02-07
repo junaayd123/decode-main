@@ -564,18 +564,27 @@ public class scenarioclosered extends OpMode {
                 setPathState(13);
                 break;
 
-            case 13: // Wait until pickup reached
+            case 13: // Wait until pickup reached - FULLY INTAKE
                 depo.updatePID();  // ✅ Keep updating PID during drive
-                if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+                intake.setPower(-1); // ✅ KEEP INTAKE ON WHILE AT LINE
+
+                // ✅ Check if we have 3+ balls, then stop intake
+                int currentBalls = 0;
+                if (sensors.getRight() != 0) currentBalls++;
+                if (sensors.getBack() != 0) currentBalls++;
+                if (sensors.getLeft() != 0) currentBalls++;
+
+                if (currentBalls >= 3) {
+                    intake.setPower(0); // ✅ Stop intake when full
                     setPathState(14);
                 }
                 break;
 
-            case 14: // Drive straight back to shooting pose
+            case 14: // Drive straight back to shooting pose - NO OUT-TAKE
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
+                intake.setPower(0); // ✅ NO OUT-TAKE, JUST OFF
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -584,6 +593,7 @@ public class scenarioclosered extends OpMode {
 
             case 15: // Wait until back at shooting pose
                 depo.updatePID();
+                intake.setPower(0); // ✅ KEEP OFF
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
                     setPathState(115);  // ✅ Go to settling state
@@ -592,16 +602,15 @@ public class scenarioclosered extends OpMode {
 
             case 115: // ✅ NEW STATE - Settle before final shot
                 depo.updatePID();
+                intake.setPower(0); // ✅ KEEP OFF
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
-                    intake.setPower(1);
                     setPathState(16);
                 }
                 break;
 
             case 16: // Final shooting sequence
                 if (actionState == 0) {
-                    intake.setPower(1);
                     buildGetOutPath();
                     setPathState(17);
                 }
