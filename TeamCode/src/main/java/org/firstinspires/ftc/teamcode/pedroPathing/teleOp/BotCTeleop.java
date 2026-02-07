@@ -79,10 +79,10 @@ public class BotCTeleop extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(64,138,0);
-    private final Pose redGoalFixed = new Pose(72,144,0);
+    private final Pose redGoal = new Pose(62,140,0);//used for close turret aim
+    private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
-    private final Pose redGoalfar = new Pose(65,144,0);
+    private final Pose redGoalfar = new Pose(60,144,0);//used for far turret aim
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -136,44 +136,7 @@ public class BotCTeleop extends OpMode {
             break;
         }
     }
-    double movingCase = 1;
-    double timerDiddyMoment;
-    public void moveDiddyTurret(){
-        if(movingCase ==1){
-            turret.setDegreesTarget(-180);
-        }if(movingCase ==2){
-            turret.setDegreesTarget(-150);
-        }if(movingCase ==3){
-            turret.setDegreesTarget(-120);
-        }if(movingCase ==4){
-            turret.setDegreesTarget(-90);
-        }if(movingCase ==5){
-            turret.setDegreesTarget(-60);
-        }if(movingCase ==6){
-            turret.setDegreesTarget(-30);
-        }if(movingCase ==7){
-            turret.setDegreesTarget(0);
-        }if(movingCase ==8){
-            turret.setDegreesTarget(30);
-        }if(movingCase ==9){
-            turret.setDegreesTarget(60);
-        }if(movingCase ==10){
-            turret.setDegreesTarget(90);
-        }if(movingCase ==11){
-            turret.setDegreesTarget(120);
-        }if(movingCase ==12){
-            turret.setDegreesTarget(150);
-        }
-        if(turretTimer.checkAtSeconds(0.5+timerDiddyMoment)){
-            timerDiddyMoment = turretTimer.timer.seconds() - turretTimer.curtime;
-            if(movingCase ==12){
-                movingCase = 1;
-            }
-            else {
-                movingCase += 1;
-            }
-        }
-    }
+
     private enum Mode { nothing, findTag, faceGoal} //modes of turret
     private BotCTeleop.Mode mode = Mode.nothing;
 
@@ -256,7 +219,7 @@ public class BotCTeleop extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
-        while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
+        while (robHeading >= Math.toRadians(210)) robHeading -= 2 * Math.PI;
         while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
 
         if (gamepad2.rightBumperWasPressed()) {
@@ -357,6 +320,9 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(distanceToGoal>125) shootinterval = 0.4;
+//        else if (distanceToGoal<75){
+//            shootinterval = 0.25;
+//        }
         else shootinterval = 0.3;
         if(g2.cross && !preG2.cross){//shoot 3 close
             LL.allDown();
@@ -507,16 +473,16 @@ public class BotCTeleop extends OpMode {
         else BLRnoRecovery();
 
         if(g1.dpad_up&& !preG1.dpad_up){
-            ourVelo+=25;
+            ourVelo+=20;
         }
         else if(g1.dpad_down&& !preG1.dpad_down){
-            ourVelo-=25;
+            ourVelo-=20;
         }
         if(g1.dpad_left&& !preG1.dpad_left){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.03);
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.01);
         }
         else if(g1.dpad_right&& !preG1.dpad_right){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.03);
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.01);
         }
 
         // Telemetry
@@ -539,8 +505,14 @@ public class BotCTeleop extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            return (int) (4.16622*dist+900.18954);
-//            return (int) (5.35158*dist+873.83526);
+            if(dist<75){
+                return (int) (4.16622*dist+875.18954); //today 875
+            }
+            else {
+//                return (int) (5.35158*dist+873.83526);//old stuff
+                return (int) (4.16622*dist+915.18954); //today 915
+            }
+//            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
             return (int) (7.14286*dist+589.28571); //far
@@ -573,11 +545,17 @@ public class BotCTeleop extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return 0.27;//far
         else{
-//            return 0.00180592*dist-0.0205829;
-            if(dist<58) return 0.06;
-            else if(dist<70) return 0.09;
-            else if(dist<94) return 0.12;
-            else return 0.15;
+            if(dist<75){
+                return 0.00180592*dist-0.0205829;//works for very close
+            }
+            else{
+                return 0.00180592*dist-0.0005829;//works for very close
+            }
+
+//            if(dist<58) return 0.06;
+//            else if(dist<70) return 0.09;
+//            else if(dist<94) return 0.12;
+//            else return 0.15;
         }
         //old 0.00132566*dist+0.00291356
     }
