@@ -48,15 +48,16 @@ public class scenariocloseblue extends OpMode {
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 0, -70, 0, 0);
 
     // ========== TIMERS ==========
-    private Timer pathTimer, actionTimer, opmodeTimer, shootTimer;
+    private Timer pathTimer, actionTimer, opmodeTimer, shootTimer, intakeWaitTimer;
 
     // ========== SCENARIO ENUM ==========
     public enum Scenario {
         SCENARIO_1_NO_ALLIANCE(1, 1, 1.6, 1.2),      // No alliance auto - 15 balls (1 gate cycle, has third line)
         SCENARIO_2_3_BALL_ALLIANCE(1, 1, 1.6, 1.2),  // Alliance 3 ball - 18 balls (1 gate cycle, has third line)
-        SCENARIO_3_6_BALL_ALLIANCE(2, 0, 1.6, 1.2),  // Alliance 6 ball - 21 balls (2 gate cycles, no third line) (CURRENT)
+        SCENARIO_3_6_BALL_ALLIANCE(2, 0, 1.6, 1.2),  // Alliance 6 ball - 21 balls (2 gate cycles, no third line)
         SCENARIO_4_9_BALL_ALLIANCE(2, 0, 2.0, 1.4),  // Alliance 9 ball - 21 balls (2 gate cycles, custom wait)
-        SCENARIO_5_EXCESS_CYCLE(2, 0, 2.0, 1.4);     // Alliance cycles excess - 24 balls (2 gate cycles, custom wait)
+        SCENARIO_5_EXCESS_CYCLE(2, 0, 2.0, 1.4),     // Alliance cycles excess - 24 balls (2 gate cycles, custom wait)
+        SCENARIO_6_THREE_LINES(0, 0, 1.6, 1.2);      // ✅ NEW: First → Second → Third line sequence (12 balls, no gates)
 
         public final int gateCycles;           // Number of gate cycles to do
         public final int thirdLinePickup;      // 0 = skip, 1 = do third line pickup
@@ -72,12 +73,6 @@ public class scenariocloseblue extends OpMode {
     }
 
     // ========== SCENARIO SELECTION ==========
-    // Change this to select which scenario to run:
-    // SCENARIO_1_NO_ALLIANCE: No alliance auto (15 balls) - 1 gate cycle, has third line pickup
-    // SCENARIO_2_3_BALL_ALLIANCE: Alliance 3 ball auto (18 balls) - 1 gate cycle, has third line pickup
-    // SCENARIO_3_6_BALL_ALLIANCE: Alliance 6 ball auto (21 balls) - 2 gate cycles, no third line (CURRENT)
-    // SCENARIO_4_9_BALL_ALLIANCE: Alliance 9 ball auto (21 balls) - 2 gate cycles, custom wait times
-    // SCENARIO_5_EXCESS_CYCLE: Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times
     private Scenario currentScenario = Scenario.SCENARIO_3_6_BALL_ALLIANCE;  // Default to Scenario 3
 
     // ========== STATE VARIABLES ==========
@@ -85,24 +80,28 @@ public class scenariocloseblue extends OpMode {
     private int actionState;
     private int shooterSequence;
     private int greenInSlot;
-    private String motif = "empty";
+    private String motif = "ppg"; // ✅ Default motif
+    private String detectedMotif = ""; // ✅ Track detected motif
     private int gateHitCount = 0;
-    private int shotCycleCount = 0;  // Tracks how many 3-ball cycles completed
+    private int shotCycleCount = 0;
     private boolean intakeRunning = false;
-    private boolean thirdLineDone = false;  // Track if third line pickup completed
+    private boolean thirdLineDone = false;
+    private int ballCount = 3;  // ✅ Track number of balls (start with 3 preloaded)
+    private boolean waitingForMoreBalls = false;
+    private boolean secondLineDone = false; // ✅ Track if second line is done for Scenario 6
 
     // ========== CONSTANTS ==========
     private static final double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
-    private static final double SETTLE_TIME = 0.3;  // Time to settle before shooting
+    private static final double SETTLE_TIME = 0.3;
+    private static final double REVERSE_TIME = 0.15;
+    private static final double EXTRA_INTAKE_TIME = 0.5;
 
-    // ========== POSES - CORRECTLY MIRRORED FROM CLOSE RED ==========
-    // Close Red: X positive, Y positive, heading positive
-    // Close Blue: X positive, Y negative, heading negative
+    // ========== POSES ==========
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(42, -81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(56, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
@@ -114,7 +113,8 @@ public class scenariocloseblue extends OpMode {
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
     private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
-    private final Pose thirdLinePickupPose = new Pose(56, -45, Math.toRadians(0));  // Third line pickup position
+    private final Pose thirdLinePickupPose = new Pose(65, -33, Math.toRadians(0));
+    private final Pose midpoint5 = new Pose(10, -30, Math.toRadians(0)); // ✅ Scenario 6: Before third line pickup
     private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
 
     // ========== PATHS ==========
@@ -136,16 +136,16 @@ public class scenariocloseblue extends OpMode {
     private boolean prevDpadRight = false;
     private boolean prevDpadUp = false;
     private boolean prevCircle = false;
+    private boolean prevTriangle = false; // ✅ Added for Scenario 6
 
     @Override
     public void init() {
-        // Initialize timers
         pathTimer = new Timer();
         actionTimer = new Timer();
         opmodeTimer = new Timer();
         shootTimer = new Timer();
+        intakeWaitTimer = new Timer();
 
-        // Initialize subsystems
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
@@ -159,24 +159,19 @@ public class scenariocloseblue extends OpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-
-        // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        // Initialize launcher
         LL.allDown();
         LL.set_angle_min();
         stopShooter();
 
-        // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(120);
+        turret.setDegreesTarget(150);
 
-        // Initialize AprilTag vision
         initAprilTag();
 
-        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
+        telemetry.addLine("State-based Auto initialized - WITH SCENARIO 6");
         telemetry.addData("Scenario", currentScenario.name());
         telemetry.update();
     }
@@ -185,56 +180,41 @@ public class scenariocloseblue extends OpMode {
     public void init_loop() {
         turret.setPid();
         turret.toTargetInDegrees();
-
-        // Detect motif from AprilTags using webcam
         detectMotifFromAprilTags();
 
-        // Handle scenario selection with button press detection
-        // Use gamepad1 for scenario selection (or gamepad2 if preferred)
         boolean currDpadDown = gamepad1.dpad_down;
         boolean currDpadLeft = gamepad1.dpad_left;
         boolean currDpadRight = gamepad1.dpad_right;
         boolean currDpadUp = gamepad1.dpad_up;
         boolean currCircle = gamepad1.circle;
+        boolean currTriangle = gamepad1.triangle;
 
-        // Detect button presses (transition from not pressed to pressed)
         if (currDpadDown && !prevDpadDown) {
             currentScenario = Scenario.SCENARIO_1_NO_ALLIANCE;
-            telemetry.addLine("Scenario 1 Selected: " +
-                    "No alliance auto (15 balls) - 1 gate cycle, has third line pickup");
         } else if (currDpadLeft && !prevDpadLeft) {
             currentScenario = Scenario.SCENARIO_2_3_BALL_ALLIANCE;
-            telemetry.addLine("Scenario 2 Selected: " +
-                    "Alliance 3 ball auto (18 balls) - 1 gate cycle, has third line pickup");
         } else if (currDpadRight && !prevDpadRight) {
             currentScenario = Scenario.SCENARIO_4_9_BALL_ALLIANCE;
-            telemetry.addLine("Scenario 4 Selected: " +
-                    "Alliance 9 ball auto (21 balls) - 2 gate cycles, custom wait times");
         } else if (currDpadUp && !prevDpadUp) {
             currentScenario = Scenario.SCENARIO_5_EXCESS_CYCLE;
-            telemetry.addLine("Scenario 5 Selected: " +
-                    "Alliance cycles excess (24 balls) - 2 gate cycles, custom wait times");
         } else if (currCircle && !prevCircle) {
             currentScenario = Scenario.SCENARIO_3_6_BALL_ALLIANCE;
-            telemetry.addLine("Scenario 3 Selected: " +
-                    "Alliance 6 ball auto (21 balls) - 2 gate cycles, no third line pickup");
+        } else if (currTriangle && !prevTriangle) {
+            currentScenario = Scenario.SCENARIO_6_THREE_LINES;
+            telemetry.addLine("✅ Scenario 6: First→Second→Third line sequence (12 balls)");
         }
 
-        // Update previous button states
         prevDpadDown = currDpadDown;
         prevDpadLeft = currDpadLeft;
         prevDpadRight = currDpadRight;
         prevDpadUp = currDpadUp;
         prevCircle = currCircle;
+        prevTriangle = currTriangle;
 
-        telemetry.addLine("Use D-Pad or Circle to select scenario:");
-        telemetry.addLine("DPad Down = Scenario 1 | DPad Left = Scenario 2");
-        telemetry.addLine("DPad Right = Scenario 4 | DPad Up = Scenario 5");
-        telemetry.addLine("Circle = Scenario 3 (Default)");
-        telemetry.addData("Motif Detected", motif);
+        telemetry.addLine("D=1 | L=2 | R=4 | U=5 | Circle=3 | Triangle=6 (NEW)");
+        telemetry.addData("Detected Motif", detectedMotif.isEmpty() ? "NONE" : detectedMotif);
+        telemetry.addData("Will Use", motif);
         telemetry.addData("Scenario", currentScenario.name());
-        telemetry.addData("Gate Cycles", currentScenario.gateCycles);
-        telemetry.addData("Third Line Pickup", currentScenario.thirdLinePickup == 1 ? "Yes" : "No");
         telemetry.update();
     }
 
@@ -246,52 +226,46 @@ public class scenariocloseblue extends OpMode {
         shotCycleCount = 0;
         gateHitCount = 0;
         thirdLineDone = false;
+        secondLineDone = false;
+        ballCount = 3; // ✅ Start with 3 preloaded
+        waitingForMoreBalls = false;
+
+        if (detectedMotif.isEmpty()) {
+            telemetry.addLine("⚠ No AprilTag! Using default: " + motif);
+        } else {
+            telemetry.addLine("✓ Locked motif: " + motif);
+        }
+        telemetry.update();
+
         setPathState(0);
         setActionState(0);
     }
 
     @Override
     public void loop() {
-        // Update follower and subsystems
         follower.update();
         turret.toTargetInDegrees();
 
-        // Run state machines
         autonomousPathUpdate();
         autonomousActionUpdate();
 
-        // Telemetry
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
-
-        // Show current cycle based on state
-        if (pathState >= 7 && pathState <= 11) {
-            telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + currentScenario.gateCycles);
-        } else if (pathState >= 12 && pathState <= 17) {
-            if (pathState == 13 || pathState == 14) {
-                telemetry.addData("Sequence", "First Line - Second Hop");
-            } else {
-                telemetry.addData("Sequence", "First Line Pickup");
-            }
-        } else if (pathState >= 20 && pathState <= 25) {
-            telemetry.addData("Sequence", "Third Line Pickup");
-        }
+        telemetry.addData("Ball Count", ballCount);
         telemetry.addData("Scenario", currentScenario.name());
-        if (pathState == -1){
+
+        if (pathState == -1) {
             telemetry.addData("Auto Status", "Complete");
             return;
         }
 
-
         telemetry.addData("X", follower.getPose().getX());
         telemetry.addData("Y", follower.getPose().getY());
-        telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("Motif", motif);
+        telemetry.addData("Heading (deg)", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.update();
     }
 
-    // ========== APRILTAG VISION METHODS ==========
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -307,21 +281,17 @@ public class scenariocloseblue extends OpMode {
 
     private void detectMotifFromAprilTags() {
         List<AprilTagDetection> currentDetections = aprilTag.getDetections();
-
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                // Check yaw angle to determine which face we're looking at
                 double yaw = detection.ftcPose.yaw;
-
-                // Using blue side logic
                 if (yaw > 40 && yaw < 90) {
-                    if (detection.id == 21) motif = "gpp";
-                    if (detection.id == 22) motif = "pgp";
-                    if (detection.id == 23) motif = "ppg";
+                    if (detection.id == 21) { motif = "gpp"; detectedMotif = "gpp"; }
+                    if (detection.id == 22) { motif = "pgp"; detectedMotif = "pgp"; }
+                    if (detection.id == 23) { motif = "ppg"; detectedMotif = "ppg"; }
                 } else if (yaw > -90 && yaw < -40) {
-                    if (detection.id == 21) motif = "ppg";
-                    if (detection.id == 22) motif = "gpp";
-                    if (detection.id == 23) motif = "pgp";
+                    if (detection.id == 21) { motif = "ppg"; detectedMotif = "ppg"; }
+                    if (detection.id == 22) { motif = "gpp"; detectedMotif = "gpp"; }
+                    if (detection.id == 23) { motif = "pgp"; detectedMotif = "pgp"; }
                 }
             }
         }
@@ -331,39 +301,44 @@ public class scenariocloseblue extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0: // Go back to near shot pose - START FLYWHEEL
-                // ✅ Start spinning flywheel at the very beginning
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
                 break;
 
             case 1: // Wait to reach near shot pose
-                depo.updatePID();  // ✅ Keep updating PID
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(101);  // ✅ Go to new settling state
+                    actionTimer.resetTimer();
+                    setPathState(101);
                 }
                 break;
 
-            case 101: // ✅ NEW STATE - Settle before first shot
+            case 101: // Settle before first shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1); // Start shooting
+                    setActionState(1);
                     setPathState(2);
                 }
                 break;
 
-            case 2: // Wait for shooting to complete
-                if (actionState == 0) { // Shooting done
+            case 2: // Wait for shooting to complete (preload)
+                if (actionState == 0) {
+                    ballCount = 0; // ✅ Shot 3 balls
                     turret.setDegreesTarget(7);
-                    setPathState(3);
+
+                    // ✅ Scenario 6: Go to FIRST line instead of second
+                    if (currentScenario == Scenario.SCENARIO_6_THREE_LINES) {
+                        setPathState(12); // Go to first line pickup
+                    } else {
+                        setPathState(3); // Normal flow: second line
+                    }
                 }
                 break;
 
-            case 3: // Bezier curve pickup - first path
+            case 3: // Bezier curve pickup - first path (second line)
                 buildBezierPaths();
                 intake.setPower(-1);
                 follower.followPath(bezierFirstPath, true);
@@ -371,11 +346,24 @@ public class scenariocloseblue extends OpMode {
                 break;
 
             case 4: // Wait for first bezier path
+                intake.setPower(-1);
                 if (!follower.isBusy()) {
+                    // ✅ Count balls
+                    int sensedBalls = 0;
+                    if (sensors.getLeft() != 0) sensedBalls++;
+                    if (sensors.getRight() != 0) sensedBalls++;
+                    if (sensors.getBack() != 0) sensedBalls++;
+                    ballCount = sensedBalls;
 
-                    // ✅ Start spinning flywheel BEFORE next path
                     LL.set_angle_close();
                     depo.setTargetVelocity(depo.closeVelo_New_auto);
+
+                    // ✅ Only out-take if 3+ balls
+                    if (ballCount >= 3) {
+                        intake.setPower(1);
+                    } else {
+                        intake.setPower(0);
+                    }
 
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
@@ -384,13 +372,18 @@ public class scenariocloseblue extends OpMode {
 
             case 5: // Wait for second bezier path
                 depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(105);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(105);
                 }
                 break;
-            case 105: // ✅ NEW STATE - Settle before second shot
-                intake.setPower(1);
+
+            case 105: // Settle before second shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -399,138 +392,81 @@ public class scenariocloseblue extends OpMode {
                 break;
 
             case 6: // Wait for shooting cycle 2
-                intake.setPower(0);
                 if (actionState == 0) {
-                    gateHitCount = 0; // Reset counter
-                    // Check if scenario requires gate cycles
+                    ballCount = 0; // ✅ Shot 3 balls
+                    gateHitCount = 0;
                     if (currentScenario.gateCycles > 0) {
-                        setPathState(7); // Start gate cycles
+                        setPathState(7);
+                    } else if (currentScenario == Scenario.SCENARIO_6_THREE_LINES && !thirdLineDone) {
+                        // ✅ Scenario 6: After second line, go to THIRD line
+                        setPathState(20);
+                    } else if (currentScenario.thirdLinePickup == 1 && !thirdLineDone) {
+                        setPathState(20);
                     } else {
-                        // Skip gate cycles, go to third line or first line
-                        if (currentScenario.thirdLinePickup == 1 && !thirdLineDone) {
-                            setPathState(20); // Go to third line pickup
-                        } else {
-                            setPathState(12); // Go to first line pickup
-                        }
+                        setPathState(12);
                     }
                 }
                 break;
 
             // ===== GATE CYCLE LOOP =====
-            case 7: // Gate - go to gate
-                double waitTime = (gateHitCount == 0) ? currentScenario.gateWaitFirst : currentScenario.gateWaitLater;
-                buildGatePaths(waitTime);
-                intake.setPower(-1);
-                follower.followPath(gateFirstPath, true);
-                setPathState(8);
+            case 7: case 8: case 99: case 102: case 9: case 10: case 110: case 11:
+                handleGateCycle();
                 break;
 
-            case 8: // Gate - wait at gate position
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();
-                    setPathState(99);
-                }
-                break;
-            case 99: // Gate - go to back_lever
-                intake.setPower(-1);
-                follower.followPath(gatebackPath, true);
-                setPathState(102);
-                break;
-            case 102: // Gate - wait at back_lever position
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();
-                    setPathState(9);
-                }
-                break;
-
-            case 9: // Gate - pause to collect artifacts
-                double waitTime2 = (gateHitCount == 0) ? currentScenario.gateWaitFirst : currentScenario.gateWaitLater;
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-
-                    // ✅ Start spinning flywheel BEFORE return path
-                    LL.set_angle_close();
-                    depo.setTargetVelocity(depo.closeVelo_New_auto);
-                    buildGatePathsBack();
-
-                    follower.followPath(gateSecondPath, true);
-                    setPathState(10);
-                }
-                break;
-
-            case 10: // Gate - return to shooting position
-                intake.setPower(1);
-                depo.updatePID();
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(110);  // ✅ Go to settling state
-                }
-                break;
-
-            case 110: // ✅ NEW STATE - Settle before gate shot
-                intake.setPower(0);
-                depo.updatePID();
-                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1);
-                    setPathState(11);
-                }
-                break;
-
-            case 11: // Wait for shooting to complete
-                if (actionState == 0) {
-                    gateHitCount++;
-
-                    if (gateHitCount < currentScenario.gateCycles) {
-                        setPathState(7); // Loop back to gate cycle
-                    } else {
-                        // Gate cycles done, check if we need third line pickup
-                        if (currentScenario.thirdLinePickup == 1 && !thirdLineDone) {
-                            setPathState(20); // Go to third line pickup
-                        } else {
-                            setPathState(12); // Move to first line pickup
-                        }
-                    }
-                }
-                break;
-
-            // ===== THIRD LINE PICKUP (Scenarios 1 & 2) =====
-            case 20: // Drive to third line pickup
-                // ✅ Start spinning flywheel BEFORE going to pickup
+            // ===== THIRD LINE PICKUP (States 20-25) =====
+            case 20: // Drive to third line
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-
-                manageSecondHopIntake();
+                intake.setPower(-1);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
                 break;
 
-            case 21: // Wait until third line pickup reached
-                depo.updatePID();  // ✅ Keep updating PID during drive
+            case 21: // Wait at third line
+                intake.setPower(-1);
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+                    // ✅ Count balls
+                    int sensedBalls = 0;
+                    if (sensors.getLeft() != 0) sensedBalls++;
+                    if (sensors.getRight() != 0) sensedBalls++;
+                    if (sensors.getBack() != 0) sensedBalls++;
+                    ballCount = sensedBalls;
                     setPathState(22);
                 }
                 break;
 
-            case 22: // Drive back to shooting pose from third line
-                // ✅ Start spinning flywheel BEFORE return path
+            case 22: // Return from third line
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
+
+                // ✅ Only out-take if 3+ balls
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                } else {
+                    intake.setPower(0);
+                }
 
                 buildThirdLineReturnPath();
                 follower.followPath(thirdLineReturnPath, true);
                 setPathState(23);
                 break;
 
-            case 23: // Wait until back at shooting pose from third line
+            case 23: // Wait to return
                 depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(24);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(24);
                 }
                 break;
 
-            case 24: // ✅ NEW STATE - Settle before third line shot
+            case 24: // Settle before third line shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -538,101 +474,234 @@ public class scenariocloseblue extends OpMode {
                 }
                 break;
 
-            case 25: // Wait for third line shooting to complete
+            case 25: // Wait for third line shot
                 if (actionState == 0) {
                     thirdLineDone = true;
-                    setPathState(12); // Move to first line pickup
+                    ballCount = 0; // ✅ Shot 3 balls
+
+                    // ✅ Scenario 6: After third line, go straight to get out
+                    if (currentScenario == Scenario.SCENARIO_6_THREE_LINES) {
+                        buildGetOutPath();
+                        setPathState(18);
+                    } else {
+                        setPathState(12);
+                    }
                 }
                 break;
 
-            // ===== FIRST LINE PICKUP =====
-            case 12: // Drive straight to first line pickup
-                // ✅ Start spinning flywheel BEFORE going to pickup
+            // ===== FIRST LINE PICKUP (States 12-17) =====
+            case 12: // Drive to first line
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-
-                intake.setPower(-1);
+                ballCount = 0;
+                waitingForMoreBalls = false;
+                intake.setPower(-1);  // ✅ LINE 497: Intake turns ON (collecting)
+                intakeRunning = true;
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
                 setPathState(13);
                 break;
 
-            case 13: // Wait until pickup reached
-                depo.updatePID();  // ✅ Keep updating PID during drive
-                if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+            case 13: // Collect balls at first line
+                depo.updatePID();
+                int currentBalls = 0;
+                if (sensors.getRight() != 0) currentBalls++;
+                if (sensors.getBack() != 0) currentBalls++;
+                if (sensors.getLeft() != 0) currentBalls++;
+
+                if (currentBalls > ballCount) ballCount = currentBalls;
+
+                if (ballCount >= 3 && !waitingForMoreBalls) {
+                    waitingForMoreBalls = true;
+                    intakeWaitTimer.resetTimer();
+                }
+
+                boolean timeToStop = waitingForMoreBalls &&
+                        intakeWaitTimer.getElapsedTimeSeconds() >= EXTRA_INTAKE_TIME;
+
+                if (timeToStop && ballCount >= 3) {
+                    intake.setPower(-1);  // ✅ LINE 522: Intake turns OFF after collecting
+                    intakeRunning = false;
+                    actionTimer.resetTimer();
                     setPathState(14);
                 }
                 break;
 
-            case 14: // Drive straight back to shooting pose
-                // ✅ Start spinning flywheel BEFORE return path
+            case 14: // Quick reverse
+                if (actionTimer.getElapsedTimeSeconds() < REVERSE_TIME) {
+                    intake.setPower(-1);
+                } else {
+                    intake.setPower(0);
+                    setPathState(15);
+                }
+                break;
+
+            case 15: // Return from first line
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
+                // ✅ Only out-take if 3+ balls
+                if (ballCount >= 3) {
+                    intake.setPower(-1);  // ✅ LINE 545: Out-take turns ON (only if 3+ balls)
+                } else {
+                    intake.setPower(0);
+                }
+
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
-                setPathState(15);
+                setPathState(16);
                 break;
 
-            case 15: // Wait until back at shooting pose
+            case 16: // Wait to return
                 depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(-1);
+                }
+
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(115);  // ✅ Go to settling state
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(115);
                 }
                 break;
 
-            case 115: // ✅ NEW STATE - Settle before final shot
+            case 115: // Settle before first line shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
-                    intake.setPower(1);
-                    setPathState(16);
-                }
-                break;
-
-            case 16: // Final shooting sequence
-                if (actionState == 0) {
-                    intake.setPower(1);
-                    buildGetOutPath();
                     setPathState(17);
                 }
                 break;
-            case 17:
-                intake.setPower(0);
-                follower.followPath(getOut, true);
-                setPathState(18);
+
+            case 17: // Wait for first line shot
+                if (actionState == 0) {
+                    ballCount = 0; // ✅ Shot 3 balls
+
+                    // ✅ Scenario 6: After first line, go to SECOND line
+                    if (currentScenario == Scenario.SCENARIO_6_THREE_LINES && !secondLineDone) {
+                        secondLineDone = true;
+                        setPathState(3); // Go to second line (bezier paths)
+                    } else {
+                        buildGetOutPath();
+                        setPathState(18);
+                    }
+                }
                 break;
+
             case 18:
+                follower.followPath(getOut, true);
+                setPathState(19);
+                break;
+
+            case 19:
                 if (!follower.isBusy()) {
-                    setPathState(-1); // Auto complete
+                    setPathState(-1);
                 }
                 break;
         }
     }
 
-    // ========== ACTION STATE MACHINE (SHOOTING) ==========
+    private void handleGateCycle() {
+        switch (pathState) {
+            case 7:
+                double waitTime = (gateHitCount == 0) ? currentScenario.gateWaitFirst : currentScenario.gateWaitLater;
+                buildGatePaths(waitTime);
+                intake.setPower(-1);
+                follower.followPath(gateFirstPath, true);
+                setPathState(8);
+                break;
+            case 8:
+                intake.setPower(-1);
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(99);
+                }
+                break;
+            case 99:
+                intake.setPower(-1);
+                follower.followPath(gatebackPath, true);
+                setPathState(102);
+                break;
+            case 102:
+                intake.setPower(-1);
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(9);
+                }
+                break;
+            case 9:
+                double waitTime2 = (gateHitCount == 0) ? currentScenario.gateWaitFirst : currentScenario.gateWaitLater;
+                intake.setPower(-1);
+                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                    // ✅ Count balls
+                    int sensedBalls = 0;
+                    if (sensors.getLeft() != 0) sensedBalls++;
+                    if (sensors.getRight() != 0) sensedBalls++;
+                    if (sensors.getBack() != 0) sensedBalls++;
+                    ballCount = sensedBalls;
+
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    buildGatePathsBack();
+                    follower.followPath(gateSecondPath, true);
+                    setPathState(10);
+                }
+                break;
+            case 10:
+                depo.updatePID();
+                if (ballCount >= 3) {
+                    intake.setPower(1);
+                } else {
+                    intake.setPower(0);
+                }
+
+                if (!follower.isBusy()) {
+                    intake.setPower(0);
+                    actionTimer.resetTimer();
+                    setPathState(110);
+                }
+                break;
+            case 110:
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
+                    setPathState(11);
+                }
+                break;
+            case 11:
+                if (actionState == 0) {
+                    ballCount = 0; // ✅ Shot 3 balls
+                    gateHitCount++;
+                    if (gateHitCount < currentScenario.gateCycles) {
+                        setPathState(7);
+                    } else {
+                        if (currentScenario.thirdLinePickup == 1 && !thirdLineDone) {
+                            setPathState(20);
+                        } else {
+                            setPathState(12);
+                        }
+                    }
+                }
+                break;
+        }
+    }
+
+    // ========== ACTION STATE MACHINE ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
-            case 0: // Idle
-                break;
-
-            case 1: // Initialize shooting
+            case 0: break;
+            case 1:
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
-
-                // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
-                    setActionState(3);  // Skip wait, go straight to shooting!
+                    setActionState(3);
                 } else {
-                    setActionState(2);  // Still need to wait
+                    setActionState(2);
                 }
                 break;
-
-            case 2: // Wait for shooter to spin up
+            case 2:
                 depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -640,12 +709,9 @@ public class scenariocloseblue extends OpMode {
                     setActionState(3);
                 }
                 break;
-
-            case 3: // Execute shooting sequence
+            case 3:
                 depo.updatePID();
-
                 executeShootingSequence();
-
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
@@ -657,7 +723,6 @@ public class scenariocloseblue extends OpMode {
         }
     }
 
-    // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
         if (motif.equals("gpp")) {
             if (greenInSlot == 0) shootLRB();
@@ -676,47 +741,29 @@ public class scenariocloseblue extends OpMode {
 
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) LL.leftUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.rightUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.backUp();
     }
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.backUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.rightUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) LL.backUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.leftUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.rightUp();
     }
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.backUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.leftUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) LL.rightUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.backUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.leftUp();
     }
 
     private int getGreenPos() {
@@ -727,7 +774,7 @@ public class scenariocloseblue extends OpMode {
         return 2;
     }
 
-    // ========== PATH BUILDING METHODS ==========
+    // ========== PATH BUILDING ==========
     private void buildGoBackPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
@@ -743,7 +790,6 @@ public class scenariocloseblue extends OpMode {
                 .addPath(new Path(new BezierCurve(cur, midpoint1, secondpickuppose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), secondpickuppose.getHeading(), 0.8)
                 .build();
-
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
@@ -757,13 +803,13 @@ public class scenariocloseblue extends OpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1)
                 .build();
-
         gatebackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
                 .setTimeoutConstraint(0.3)
                 .build();
     }
+
     private void buildGatePathsBack() {
         Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
@@ -790,10 +836,20 @@ public class scenariocloseblue extends OpMode {
 
     private void buildThirdLinePickupPath() {
         Pose cur = follower.getPose();
-        thirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, thirdLinePickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
-                .build();
+
+        // ✅ Scenario 6: Use midpoint5 for smoother path from second line to third line
+        if (currentScenario == Scenario.SCENARIO_6_THREE_LINES) {
+            thirdLinePickupPath = follower.pathBuilder()
+                    .addPath(new Path(new BezierCurve(cur, midpoint5, thirdLinePickupPose)))
+                    .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
+                    .build();
+        } else {
+            // Other scenarios: Direct line
+            thirdLinePickupPath = follower.pathBuilder()
+                    .addPath(new Path(new BezierLine(cur, thirdLinePickupPose)))
+                    .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
+                    .build();
+        }
     }
 
     private void buildThirdLineReturnPath() {
@@ -813,32 +869,24 @@ public class scenariocloseblue extends OpMode {
                 .build();
     }
 
-    // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
-
-        // Check if all slots are full
         boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-
         if (intakeRunning) {
             if (allFull) {
-                // All slots full - trigger reverse sequence
                 actionTimer.resetTimer();
                 intakeRunning = false;
             }
         } else {
-            // Not currently intaking - check if we should start
             if (!allFull) {
                 intake.setPower(-1);
                 intakeRunning = true;
             }
         }
-
-        // Handle reverse sequence when full (like reverseIntake() in teleop)
-        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
-            intake.setPower(1); // Reverse for 0.5 seconds
-        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
-            intake.setPower(0); // Stop after reverse
+        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < REVERSE_TIME && actionTimer.getElapsedTimeSeconds() > 0) {
+            intake.setPower(1);
+        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= REVERSE_TIME) {
+            intake.setPower(0);
         }
     }
 
@@ -851,7 +899,6 @@ public class scenariocloseblue extends OpMode {
         pathState = pState;
         pathTimer.resetTimer();
     }
-    //
 
     private void setActionState(int aState) {
         actionState = aState;
