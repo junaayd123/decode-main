@@ -1,58 +1,49 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
-
-import com.pedropathing.geometry.BezierCurve;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotB; // make sure this aligns with class location
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
-
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
-
+//
+@Disabled
 //hi..
-@Autonomous(name = "botCredclosered", group = "Pedro")
-public class botCredclose_misha extends LinearOpMode {
+@Autonomous(name = "close red final", group = "Pedro")
+public class closeRedfinal extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
+    private AprilTagProcessor aprilTag;
+    private VisionPortal visionPortal;
     private Position cameraPosition = new Position(DistanceUnit.INCH, 0, 6, 12, 0);
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
     private boolean shootingHasWorked = true;
     public ColorSensors sensors;
 
     // ---------- Shooter subsystems ----------
-    private Deposition_C depo;
-    private TurretLimelight turret;
-    double shootinterval = 0.35;
-    private lifters LL;
+    private Deposition depo;
+    private lift_three LL;
     private DcMotor intake = null;
 
     // Shooter motors (direct handles for voltage compensation)
@@ -64,16 +55,16 @@ public class botCredclose_misha extends LinearOpMode {
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose startPose = new Pose(
-            44,                // x inches
-            128,                     // y inches og:32
-            Math.toRadians(35)    // heading (rad)
+            107.313,                // x inches
+            -29.687,                     // y inches og:32
+            Math.toRadians(-135)    // heading (rad)
     );
 
     // Your goal pose (exactly as in your movement program)
     private final Pose nearshotpose = new Pose(
-            13.4,                    // x inches (forward) og: 72
-            84.3,                   // y inches (left)
-            Math.toRadians(0)    // heading (rad) at finish
+            90,                    // x inches (forward) og: 72
+            -8.5,                   // y inches (left)
+            Math.toRadians(-224.5)    // heading (rad) at finish
     );
     private final Pose firstpickupPose = new Pose(
             66.5,                    // x inches (forward) og 71.5
@@ -150,10 +141,9 @@ public class botCredclose_misha extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Init subsystems
-        depo    = new Deposition_C(hardwareMap);  // COMMENTED OUT (depo)
-        LL      = new lifters(hardwareMap);
+        depo    = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
+        LL      = new lift_three(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
-        turret  = new TurretLimelight((hardwareMap));
 
         timer1  = new Timer();
         timer2  = new Timer();
@@ -166,10 +156,10 @@ public class botCredclose_misha extends LinearOpMode {
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Pedro follower (this is fine for Pedro 2.0)
-        follower = C_Bot_Constants.createFollower(hardwareMap);
+        follower = B_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        //    initAprilTag();
+        initAprilTag();
 
         // Launcher safe start
         LL.allDown();
@@ -181,27 +171,19 @@ public class botCredclose_misha extends LinearOpMode {
         telemetry.addLine("Auto ready: will shoot 3 (far, with delay) then run your movement.");
         telemetry.update();
 
-        turret.limelight.pipelineSwitch(2);
-        turret.limelight.start();
-
-        turret.resetTurretEncoder();
-        turret.setDegreesTarget(-96.4);
         while (!isStarted() && !isStopRequested()) {
-            turret.setPid();
-            LLResult result = turret.limelight.getLatestResult();
-            List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
-            for (LLResultTypes.FiducialResult fr : fiducialResults){
-                if (fr.getFiducialId() == 21) {
-                    motif= "pgp";
-                }
-                if (fr.getFiducialId() == 22) {
-                    motif= "ppg";
-                }
-                if (fr.getFiducialId() == 23) {
-                    motif=  "gpp";
-                }
+            if (motifInit.equals("empty")) InitialFindMotif();
+
+            if (motifInit.equals("ppg")) {
+                motif = "gpp";
+                motifInit = "empty";
+            } else if (motifInit.equals("pgp")) {
+                motif = "ppg";
+                motifInit = "empty";
+            } else if (motifInit.equals("gpp")) {
+                motif = "pgp";
+                motifInit = "empty";
             }
-            turret.toTargetInDegrees();
 
             telemetry.addData("Motif", motif);
             telemetry.update();
@@ -209,23 +191,23 @@ public class botCredclose_misha extends LinearOpMode {
         }
         waitForStart();
         if (isStopRequested()) return;
-        turret.setDegreesTarget(-37);
+
         go_back();
-        pauseBeforeShooting(.4);
+        pauseBeforeShooting(0.4);
         three_close_shots();
-//        first_line_pickup();
-//        reset();
-//        go_close();
-//        three_close_shots();
-//        second_line_pickup();
-//        reset();
-//        go_close();
-//        three_close_shots();
-//        third_line_pickup();
-//        reset();
-//        go_close();
-//        three_close_shots();
-//        go_infront();
+        first_line_pickup();
+        reset();
+        go_close();
+        three_close_shots();
+        second_line_pickup();
+        reset();
+        go_close();
+        three_close_shots();
+        third_line_pickup();
+        reset();
+        go_close();
+        three_close_shots();
+        go_infront();
 
 
         telemetry.addLine("ADITI WAD HEREEEEEEE");
@@ -243,7 +225,7 @@ public class botCredclose_misha extends LinearOpMode {
         while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
         if (intake != null) intake.setPower(0);
     }
-    //hi
+
     private void go_back(){
 
         Pose cur = follower.getPose();
@@ -254,7 +236,6 @@ public class botCredclose_misha extends LinearOpMode {
                 .build();
         follower.followPath(close_shot, true);
         while (opModeIsActive() && follower.isBusy()) {
-            turret.toTargetInDegrees();
             follower.update();
             idle();
         }
@@ -286,7 +267,6 @@ public class botCredclose_misha extends LinearOpMode {
         pause.startTimer();
         while (opModeIsActive() && !pause.checkAtSeconds(seconds)) {
             follower.update();   // safe even if idle
-            turret.toTargetInDegrees();
             idle();
         }
     }
@@ -326,7 +306,6 @@ public class botCredclose_misha extends LinearOpMode {
         startCloseShot();
         while (opModeIsActive() && !isFarShotCycleDone()) {
             depo.updatePID();  // COMMENTED OUT (depo)
-            turret.toTargetInDegrees();
             if (depo.reachedTarget()) {  // COMMENTED OUT (depo)
                 if (sequence == 3 || sequence == 4) {
                     greenInSlot = getGreenPos();
@@ -369,21 +348,40 @@ public class botCredclose_misha extends LinearOpMode {
     }
 
     private void shootLRB() {//shoots in left right back order
-        if (timer1.checkAtSeconds(0)) {
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
             LL.leftUp();
-            shooterSequence = 1;
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
-        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
             LL.rightUp();
-            shooterSequence = 2;
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
-        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
-            LL.allDown();
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
             LL.backUp();
-            shooterSequence = 3;
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
         }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -391,21 +389,40 @@ public class botCredclose_misha extends LinearOpMode {
         }
     }
     private void shootBLR(){//shoots in back left right order
-        if (timer1.checkAtSeconds(0)) {
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
             LL.backUp();
-            shooterSequence = 1;
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
-        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
             LL.leftUp();
-            shooterSequence = 2;
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
-        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
-            LL.allDown();
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
             LL.rightUp();
-            shooterSequence = 3;
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
         }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -413,28 +430,47 @@ public class botCredclose_misha extends LinearOpMode {
         }
     }
     private void shootRBL() {//shoots in right back left order
-        if (timer1.checkAtSeconds(0)) {
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
             LL.rightUp();
-            shooterSequence = 1;
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
         }
-        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+
+        // Shot 2
+        if (timer1.checkAtSeconds(0.4) && shooterSequence == 1) {//after 0.4 sec after first shot starts puts the lifts down
             LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if (shooterSequence == 2 && depo.reachedTargetHighTolerance()) { //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
             LL.backUp();
-            shooterSequence = 2;
+            shooterSequence = 3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds() - timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
         }
-        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
-            LL.allDown();
+
+        // Shot 3
+        if (timer1.checkAtSeconds(0.4 + timeOfSecondShot) && shooterSequence == 3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if (shooterSequence == 4 && depo.reachedTargetHighTolerance()) {//does the velocity check again
             LL.leftUp();
-            shooterSequence = 3;
+//            fireNextAvailableShot();
+            shooterSequence = 5;
+            timeOfSecondShot = timer1.timer.seconds() - timer1.curtime;
         }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4 + timeOfSecondShot) && shooterSequence == 5) {//resets the whole timer and sequence is done
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
             shooterSequence = 0;
         }
     }
-    //ss
+        //ss
 
 
 
@@ -599,6 +635,41 @@ public class botCredclose_misha extends LinearOpMode {
         }
         if (intake != null) intake.setPower(1);
     }
+
+    private void initAprilTag() {
+        aprilTag = new AprilTagProcessor.Builder()
+                .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
+                .setCameraPose(cameraPosition, cameraOrientation)
+                .build();
+
+        VisionPortal.Builder builder = new VisionPortal.Builder();
+
+        if (USE_WEBCAM) {
+            try {
+                builder.setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"));
+            } catch (Exception e) {
+                telemetry.addLine("Warning: Webcam not found");
+            }
+        } else {
+            builder.setCamera(BuiltinCameraDirection.BACK);
+        }
+        builder.addProcessor(aprilTag);
+        visionPortal = builder.build();
+    }
+
+    private void initOpenCV() {
+        // LEAVE BLANK
+    }
+    private void InitialFindMotif() {
+        try {
+            List<AprilTagDetection> detections = aprilTag.getDetections();
+            for (AprilTagDetection detection : detections) {
+                if (detection.metadata != null &&
+                        detection.metadata.name.contains("Obelisk")) {
+                    motifInit = (detection.id == 21) ? "gpp"
+                            : (detection.id == 22) ? "pgp" : "ppg";
+                }
+            }
+        } catch (Exception ignored) {}
+    }
 }
-
-

@@ -1,39 +1,35 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous; // make sure this aligns with class location
-
-import com.pedropathing.geometry.BezierCurve;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete; // make sure this aligns with class location
 
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
-
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Deposition;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.B_Bot_Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.lift_three;
-
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
-@Autonomous(name = "farRedMotif", group = "Pedro")
-public class farRedMotif extends LinearOpMode {
+@Disabled
+@Autonomous(name = "Test_newBot_farRedMotif", group = "Pedro")
+public class TEST_newBot_farRedMotif extends LinearOpMode {
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
     private AprilTagProcessor aprilTag;
     private VisionPortal visionPortal;
@@ -41,6 +37,18 @@ public class farRedMotif extends LinearOpMode {
     private YawPitchRollAngles cameraOrientation = new YawPitchRollAngles(AngleUnit.DEGREES, 180, -90, 0, 0);
     String motif = null;
     private boolean shootingHasWorked = true;
+
+    // --- NEW: Intake State Machine Variables ---
+    private enum IntakeState {
+        OFF,                // Intake is off
+        INTAKING,           // Intake is running forward
+        REVERSING,          // Intake is running in reverse
+        DONE_REVERSING      // Intake process is complete
+    }
+
+    private IntakeState intakeState = IntakeState.OFF;
+    private final double REVERSE_TIME_S = 2.0; // Time to run the intake in reverse to settle balls
+    // ------------------------------------------
 
     // ---------- Shooter subsystems -------------
     // Commented out: depo usage will be removed
@@ -54,8 +62,6 @@ public class farRedMotif extends LinearOpMode {
 
     // ---------- Pedro ----------
     private Follower follower;
-    public ColorSensors sensors;
-
 
     // ----- Voltage-comp power (tune these once around ~12.35V) -----
     private static final double FAR_BASE_POWER_12V = 0.67;   // what worked for FAR at ~12.0V
@@ -65,30 +71,30 @@ public class farRedMotif extends LinearOpMode {
 
     // Start at (0,0) with heading 20° to the RIGHT → -20° (clockwise negative)
     private final Pose start_align_Pose = new Pose(-4.0, 2, Math.toRadians(-180));
-    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201));
+    private final Pose startPose = new Pose(0.0, 0.0, Math.toRadians(-201.5));
 
     // Your goal pose (exactly as in your movement program)
     private final Pose firstpickupPose = new Pose(22.5, -20, Math.toRadians(-90));
 
     private final Pose midPoint1 = new Pose(37, -14, Math.toRadians(-90));
-    private final Pose secondpickupPose = new Pose(45.5, -17, Math.toRadians(-90));
+    private final Pose secondpickupPose = new Pose(45.5, -20, Math.toRadians(-90)); //was 45.5,-17
 
     private final Pose midPoint2 = new Pose(44, -4, Math.toRadians(-90));
     private final Pose thirdpickupPose = new Pose(71.5, -20, Math.toRadians(-90));
     private final Pose midPoint3 = new Pose(76, -4, Math.toRadians(-90));
-    private final Pose near_shot_Pose = new Pose(97.5, -17, Math.toRadians(-237));
-    private final Pose infront_of_lever = new Pose(61.5, -37.5, Math.toRadians(-180));
+    private final Pose near_shot_Pose = new Pose(97.5, -17, Math.toRadians(-240.0));
+    private final Pose infront_of_lever = new Pose(61.5, -37.5, Math.toRadians(0));
 
     private static final double SECOND_HOP_IN = 13.5;
-    boolean shootingHasWorkedNoVelo;
     private static final double SHOT_DELAY_S = 0.75;  // delay between shots (you already use timing windows below)
 
     // ---------- Upgraded shooter timing ----------
     private Timer timer1;
     private Timer timer2;
-    private int sequence = 0;
-    int shooterSequence;
 
+    private Timer timer3; // kept for potential other uses but unused in intake logic
+    private Timer timer4; // now used for intake reverse duration
+    private int sequence = 0;
 
     // --------- Voltage-comp helpers (kept) ---------
     private double getBatteryVoltage() {
@@ -98,27 +104,6 @@ public class farRedMotif extends LinearOpMode {
             if (vv > 0) v = Math.max(v, vv);
         }
         return (v > 0) ? v : 12.35;
-    }
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-
-        boolean rightFull = (sensors.getRight() != 0);
-        boolean backFull  = (sensors.getBack()  != 0);
-        boolean leftFull  = (sensors.getLeft()  != 0);
-
-        int count = 0;
-        if (rightFull) count++;
-        if (backFull)  count++;
-        if (leftFull)  count++;
-
-        // Tray full → spit everything else we touch
-        if (count >= 3) {
-            if (intake != null) intake.setPower(1);
-            return;
-        }
-
-        // Tray not full yet → continue grabbing balls
-        if (intake != null) intake.setPower(-1);
     }
 
     /**
@@ -143,10 +128,11 @@ public class farRedMotif extends LinearOpMode {
     public void runOpMode() throws InterruptedException {
         // Init subsystems
         depo = new Deposition(hardwareMap);  // COMMENTED OUT (depo)
-        sensors = new ColorSensors(hardwareMap);
         LL = new lift_three(hardwareMap);
         timer1 = new Timer();
         timer2 = new Timer();
+        timer3 = new Timer();
+        timer4 = new Timer();
 
         intake = hardwareMap.get(DcMotor.class, "intake");  // COMMENTED OUT (intake)
         d1 = hardwareMap.get(DcMotor.class, "depo");   // ensure names match RC config
@@ -171,12 +157,8 @@ public class farRedMotif extends LinearOpMode {
         telemetry.addLine("Auto ready: will shoot 3 (far, with depo PID + timer3) then run movement.");
         telemetry.update();
 
-        while (motif == null && !isStopRequested()) {
+        while (motif == null) {
             InitialFindMotif();
-            telemetry.addData("Looking for motif...", "");
-            telemetry.update();
-            idle();
-            sleep(10);
         }
         telemetry.addData("Motif Pattern:", motif);
         telemetry.update();
@@ -186,15 +168,15 @@ public class farRedMotif extends LinearOpMode {
 
         first_align_movement();
         three_far_shots();
-        first_line_pickup();
+        first_line_pickup(); // This now handles the concurrent intake
         reset();
         go_home();
         three_far_shots();
-        second_line_pickup();
+        second_line_pickup(); // This now handles the concurrent intake
         reset();
         go_close();
         three_close_shots();
-        third_line_pickup();
+        third_line_pickup(); // This now handles the concurrent intake
         reset();
         go_close_2();
         three_close_shots();
@@ -221,7 +203,7 @@ public class farRedMotif extends LinearOpMode {
     private void go_infront() {
         Pose cur = follower.getPose();
         PathChain home = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur,infront_of_lever)))
+                .addPath(new Path(new BezierLine(cur, infront_of_lever)))
                 .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever.getHeading())
                 .build();
         follower.followPath(home, true);
@@ -248,13 +230,12 @@ public class farRedMotif extends LinearOpMode {
             follower.update();
             idle();
         }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
     }
 
     // ===== Far / Close shot sequence starters (upgraded) =====
     private void startFarShot() {
         sequence = 3;
-        depo.setTargetVelocity(depo.farVelo_New_auto);  // COMMENTED OUT (depo)
+        depo.setTargetVelocity(depo.farVelo_New);  // COMMENTED OUT (depo)
 //        LL.far();
         // optionally: setShooterPowerVoltageComp(FAR_BASE_POWER_12V);
     }
@@ -280,7 +261,6 @@ public class farRedMotif extends LinearOpMode {
             shootMotif(motif);
             follower.update();
         }
-
     }
 
     private void three_close_shots() {
@@ -300,112 +280,140 @@ public class farRedMotif extends LinearOpMode {
     }
 
     private void first_line_pickup() {
-        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        // 1. Start the intake state machine
+        intakeState = IntakeState.INTAKING;
+
         // path 1
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(startPose, firstpickupPose)))
                 .setLinearHeadingInterpolation(startPose.getHeading(), firstpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+
+        // Loop for Path 1: Concurrent Update
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            updateIntake(); // <--- Run the intake state machine every loop
+            idle();
+        }
 
         // path 2 (forward hop)
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
         double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 18) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 21) * Math.sin(heading);
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
+        follower.setMaxPower(0.75);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
+
+        // Loop for Path 2: Concurrent Update
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
+            updateIntake(); // <--- Run the intake state machine every loop
             idle();
         }
-        if (intake != null) intake.setPower(1);
+        follower.setMaxPower(1.0);
+
+        // Ensure the intake process is shut down after all motion is done
+        if (intakeState != IntakeState.DONE_REVERSING && intakeState != IntakeState.OFF) {
+            intakeState = IntakeState.DONE_REVERSING;
+            updateIntake(); // sets power to 0 if not already done
+        }
     }
 
     private void second_line_pickup() {
-        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        // 1. Start the intake state machine
+        intakeState = IntakeState.INTAKING;
+
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(startPose, midPoint1, secondpickupPose)))
                 .setLinearHeadingInterpolation(startPose.getHeading(), secondpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+
+        // Loop for Path 1: Concurrent Update
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            updateIntake(); // <--- Run the intake state machine every loop
+            idle();
+        }
 
         Pose cur = follower.getPose();
         double heading = cur.getHeading();
-        double dx = (SECOND_HOP_IN) * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 22) * Math.sin(heading);
+        double dx = (SECOND_HOP_IN) * Math.cos(heading); //sajeeth: why this complex math here; cos(90) is ZERO anyways
+        double dy = (SECOND_HOP_IN + 21) * Math.sin(heading); // 12/7/25: was 18 and was moved to 21 to match pickup2
         Pose secondGoal = new Pose(cur.getX() + dx, cur.getY() + dy, heading);
 
+        follower.setMaxPower(0.75);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
+
+        // Loop for Path 2: Concurrent Update
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
+            updateIntake(); // <--- Run the intake state machine every loop
             idle();
         }
-        if (intake != null) intake.setPower(1);
+        follower.setMaxPower(1.0);
+
+        // Ensure the intake process is shut down after all motion is done
+        if (intakeState != IntakeState.DONE_REVERSING && intakeState != IntakeState.OFF) {
+            intakeState = IntakeState.DONE_REVERSING;
+            updateIntake();
+        }
     }
 
     private void third_line_pickup() {
-        if (intake != null) intake.setPower(-1);  // COMMENTED OUT (intake)
+        // 1. Start the intake state machine
+        intakeState = IntakeState.INTAKING;
+
         Pose cur = follower.getPose();
         PathChain first = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midPoint3, thirdpickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), thirdpickupPose.getHeading())
                 .build();
         follower.followPath(first, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
+
+        // Loop for Path 1: Concurrent Update
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            updateIntake(); // <--- Run the intake state machine every loop
+            idle();
+        }
 
         Pose cur1 = follower.getPose();
         double heading = cur1.getHeading();
         double dx = SECOND_HOP_IN * Math.cos(heading);
-        double dy = (SECOND_HOP_IN + 13.5) * Math.sin(heading);
+        double dy = (SECOND_HOP_IN + 14) * Math.sin(heading);
         Pose secondGoal = new Pose(cur1.getX() + dx, cur1.getY() + dy, heading);
 
+        follower.setMaxPower(0.75);
         PathChain second = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur1, secondGoal)))
                 .setConstantHeadingInterpolation(heading)
-                .setTimeoutConstraint(0.2)
                 .build();
         follower.followPath(second, true);
+
+        // Loop for Path 2: Concurrent Update
         while (opModeIsActive() && follower.isBusy()) {
             follower.update();
-
-            // 👉 PROTECTION AGAINST 4TH/5TH BALL DURING SECOND HOP
-            manageSecondHopIntake();
-
-
+            updateIntake(); // <--- Run the intake state machine every loop
             idle();
         }
-        if (intake != null) intake.setPower(1);
-    }
-    private void checkShotNoVelo(){//checks that the correct color was shot otherwise quits shooting sequence
-        if(!shootingHasWorkedNoVelo) {
-            depo.setTargetVelocity(0);
-            timer2.stopTimer();
-            LL.allDown();
-            shooterSequence = 0;
+        follower.setMaxPower(1.0);
+
+        // Ensure the intake process is shut down after all motion is done
+        if (intakeState != IntakeState.DONE_REVERSING && intakeState != IntakeState.OFF) {
+            intakeState = IntakeState.DONE_REVERSING;
+            updateIntake();
         }
     }
 
@@ -417,10 +425,14 @@ public class farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
-
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
+        // The intake should already be off via the state machine if it was running.
+        if (intake != null) intake.setPower(0);
     }
+
     private void go_close_2() {
         Pose cur = follower.getPose();
         PathChain close_shot = follower.pathBuilder()
@@ -428,9 +440,10 @@ public class farRedMotif extends LinearOpMode {
                 .setLinearHeadingInterpolation(cur.getHeading(), near_shot_Pose.getHeading())
                 .build();
         follower.followPath(close_shot, true);
-        while (opModeIsActive() && follower.isBusy()) { follower.update(); idle(); }
-        if (intake != null) intake.setPower(0);  // COMMENTED OUT (intake)
-
+        while (opModeIsActive() && follower.isBusy()) {
+            follower.update();
+            idle();
+        }
     }
 
     private boolean isFarShotCycleDone() {
@@ -438,19 +451,19 @@ public class farRedMotif extends LinearOpMode {
     }
 
     // unified shooting timing (copied from far-blue)
-    private void shoot3x(){
-        if(timer1.checkAtSeconds(0)){
+    private void shoot3x() {
+        if (timer1.checkAtSeconds(0)) {
             LL.leftUp();
         }
-        if(timer1.checkAtSeconds(0.3)){
+        if (timer1.checkAtSeconds(0.3)) {
             LL.leftDown();
             LL.rightUp();
         }
-        if(timer1.checkAtSeconds(0.6)){
+        if (timer1.checkAtSeconds(0.6)) {
             LL.rightDown();
             LL.backUp();
         }
-        if(timer1.checkAtSeconds(1.1)){
+        if (timer1.checkAtSeconds(1.1)) {
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
@@ -458,28 +471,29 @@ public class farRedMotif extends LinearOpMode {
 
     }
 
-    private void shootMotif(String seq){
-        if(timer2.checkAtSeconds(0)) {//first shot
-            if(seq.equals("gpp")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
+    private void shootMotif(String seq) {
+        if (timer2.checkAtSeconds(0)) {//first shot
+            if (seq.equals("gpp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
         }
-        if(timer2.checkAtSeconds(0.6)) {//second shot
+        if (timer2.checkAtSeconds(0.4)) {//second shot
             LL.allDown();
-            if(seq.equals("pgp")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
+            if (seq.equals("pgp")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
         }
-        if(timer2.checkAtSeconds(1.2)) {//third shot
+        if (timer2.checkAtSeconds(1.0)) {//third shot
             LL.allDown();
-            if(seq.equals("ppg")) shootingHasWorkedNoVelo = LL.lift_green();
-            else shootingHasWorkedNoVelo = LL.lift_purple();
-            checkShotNoVelo();
+            if (seq.equals("ppg")) shootingHasWorked = LL.lift_green();
+            else shootingHasWorked = LL.lift_purple();
+            checkShot();
         }
-        if(timer2.checkAtSeconds(1.8)) {//tunr off depo
+        if (timer2.checkAtSeconds(1.4)) {//tunr off depo
             LL.allDown();
             depo.setTargetVelocity(0);
             timer2.stopTimer();
+
         }
     }
 
@@ -489,6 +503,54 @@ public class farRedMotif extends LinearOpMode {
             shootingHasWorked = true;
         }
     }
+
+    /**
+     * Updates the intake based on the current state (INTAKING, REVERSING, or DONE_REVERSING).
+     * This must be called continuously inside the motion loop.
+     */
+    private void updateIntake() {
+        // Skip if intake is null or we are already done/off
+        if (intake == null || intakeState == IntakeState.DONE_REVERSING || intakeState == IntakeState.OFF) {
+            if (intake != null) intake.setPower(0.0);
+            return;
+        }
+
+        switch (intakeState) {
+            case INTAKING:
+                // Intake power is -1.0 (assuming this is intake direction)
+                intake.setPower(-1.0);
+
+                // Check if all three sensors are active
+                if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
+                    // All 3 balls are present, transition to REVERSING state
+                    timer4.resetTimer();
+                    timer4.startTimer();
+                    intakeState = IntakeState.REVERSING;
+                    telemetry.addLine("Intake: 3 Balls Detected, Starting Reverse");
+                }
+                break;
+
+            case REVERSING:
+                // Reverse the intake to settle balls
+                intake.setPower(1.0);
+
+                // Check if the reverse time has elapsed
+                if (timer4.checkAtSeconds(REVERSE_TIME_S)) {
+                    // Reverse is done, transition to DONE_REVERSING state
+                    intake.setPower(0.0);
+                    timer4.stopTimer();
+                    intakeState = IntakeState.DONE_REVERSING;
+                    telemetry.addLine("Intake: Reverse Complete, Shutting Off");
+                }
+                break;
+
+            // State OFF is handled by the check at the start of the function
+            default:
+                break;
+        }
+        telemetry.addData("Intake State", intakeState.toString());
+    }
+
 
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
@@ -541,4 +603,5 @@ public class farRedMotif extends LinearOpMode {
             telemetry.addData("Exception:", e);
         }
     }
+
 }

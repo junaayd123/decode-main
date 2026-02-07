@@ -29,8 +29,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop red", group = "TeleOp")
-public class BotCTeleop extends OpMode {
+@TeleOp(name = "C teleop new", group = "TeleOp")
+public class BotCTeleop_new extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
     private boolean alignForFar = false;
@@ -41,8 +41,6 @@ public class BotCTeleop extends OpMode {
     private boolean blueStartPose = false;
     private double desiredHeading = 0;
     String motif = "gpp";
-    String sequence = "rbl";
-    int ballOnRamp;
 
     public boolean tagInitializing;
     int[] ballsInRobot = {0,0,0};
@@ -73,16 +71,15 @@ public class BotCTeleop extends OpMode {
     Gamepad preG1 = new Gamepad();
     Gamepad g2= new Gamepad();
     TurretLimelight turret;
-//    boolean alignToTags;
+    boolean alignToTags;
 
     private Follower follower;
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(62,140,0);//used for close turret aim
-    private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
-    private final Pose blueGoalfar = new Pose(-69,144,0);
-    private final Pose redGoalfar = new Pose(60,144,0);//used for far turret aim
+    private final Pose redGoal = new Pose(72,144,0);
+    private final Pose blueGoalfar = new Pose(-68,144,0);
+    private final Pose redGoalfar = new Pose(68,144,0);
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -136,9 +133,46 @@ public class BotCTeleop extends OpMode {
             break;
         }
     }
-
+    double movingCase = 1;
+    double timerDiddyMoment;
+    public void moveDiddyTurret(){
+        if(movingCase ==1){
+            turret.setDegreesTarget(-180);
+        }if(movingCase ==2){
+            turret.setDegreesTarget(-150);
+        }if(movingCase ==3){
+            turret.setDegreesTarget(-120);
+        }if(movingCase ==4){
+            turret.setDegreesTarget(-90);
+        }if(movingCase ==5){
+            turret.setDegreesTarget(-60);
+        }if(movingCase ==6){
+            turret.setDegreesTarget(-30);
+        }if(movingCase ==7){
+            turret.setDegreesTarget(0);
+        }if(movingCase ==8){
+            turret.setDegreesTarget(30);
+        }if(movingCase ==9){
+            turret.setDegreesTarget(60);
+        }if(movingCase ==10){
+            turret.setDegreesTarget(90);
+        }if(movingCase ==11){
+            turret.setDegreesTarget(120);
+        }if(movingCase ==12){
+            turret.setDegreesTarget(150);
+        }
+        if(turretTimer.checkAtSeconds(0.5+timerDiddyMoment)){
+            timerDiddyMoment = turretTimer.timer.seconds() - turretTimer.curtime;
+            if(movingCase ==12){
+                movingCase = 1;
+            }
+            else {
+                movingCase += 1;
+            }
+        }
+    }
     private enum Mode { nothing, findTag, faceGoal} //modes of turret
-    private BotCTeleop.Mode mode = Mode.nothing;
+    private Mode mode = Mode.nothing;
 
 
     double headingTotag;
@@ -191,11 +225,11 @@ public class BotCTeleop extends OpMode {
         g1.copy(gamepad1);
         g2.copy(gamepad2);
         depo.updatePID();
-//        if(g1.psWasPressed()){
-//            bluealliance = !bluealliance;
-//            if(bluealliance) turret.setBlueAlliance();
-//            else turret.setRedAlliance();
-//        }
+        if(g1.psWasPressed()){
+            bluealliance = !bluealliance;
+            if(bluealliance) turret.setBlueAlliance();
+            else turret.setRedAlliance();
+        }
         follower.getTotalHeading();
 //        if(g1.ps && g1.startWasPressed()){//invert pose
 //            Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
@@ -203,15 +237,13 @@ public class BotCTeleop extends OpMode {
 //            blueStartPose = !blueStartPose;
 //        }
         turret.updateEncoderPos();
-        Pose targett;//used for turret alignment can be both red or blue and far or close
-        Pose targett2;//used to calculate distanceToGoal can only be red or blue close
-        if(distanceToGoal>125) {
-            targett =redGoalfar;
+        Pose targett;
+        if(distanceToGoal>120) {
+            targett = bluealliance ? blueGoalfar : redGoalfar;
         }
         else{
-            targett = redGoal;
+            targett = bluealliance ? blueGoal : redGoal;
         }
-        targett2 = redGoalFixed;
         double rawAngle = Math.atan2(targett.getY() - cur.getY(), targett.getX() - cur.getX());
 
         double flippedAngle = rawAngle + Math.PI;
@@ -219,11 +251,16 @@ public class BotCTeleop extends OpMode {
 
         headingTotag = flippedAngle+Math.PI;
         double robHeading = follower.getTotalHeading()-totalHedOffset;
-        while (robHeading >= Math.toRadians(210)) robHeading -= 2 * Math.PI;
-        while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
+        if(bluealliance) {
+            while (robHeading >= Math.PI * 2) robHeading -= 2 * Math.PI;
+            while (robHeading < 0) robHeading += 2 * Math.PI;
+        }
+        else{
+            while (robHeading >= Math.PI) robHeading -= 2 * Math.PI;
+            while (robHeading < -Math.PI) robHeading += 2 * Math.PI;
+        }
 
         if (gamepad2.rightBumperWasPressed()) {
-            LL.allDown();
             if (intake.getPower() < -0.5) {
                 intake.setPower(0);
                 intakeRunning = false;
@@ -264,9 +301,7 @@ public class BotCTeleop extends OpMode {
             turret.resetTurretEncoder();
         }
         if(g2.psWasPressed()){
-            if(motif.equals("gpp")) motif = "pgp";
-            else if(motif.equals("pgp")) motif = "ppg";
-            else motif = "gpp";
+            alignToTags = !alignToTags;
         }
         if(mode == Mode.faceGoal){
             turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
@@ -282,14 +317,12 @@ public class BotCTeleop extends OpMode {
                 tagInitializing = false;
                 led.setPosition(0);
                 mode = Mode.nothing;
-                pauseAprilTagDetection();
             }
             else{
                 turretTimer.startTimer();
                 mode = Mode.findTag;
                 turret.setDegreesTarget(0);
                 led.setPosition(0.34);
-                resumeAprilTagDetection(); // Resume when starting new detection
 //                movingCase = 1;
 //                timerDiddyMoment = 0;
             }
@@ -312,20 +345,14 @@ public class BotCTeleop extends OpMode {
                 totalHedOffset = follower.getTotalHeading()-pedroPose.getHeading();
                 tagInitializing = false;
                 led.setPosition(0.6);
-
-                pauseAprilTagDetection();
             }
             else{
 
             }
         }
-        if(distanceToGoal>125) shootinterval = 0.4;
-//        else if (distanceToGoal<75){
-//            shootinterval = 0.25;
-//        }
-        else shootinterval = 0.3;
+        if(distanceToGoal>120) shootinterval = 0.4;
+        else shootinterval = 0.35;
         if(g2.cross && !preG2.cross){//shoot 3 close
-            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -334,8 +361,7 @@ public class BotCTeleop extends OpMode {
                     depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
-//                motif = "gpp";
-                ballOnRamp = 0;
+                motif = "gpp";
                 greenInSlot = 0;
                 shooting = true;
 
@@ -354,16 +380,10 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.dpadLeftWasPressed()){
-            timer1.stopTimer();
-            intakeRunning = false;
-            shooting = false;
-            intake.setPower(0);
-            depo.setTargetVelocity(0);
-            LL.allDown();
+            flywheelEarlyStart = !flywheelEarlyStart;
         }
 
         if(g2.square && !preG2.square){//gpp
-            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -373,8 +393,7 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-//                motif = "gpp";
-                ballOnRamp = 0;
+                motif = "gpp";
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -383,7 +402,6 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.triangle && !preG2.triangle){//pgp
-            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -393,8 +411,7 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-//                motif = "pgp";
-                ballOnRamp = 1;
+                motif = "pgp";
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -403,7 +420,6 @@ public class BotCTeleop extends OpMode {
             }
         }
         if(g2.circle && !preG2.circle){//ppg
-            LL.allDown();
             if(!LL.checkNoBalls()) {
                 if(shootingTest){
                     depo.setTargetVelocity(ourVelo);
@@ -413,8 +429,7 @@ public class BotCTeleop extends OpMode {
                     LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
                 }
                 shooting = true;
-//                motif = "ppg";
-                ballOnRamp = 2;
+                motif = "ppg";
                 greenInSlot = getGreenPos();
                 ballsInRobot[0] = LL.sensors.getLeft();
                 ballsInRobot[1] = LL.sensors.getRight();
@@ -427,10 +442,11 @@ public class BotCTeleop extends OpMode {
         // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
 
         followerstuff();
-        telemetry.addData("motif", motif);
-//        telemetry.addData("start pose Blue?", blueStartPose);
-        distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
+        telemetry.addData("Alliance Blue?", bluealliance);
+        telemetry.addData("start pose Blue?", blueStartPose);
+        distanceToGoal = cur.distanceFrom(targett);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
+        telemetry.addData("align to tag",alignToTags);
         telemetry.addData("shooter sequence",shooterSequence);
         telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
@@ -442,10 +458,6 @@ public class BotCTeleop extends OpMode {
         telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
         telemetry.addData("total heading", Math.toDegrees(follower.getTotalHeading()-totalHedOffset));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
-        telemetry.addData("green in slot",greenInSlot);
-//        telemetry.addData("left color",LL.sensors.getLeft());
-//        telemetry.addData("right color",LL.sensors.getRight());
-//        telemetry.addData("back color",LL.sensors.getBack());
         if(depo.reachedTargetHighTolerance()){
             if (shooting) {
                 // Now start timer to shoot the 3 balls
@@ -453,36 +465,33 @@ public class BotCTeleop extends OpMode {
                 shooting = false;
             }
         }
-        if(motif.equals("gpp")) {
-            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "lrb";
-            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "rbl";
-            else sequence = "blr";
+        if(motif.equals("gpp")){
+            if(greenInSlot == 0) LRBnoRecovery();
+            else if(greenInSlot == 1) shootRBL();
+            else shootBLR();
         }
         else if(motif.equals("pgp")){
-            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "blr";
-            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "lrb";
-            else sequence = "rbl";
+            if(greenInSlot == 0) shootBLR();
+            else if(greenInSlot == 1) shootLRB();
+            else shootRBL();
         }
-        else{//ppg
-            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "rbl";
-            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "blr";
-            else sequence = "lrb";
+        else{
+            if(greenInSlot == 0) shootRBL();
+            else if(greenInSlot == 1) shootBLR();
+            else shootLRB();
         }
-        if(sequence.equals("lrb")) LRBnoRecovery();
-        else if(sequence.equals("rbl")) RBLnoRecovery();
-        else BLRnoRecovery();
 
         if(g1.dpad_up&& !preG1.dpad_up){
-            ourVelo+=20;
+            ourVelo+=25;
         }
         else if(g1.dpad_down&& !preG1.dpad_down){
-            ourVelo-=20;
+            ourVelo-=25;
         }
         if(g1.dpad_left&& !preG1.dpad_left){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.01);
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.03);
         }
         else if(g1.dpad_right&& !preG1.dpad_right){
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.01);
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.03);
         }
 
         // Telemetry
@@ -504,18 +513,9 @@ public class BotCTeleop extends OpMode {
         //desmos table for the shooting velo
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
-        if(dist<125){
-            if(dist<75){
-                return (int) (4.16622*dist+875.18954); //today 875
-            }
-            else {
-//                return (int) (5.35158*dist+873.83526);//old stuff
-                return (int) (4.16622*dist+915.18954); //today 915
-            }
-//            return (int) (5.35158*dist+873.83526); before today
-        }//(3.69593*dist+960.60458); old
-        else
-            return (int) (7.14286*dist+589.28571); //far
+        if(dist<120){
+            return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
+        else return 1650; //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -543,21 +543,8 @@ public class BotCTeleop extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>125) return 0.27;//far
-        else{
-            if(dist<75){
-                return 0.00180592*dist-0.0205829;//works for very close
-            }
-            else{
-                return 0.00180592*dist-0.0005829;//works for very close
-            }
-
-//            if(dist<58) return 0.06;
-//            else if(dist<70) return 0.09;
-//            else if(dist<94) return 0.12;
-//            else return 0.15;
-        }
-        //old 0.00132566*dist+0.00291356
+        if (dist>120) return 0.21;
+        else return 0.00132566*dist+0.00291356;
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {
@@ -610,8 +597,8 @@ public class BotCTeleop extends OpMode {
         if(pos==1) return 0;
         else{
             pos = LL.sensors.getRight();
-            if(pos==1) return 2;
-            else return 1;
+            if(pos==1) return 1;
+            else return 2;
         }
     }
     private void LRBnoRecovery(){
@@ -627,50 +614,6 @@ public class BotCTeleop extends OpMode {
         if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
             LL.allDown();
             LL.backUp();
-            shooterSequence = 3;
-        }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
-            LL.allDown();
-            depo.setTargetVelocity(0);
-            timer1.stopTimer();
-            shooterSequence = 0;
-        }
-    }
-    private void BLRnoRecovery(){
-        if (timer1.checkAtSeconds(0)) {
-            LL.backUp();
-            shooterSequence = 1;
-        }
-        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
-            LL.allDown();
-            LL.leftUp();
-            shooterSequence = 2;
-        }
-        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
-            LL.allDown();
-            LL.rightUp();
-            shooterSequence = 3;
-        }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
-            LL.allDown();
-            depo.setTargetVelocity(0);
-            timer1.stopTimer();
-            shooterSequence = 0;
-        }
-    }
-    private void RBLnoRecovery(){
-        if (timer1.checkAtSeconds(0)) {
-            LL.rightUp();
-            shooterSequence = 1;
-        }
-        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
-            LL.allDown();
-            LL.backUp();
-            shooterSequence = 2;
-        }
-        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
-            LL.allDown();
-            LL.leftUp();
             shooterSequence = 3;
         }
         if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
@@ -805,18 +748,6 @@ public class BotCTeleop extends OpMode {
             timer1.stopTimer();
             shooterSequence = 0;
             lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
-        }
-    }
-    private void pauseAprilTagDetection() {
-        if (visionPortal != null && aprilTag != null) {
-            visionPortal.setProcessorEnabled(aprilTag, false);
-        }
-    }
-
-    // Add this method to resume detection
-    private void resumeAprilTagDetection() {
-        if (visionPortal != null && aprilTag != null) {
-            visionPortal.setProcessorEnabled(aprilTag, true);
         }
     }
 

@@ -24,62 +24,23 @@ public class TurretLimelight {
     public static double turetSpeed = 0.8;
     public static double targetDegrees = 0.0;
     double coefficient = 67.0/18.0;
+    private static final double TURRET_MIN_TICKS = -850;
+    private static final double TURRET_MAX_TICKS = 730;
     public Limelight3A limelight;
-    public double yawToTag;
     boolean blueAlliance;
-    double targetTicks;
-    boolean runningAround;
-    boolean doneRUnning;
     double groundDistanceCM;
     double power;
-    boolean hasTag;
     public double currentPos;
     public TurretLimelight(HardwareMap hardwareMap) {
         TurretMotor = hardwareMap.get(DcMotorEx.class, "turret");
         pid = new PIDController(p, i, d);
-        limelight = hardwareMap.get(Limelight3A.class, "limelight");
     }
     public void resetTurretEncoder(){
         TurretMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         TurretMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
-    public void InitLimelight(){
-        limelight.pipelineSwitch(0);
-        limelight.start();
-    }
-    public void updateLimelight(){
-
-        LLResult result = limelight.getLatestResult();
-        List<LLResultTypes.FiducialResult> fiducialResults = result.getFiducialResults();
-        yawToTag = 0;
-        hasTag = false;
-        for (LLResultTypes.FiducialResult fr : fiducialResults) {
-            if(blueAlliance){
-                if (fr.getFiducialId() == 20) {
-                    yawToTag = fr.getTargetXDegrees();
-                    hasTag = true;
-                    Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                    groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
-                }
-                else{
-                    yawToTag = 0;
-                    hasTag = false;
-                }
-            }
-            else {
-                if (fr.getFiducialId() == 24) {
-                    yawToTag = fr.getTargetXDegrees();
-                    hasTag = true;
-                    Pose3D camToTag = fr.getCameraPoseTargetSpace();
-                    groundDistanceCM = Math.hypot(camToTag.getPosition().x, camToTag.getPosition().z)*100;
-                }
-                else{
-                    yawToTag = 0;
-                    hasTag = false;
-                }
-            }
-
-        }
+    public void updateEncoderPos(){
+        currentPos = TurretMotor.getCurrentPosition();
     }
 
 
@@ -87,6 +48,7 @@ public class TurretLimelight {
         pid.setPID(p,i,d);
     }
     public void toTargetInTicks(){
+        currentPos = TurretMotor.getCurrentPosition();
         double error = target - currentPos;
         if (Math.abs(error) <= tolerance) {
             power = 0.0;
@@ -114,44 +76,26 @@ public class TurretLimelight {
         }
         TurretMotor.setPower(power);
     }
-    public void setDegreesTarget(double deg){
-        targetDegrees = deg;
-    }
-    public void allignToTag(){
-        if(!runningAround) {
-            if(groundDistanceCM > 140){//for farshot make it face 2.5 degrees toward the outside of the tag
-                if(blueAlliance) targetTicks = currentPos + ((yawToTag-2.5) * coefficient);
-                else targetTicks = currentPos + ((yawToTag+2.5) * coefficient);
-            }
-            else targetTicks = currentPos + (yawToTag * coefficient);
-        }
-        if(targetTicks>730){
-            targetTicks-=1300;
-            runningAround = true;
-            doneRUnning = false;
-        }
-        else if(targetTicks<-850){
-            targetTicks+=1300;
-            runningAround = true;
-            doneRUnning = false;
-        }
-        else {
-            if(doneRUnning) {
-                runningAround = false;
-            }
-        }
+    public void toTargetInDegrees2(double targetDegrees2){
+//        double targetDegrees2 = Math.toDegrees(cur.getHeading() - headingTotag);
+        double targetTicks = targetDegrees2 * coefficient;
+
+        // Clamp target to limits
+        targetTicks = Math.max(TURRET_MIN_TICKS,
+                Math.min(TURRET_MAX_TICKS, targetTicks));
+
         double error = targetTicks - currentPos;
-        if(Math.abs(error)<=3 && runningAround){
-            doneRUnning = true;
-        }
-        if (Math.abs(error) <= tolerance ||(!hasTag && !runningAround)) {
+
+        if (Math.abs(error) <= tolerance) {
             power = 0.0;
         } else {
             double pidOutput = pid.calculate(currentPos, targetTicks);
             power = Math.max(-turetSpeed, Math.min(turetSpeed, pidOutput));
         }
-
-            TurretMotor.setPower(power);
+        TurretMotor.setPower(power);
+    }
+    public void setDegreesTarget(double deg){
+        targetDegrees = deg;
     }
     public void setRedAlliance(){ blueAlliance = false;}
     public void setBlueAlliance(){ blueAlliance = true;}

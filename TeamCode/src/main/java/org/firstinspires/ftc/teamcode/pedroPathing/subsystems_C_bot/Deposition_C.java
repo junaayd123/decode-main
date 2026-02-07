@@ -17,11 +17,17 @@ public class Deposition_C {
     // --- PID controller for velocity ---
     private PIDController pid;
 
-    // --- PID constants (dashboard-tunable) ---
+    // ---- PID constants (dashboard-tunable) ----
     public static double p = -0.001;
     public static double i = 0.0;
     public static double d = 0.0;
-    public double farVelo_New = 1625;
+    public double farVelo_New = 1650;
+    public double farVeloredauto = 1620;
+    public double farVeloredauto2 = 1585;
+    public double farVeloblue = 1600;
+    //
+    public double farVeloblueauto = 1615;
+    public double farVeloblueauto2 = 1600;
 
     // Target velocity in ticks per second
     public  double targetVelocity = 0;
@@ -33,8 +39,10 @@ public class Deposition_C {
     public double closePower = 0.56;
     public double farPower   = 0.70;
     //    public double farPower2  = 0.70;
-    //
+    public double farVelo_auto = 1675;
     public double closeVelo_New = 1250; //use for new bot
+    public double closeVelo_New_auto = 1305; //use for new bot
+
 
     private double powerOutput = 0.0;
 
