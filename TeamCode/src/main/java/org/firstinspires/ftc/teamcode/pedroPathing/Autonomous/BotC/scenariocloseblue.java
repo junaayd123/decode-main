@@ -101,7 +101,7 @@ public class scenariocloseblue extends OpMode {
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(56, -81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(60, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
@@ -113,7 +113,7 @@ public class scenariocloseblue extends OpMode {
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
     private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
-    private final Pose thirdLinePickupPose = new Pose(65, -33, Math.toRadians(0));
+    private final Pose thirdLinePickupPose = new Pose(60, -33, Math.toRadians(0));
     private final Pose midpoint5 = new Pose(10, -30, Math.toRadians(0)); // ✅ Scenario 6: Before third line pickup
     private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
 
@@ -841,13 +841,8 @@ public class scenariocloseblue extends OpMode {
         if (currentScenario == Scenario.SCENARIO_6_THREE_LINES) {
             thirdLinePickupPath = follower.pathBuilder()
                     .addPath(new Path(new BezierCurve(cur, midpoint5, thirdLinePickupPose)))
-                    .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
-                    .build();
-        } else {
-            // Other scenarios: Direct line
-            thirdLinePickupPath = follower.pathBuilder()
-                    .addPath(new Path(new BezierLine(cur, thirdLinePickupPose)))
-                    .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
+                    .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading(), 0.5)
+                    //.setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
                     .build();
         }
     }

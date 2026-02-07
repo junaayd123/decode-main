@@ -102,9 +102,10 @@ public class scenarioclosered extends OpMode {
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 58, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(56, 55, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 55, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(10, 55, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(10, 30, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(60, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
@@ -114,7 +115,7 @@ public class scenarioclosered extends OpMode {
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
-    private final Pose thirdLinePickupPose = new Pose(35, 35, Math.toRadians(0));  // Third line pickup position
+    private final Pose thirdLinePickupPose = new Pose(65, 35, Math.toRadians(0));  // Third line pickup position
     private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
 
     // ========== PATHS ==========
@@ -854,7 +855,7 @@ public class scenarioclosered extends OpMode {
     private void buildThirdLinePickupPath() {
         Pose cur = follower.getPose();
         thirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, thirdLinePickupPose)))
+                .addPath(new Path(new BezierCurve(cur, midpoint3, thirdLinePickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading())
                 .build();
     }
