@@ -79,10 +79,10 @@ public class BotCTeleopBlue extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(-60,132,0);//used for close turret aim
+    private final Pose redGoal = new Pose(-64,132,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(-72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
-    private final Pose redGoalfar = new Pose(-64,132,0);//used for far turret aim
+    private final Pose redGoalfar = new Pose(-66,132,0);//used for far turret aim
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;

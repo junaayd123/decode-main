@@ -128,11 +128,13 @@ public class scenariofarblue extends OpMode {
     private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
+    private final Pose ThirdPickupPose = new Pose(58, -35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(19, -61, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
+    // NEW: Additional midpoint to avoid knocking out third line balls
+    private final Pose midpoint2a = new Pose(35, -25, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
     private final Pose midpoint4 = new Pose(30, -80, Math.toRadians(0));
     private final Pose firstPickupPose = new Pose(52, -84, Math.toRadians(0));
@@ -317,7 +319,7 @@ public class scenariofarblue extends OpMode {
 
         // Set different turret angle for Scenario 3
         if (currentScenario == Scenario.SCENARIO_3_9_BALL) {
-            turret.setDegreesTarget(68);
+            turret.setDegreesTarget(66.5);
         } else {
             turret.setDegreesTarget(66.5);
         }
@@ -1118,11 +1120,6 @@ public class scenariofarblue extends OpMode {
                 .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
                 .setTimeoutConstraint(0.1)
                 .build();
-
-        ThirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(midpoint2, ThirdPickupPose)))
-                .setLinearHeadingInterpolation(midpoint2.getHeading(), ThirdPickupPose.getHeading())
-                .build();
     }
 
     /** First line = audience line. Path from current pose to firstPickupPose. */
@@ -1135,11 +1132,11 @@ public class scenariofarblue extends OpMode {
                 .build();
     }
 
-    /** Third line = middle line. Path from current pose to ThirdPickupPose. */
+    /** Third line = middle line. Path from current pose to ThirdPickupPose - with midpoint to avoid balls */
     private void buildThirdLinePickupPath() {
         Pose cur = follower.getPose();
         ThirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint2, ThirdPickupPose)))
+                .addPath(new Path(new BezierCurve(cur, midpoint2a, ThirdPickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), ThirdPickupPose.getHeading(), 0.8)
                 .setTimeoutConstraint(0.1)
                 .build();

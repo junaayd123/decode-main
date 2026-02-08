@@ -287,7 +287,7 @@ public class scenariofarred extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-70.5);
+        turret.setDegreesTarget(-69.5);
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
@@ -871,8 +871,8 @@ public class scenariofarred extends OpMode {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
         pos = LL.sensors.getRight();
-        if (pos == 1) return 1;
-        return 2;
+        if (pos == 1) return 2;
+        return 1;
     }
 
     // ========== PATH BUILDING METHODS ==========

@@ -763,8 +763,8 @@ public class scenarioclosered extends OpMode {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
         pos = LL.sensors.getRight();
-        if (pos == 1) return 1;
-        return 2;
+        if (pos == 1) return 2;
+        return 1;
     }
 
     /**

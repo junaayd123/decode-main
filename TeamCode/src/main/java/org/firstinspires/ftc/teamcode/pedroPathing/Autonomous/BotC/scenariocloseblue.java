@@ -101,10 +101,12 @@ public class scenariocloseblue extends OpMode {
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(60, -81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(67, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(58
+            , -55, Math.toRadians(0));
+
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
@@ -221,7 +223,7 @@ public class scenariocloseblue extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(44.5);
+        turret.setDegreesTarget(46);
         turret.setPid();
         shotCycleCount = 0;
         gateHitCount = 0;
@@ -542,7 +544,7 @@ public class scenariocloseblue extends OpMode {
 
                 // ✅ Only out-take if 3+ balls
                 if (ballCount >= 3) {
-                    intake.setPower(-1);  // ✅ LINE 545: Out-take turns ON (only if 3+ balls)
+                    intake.setPower(1);  // ✅ LINE 545: Out-take turns ON (only if 3+ balls)
                 } else {
                     intake.setPower(0);
                 }
@@ -770,8 +772,8 @@ public class scenariocloseblue extends OpMode {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
         pos = LL.sensors.getRight();
-        if (pos == 1) return 1;
-        return 2;
+        if (pos == 1) return 2;
+        return 1;
     }
 
     // ========== PATH BUILDING ==========
