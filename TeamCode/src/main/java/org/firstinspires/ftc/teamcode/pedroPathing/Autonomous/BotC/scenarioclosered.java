@@ -104,7 +104,7 @@ public class scenarioclosered extends OpMode {
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, 55, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 55, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(10, 30, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(10, 25, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(60, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
@@ -338,7 +338,8 @@ public class scenarioclosered extends OpMode {
         switch (pathState) {
             case 0: // Go back to near shot pose - START FLYWHEEL
                 // ✅ Start spinning flywheel at the very beginning
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
                 buildGoBackPath();
@@ -380,7 +381,8 @@ public class scenarioclosered extends OpMode {
                 if (!follower.isBusy()) {
 
                     // ✅ Start spinning flywheel BEFORE next path
-                    LL.set_angle_close();
+                    //LL.set_angle_close();
+                    LL.set_angle_custom(0.14);
                     depo.setTargetVelocity(depo.closeVelo_New_auto);
 
                     follower.followPath(bezierSecondPath, true);
@@ -454,7 +456,8 @@ public class scenarioclosered extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
 
                     // ✅ Start spinning flywheel BEFORE return path
-                    LL.set_angle_close();
+                    //LL.set_angle_close();
+                    LL.set_angle_custom(0.14);
                     depo.setTargetVelocity(depo.closeVelo_New_auto);
                     buildGatePathsBack();
 
@@ -501,7 +504,8 @@ public class scenarioclosered extends OpMode {
             // ===== THIRD LINE PICKUP (Scenarios 1 & 2) =====
             case 20: // Drive to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
                 intake.setPower(-1);
@@ -521,7 +525,8 @@ public class scenarioclosered extends OpMode {
 
             case 22: // Drive back to shooting pose from third line
                 // ✅ Start spinning flywheel BEFORE return path
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
                 follower.followPath(thirdLineReturnPath, true);
                 setPathState(23);
@@ -555,7 +560,8 @@ public class scenarioclosered extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12: // Drive straight to first line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
                 intake.setPower(-1);
@@ -582,7 +588,8 @@ public class scenarioclosered extends OpMode {
 
             case 14: // Drive straight back to shooting pose - NO OUT-TAKE
                 // ✅ Start spinning flywheel BEFORE return path
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
                 intake.setPower(0); // ✅ NO OUT-TAKE, JUST OFF
 
@@ -635,7 +642,8 @@ public class scenarioclosered extends OpMode {
                 break;
 
             case 1: // Initialize shooting
-                LL.set_angle_close();
+                //LL.set_angle_close();
+                LL.set_angle_custom(0.14);
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
 
                 // ✅ Check if already at speed (from pre-spinning)
