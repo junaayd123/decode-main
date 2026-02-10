@@ -90,6 +90,7 @@ public class testFlippers_botC extends LinearOpMode {
             telemetry.addData("left lift pos",LL.liftLeft.getPosition());
             telemetry.addData("right lift pos",LL.liftRight.getPosition());
             telemetry.addData("back lift pos",LL.liftBack.getPosition());
+            telemetry.addData("angle pos",LL.launchAngleServo.getPosition());
             telemetry.update();
 
             reverseIntake();

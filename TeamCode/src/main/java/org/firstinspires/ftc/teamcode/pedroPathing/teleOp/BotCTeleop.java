@@ -319,11 +319,11 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(distanceToGoal>125) shootinterval = 0.4;
+        if(distanceToGoal>125) shootinterval = 0.25;
 //        else if (distanceToGoal<75){
 //            shootinterval = 0.25;
 //        }
-        else shootinterval = 0.3;
+        else shootinterval = 0.2;
         if(g2.cross && !preG2.cross){//shoot 3 close
             LL.allDown();
             if(!LL.checkNoBalls()) {
@@ -505,17 +505,21 @@ public class BotCTeleop extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            if(dist<75){
-                return (int) (4.16622*dist+875.18954); //today 875
-            }
-            else {
-//                return (int) (5.35158*dist+873.83526);//old stuff
-                return (int) (4.16622*dist+915.18954); //today 915
-            }
+            return (int) (8.21956*dist+1019.53588);
+            //everything below was before for lmq
+//            if(dist<75){
+//                return (int) (4.16622*dist+875.18954); //today 875
+//            }
+//            else {
+////                return (int) (5.35158*dist+873.83526);//old stuff
+//                return (int) (4.16622*dist+915.18954); //today 915
+//            }
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
-            return (int) (7.14286*dist+589.28571); //far
+            return 2220;
+            //below is at lmq
+//            return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -543,14 +547,16 @@ public class BotCTeleop extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>125) return 0.27;//far
+        if (dist>125) return 0.19;//far
         else{
-            if(dist<75){
-                return 0.00180592*dist-0.0205829;//works for very close
-            }
-            else{
-                return 0.00180592*dist-0.0005829;//works for very close
-            }
+            return (0.00218724*dist-0.0681913);
+            //everything below was for lmq
+//            if(dist<75){
+//                return 0.00180592*dist-0.0205829;//works for very close
+//            }
+//            else{
+//                return 0.00180592*dist-0.0005829;//works for very close
+//            }
 
 //            if(dist<58) return 0.06;
 //            else if(dist<70) return 0.09;
@@ -629,7 +635,7 @@ public class BotCTeleop extends OpMode {
             LL.backUp();
             shooterSequence = 3;
         }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+        if(timer1.checkAtSeconds(shootinterval*3+0.25) && shooterSequence==3){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();
