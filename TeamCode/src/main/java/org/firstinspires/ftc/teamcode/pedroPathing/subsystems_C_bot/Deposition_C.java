@@ -22,12 +22,20 @@ public class Deposition_C {
     public static double i = 0.0;
     public static double d = 0.0;
     public double farVelo_New = 1650;
-    public double farVeloredauto = 1620;
-    public double farVeloredauto2 = 1585;
+    // CALCULATED THE NEW GEAR RATIO TO GO FROM 1:1 to 10:14 MEANING ALL VALUES MUST BE MULTIPLIED BY 1.4
+//    public double farVeloredauto = 1620*1.4;
+//    public double farVeloredauto2 = 1585*1.4;
+//    public double farVeloblue = 1600;
+//    //
+//    public double farVeloblueauto = 1620*1.4;
+//    public double farVeloblueauto2 = 1600*1.4;
+
+    public double farVeloredauto = 2250.0;
+    public double farVeloredauto2 = 2220.0; // roughly 1590
     public double farVeloblue = 1600;
     //
-    public double farVeloblueauto = 1620;
-    public double farVeloblueauto2 = 1600;
+    public double farVeloblueauto = 2268.0;
+    public double farVeloblueauto2 = 2240.0;
 
     // Target velocity in ticks per second
     public  double targetVelocity = 0;
@@ -39,6 +47,7 @@ public class Deposition_C {
     public double closePower = 0.56;
     public double farPower   = 0.70;
     //    public double farPower2  = 0.70;
+    // CALCULATED THE NEW GEAR RATIO TO GO FROM 1:1 to 10:14 MEANING ALL VALUES MUST BE MULTIPLIED BY 1.4
     public double farVelo_auto = 1675;
     public double closeVelo_New = 1250; //use for new bot
     //public double closeVelo_New_auto = 1305; //use for new bot

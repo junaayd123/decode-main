@@ -175,6 +175,8 @@ public class scenariofarred extends OpMode {
     private boolean prevDpadUp = false;
     private boolean prevCircle = false;
     private boolean prevTriangle = false;
+    // ==== =stuff for changing the turret so its a bit more to the right for the next few shots ====
+    private boolean firstShotComplete = false;
 
     @Override
     public void init() {
@@ -294,6 +296,7 @@ public class scenariofarred extends OpMode {
         thirdLineDone = false;
         excessPickupCount = 0;
         lockedMotif = motif;
+        firstShotComplete = false;
         setPathState(0);
         setActionState(0);
         if (visionPortal != null) {
@@ -373,7 +376,7 @@ public class scenariofarred extends OpMode {
         switch (pathState) {
             case 0: // Start - spin up flywheel
                 // ✅ Start spinning flywheel at the very beginning
-                LL.set_angle_far();
+                LL.set_angle_far_firstshot();
                 depo.setTargetVelocity(depo.farVeloredauto);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
@@ -768,6 +771,13 @@ public class scenariofarred extends OpMode {
             case 1: // Initialize shooting
                 LL.set_angle_far();
                 depo.setTargetVelocity(depo.farVeloredauto);
+                // ✅ Adjust turret angle after first shot
+                if (firstShotComplete) {
+                    turret.setDegreesTarget(-69.5 + 3.0);  // Adjust the +5.0 value to move more/less to the right
+                } else {
+                    turret.setDegreesTarget(-69.5);
+                }
+                turret.setPid();
 
                 // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
@@ -798,6 +808,7 @@ public class scenariofarred extends OpMode {
                     depo.setTargetVelocity(0);
                     stopShooter();
                     shotCycleCount++;
+                    firstShotComplete = true;
                     setActionState(0);
                 }
                 break;
