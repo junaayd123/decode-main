@@ -91,7 +91,7 @@ public class scenariocloseblue extends OpMode {
     private boolean secondLineDone = false; // ✅ Track if second line is done for Scenario 6
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.335;
+    private static final double SHOOT_INTERVAL = 0.25;
     private static final double SECOND_HOP_IN = 8;
     private static final double SETTLE_TIME = 0.3;
     private static final double REVERSE_TIME = 0.15;
@@ -101,7 +101,8 @@ public class scenariocloseblue extends OpMode {
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(67, -81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(72, -81, Math.toRadians(0));
+    private final Pose firstPickupMidpoint = new Pose(55, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(58
@@ -823,8 +824,8 @@ public class scenariocloseblue extends OpMode {
     private void buildLinePickupPaths() {
         Pose cur = follower.getPose();
         firstLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, firstPickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
+                .addPath(new Path(new BezierCurve(cur, firstPickupMidpoint , firstPickupPose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading(),0.5)
                 .build();
     }
 
