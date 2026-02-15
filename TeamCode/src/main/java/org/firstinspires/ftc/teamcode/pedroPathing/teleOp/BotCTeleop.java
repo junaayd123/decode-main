@@ -142,6 +142,8 @@ public class BotCTeleop extends OpMode {
 
     double headingTotag;
     boolean flywheelEarlyStart;
+    private boolean frozen = false;
+    private Pose holdPose;
     @Override
     public void init() {
         turret = new TurretLimelight(hardwareMap);
@@ -583,18 +585,18 @@ public class BotCTeleop extends OpMode {
     // ---------- DRIVE TO RED OR BLUE SHOOTING POSE ----------
 
     private void followerstuff() {
-        follower.update();
-        telemetry.addData("FollowerBusy", follower.isBusy());
-        telemetry.addData("AligningFlag", aligning);
-
-        // ONLY exit aligning when Pedro says it's done (NO tolerance here)
-        if (!follower.isBusy() && aligning2) {
-            follower.startTeleopDrive();
-            aligning2 = false;
-            telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
-        } else if (aligning) {
-            telemetry.addData("AlignStatus", "Running");
-        }
+//        follower.update();
+//        telemetry.addData("FollowerBusy", follower.isBusy());
+//        telemetry.addData("AligningFlag", aligning);
+//
+//        // ONLY exit aligning when Pedro says it's done (NO tolerance here)
+//        if (!follower.isBusy() && aligning2) {
+//            follower.startTeleopDrive();
+//            aligning2 = false;
+//            telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
+//        } else if (aligning) {
+//            telemetry.addData("AlignStatus", "Running");
+//        }
 
         // Manual drive ONLY when idle AND NOT aligning
         if (!follower.isBusy() && !aligning) {

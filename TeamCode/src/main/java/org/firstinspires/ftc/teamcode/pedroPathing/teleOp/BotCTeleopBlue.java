@@ -87,7 +87,7 @@ public class BotCTeleopBlue extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(-62,132,0);//used for close turret aim
+    private final Pose redGoal = new Pose(-65,132,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(-72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(-66,132,0);//used for far turret aim
@@ -567,7 +567,7 @@ public class BotCTeleopBlue extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return 0.22;//far
         else{
-            return (0.00218724*dist-0.0681913);
+            return (0.00218724*(dist+7)-0.0681913);
             //everything below was for lmq
 //            if(dist<75){
 //                return 0.00180592*dist-0.0205829;//works for very close
