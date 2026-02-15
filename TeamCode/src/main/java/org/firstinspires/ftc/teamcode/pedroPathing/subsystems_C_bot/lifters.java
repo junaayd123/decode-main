@@ -109,7 +109,7 @@ public class lifters {
     //public void set_angle_far(){launchAngleServo.setPosition(0.18);}
     public void set_angle_far(){launchAngleServo.setPosition(0.21);}
     public void set_angle_far_firstshot(){launchAngleServo.setPosition(0.21);}
-    public void set_angle_far_auto(){launchAngleServo.setPosition(0.24);}
+    public void set_angle_far_auto(){launchAngleServo.setPosition(0.19);}
     public void set_angle_close(){launchAngleServo.setPosition(0.06);}
 
     public void allDown(){

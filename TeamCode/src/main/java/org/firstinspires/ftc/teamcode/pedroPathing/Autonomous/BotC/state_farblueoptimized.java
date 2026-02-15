@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "A_state_Farblue optimized", group = "Pedro")
-public class A_state_farblueoptimized extends OpMode {
+@Autonomous(name = "state_Farblue optimized", group = "Pedro")
+public class state_farblueoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
     private Follower follower;
@@ -63,28 +63,28 @@ public class A_state_farblueoptimized extends OpMode {
     private int ballCount = 3;
 
     // ======== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.25;
+    private static double SHOOT_INTERVAL = 0.4;
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 1.6;
-    private static final double GATE_WAIT_TIME_LATER = 1.2;
+    private static final double GATE_WAIT_TIME_FIRST = 0.8;
+    private static final double GATE_WAIT_TIME_LATER = 0.6;
     private static final int TOTAL_GATE_CYCLES = 2;
-    private static final double SETTLE_TIME = 0.3;
+    private static final double SETTLE_TIME = 0.10;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
     private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(19, -61, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(15, -66, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(56, -62, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(59.5, -62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(59, -58, Math.toRadians(-32));
-    private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
+    private final Pose lever_touch = new Pose(60, -60.5, Math.toRadians(-32));
+    private final Pose back_lever = new Pose(59, -54, Math.toRadians(-38.5));
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
 
     // ========== PATHS ==========
@@ -158,7 +158,7 @@ public class A_state_farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(64);
+        turret.setDegreesTarget(66.8);
         turret.setPid();
         shotCycleCount = 0;
         ballCount = 3;
@@ -252,9 +252,9 @@ public class A_state_farblueoptimized extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0: // Start - spin up flywheel
-                LL.set_angle_far();
+                LL.set_angle_far_auto();
                 depo.setTargetVelocity(depo.farVeloblueauto);
-                SHOOT_INTERVAL = 0.375;
+                SHOOT_INTERVAL = 0.4;
                 setPathState(1);
                 break;
 
@@ -278,7 +278,7 @@ public class A_state_farblueoptimized extends OpMode {
                 if (actionState == 0) { // Shooting done
                     ballCount = 0;
                     intake.setPower(-1); // Start intake
-                    SHOOT_INTERVAL = 0.335;
+                    SHOOT_INTERVAL = 0.4;
                     setPathState(3);
                 }
                 break;
@@ -293,14 +293,9 @@ public class A_state_farblueoptimized extends OpMode {
                 intake.setPower(-1);
                 if (!follower.isBusy()) {
                     ballCount = 3;
-                    LL.set_angle_far();
+                    LL.set_angle_far_auto();
                     depo.setTargetVelocity(depo.farVeloblueauto);
 
-                    if (ballCount >= 3) {
-                        intake.setPower(1); // Out-take
-                    } else {
-                        intake.setPower(0);
-                    }
 
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
@@ -309,12 +304,9 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 5: // Wait for second bezier path
                 depo.updatePID();
-                if (ballCount >= 3) {
-                    intake.setPower(1);
-                }
+
 
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
                     actionTimer.resetTimer();
                     setPathState(105);
                 }
@@ -322,8 +314,10 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 105: // Settle before second shot
                 depo.updatePID();
+
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(1);
                     setPathState(6);
                 }
                 break;
@@ -332,8 +326,11 @@ public class A_state_farblueoptimized extends OpMode {
                 if (actionState == 0) {
                     ballCount = 0;
                     gateHitCount = 0;
+                    intake.setPower(0);
                     setPathState(7);
+
                 }
+
                 break;
 
             // ===== GATE CYCLE LOOP =====
@@ -353,13 +350,15 @@ public class A_state_farblueoptimized extends OpMode {
                 break;
 
             case 99: // Gate - move back slightly
-                intake.setPower(-1);
+                turret.setDegreesTarget(63);
+                turret.setPid();
+                LL.set_angle_custom(0.17);
                 follower.followPath(gatebackPath, true);
                 setPathState(102);
                 break;
 
             case 102: // Gate - wait at back position
-                intake.setPower(-1);
+
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -369,11 +368,11 @@ public class A_state_farblueoptimized extends OpMode {
             case 9: // Gate - pause to collect artifacts
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePathBack(waitTime2);
-                intake.setPower(-1);
+
 
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     ballCount = 3;
-                    LL.set_angle_far();
+                    LL.set_angle_far_auto();
                     depo.setTargetVelocity(depo.farVeloblueauto);
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -382,14 +381,10 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 10: // Gate - return to shooting position
                 depo.updatePID();
-                if (ballCount >= 3) {
-                    intake.setPower(1);
-                } else {
-                    intake.setPower(0);
-                }
+                intake.setPower(1);
 
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
+
                     actionTimer.resetTimer();
                     setPathState(110);
                 }
@@ -397,6 +392,7 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 110: // Settle before gate shot
                 depo.updatePID();
+                intake.setPower(0);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(11);
@@ -418,7 +414,7 @@ public class A_state_farblueoptimized extends OpMode {
 
             // ===== THIRD LINE PICKUP =====
             case 12: // Drive straight to third line pickup
-                LL.set_angle_far();
+                LL.set_angle_far_auto();
                 depo.setTargetVelocity(depo.farVeloblueauto);
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -435,14 +431,8 @@ public class A_state_farblueoptimized extends OpMode {
                 break;
 
             case 14: // Drive straight back to shooting pose
-                LL.set_angle_far();
+                LL.set_angle_far_auto();
                 depo.setTargetVelocity(depo.farVeloblueauto);
-
-                if (ballCount >= 3) {
-                    intake.setPower(1);
-                } else {
-                    intake.setPower(0);
-                }
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -451,12 +441,9 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 15: // Wait until back at shooting pose
                 depo.updatePID();
-                if (ballCount >= 3) {
-                    intake.setPower(1);
-                }
 
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
+                    intake.setPower(1);
                     actionTimer.resetTimer();
                     setPathState(115);
                 }
@@ -471,9 +458,8 @@ public class A_state_farblueoptimized extends OpMode {
                 break;
 
             case 16: // Final shooting sequence
+                intake.setPower(0);
                 if (actionState == 0) {
-                    ballCount = 0;
-                    intake.setPower(0);
                     buildGetOutPath();
                     setPathState(17);
                 }
@@ -499,8 +485,13 @@ public class A_state_farblueoptimized extends OpMode {
                 break;
 
             case 1: // Initialize shooting
-                LL.set_angle_far();
+                LL.set_angle_far_auto();
                 depo.setTargetVelocity(depo.farVeloblueauto);
+
+                if (pathState != 2 && pathState != 6 && pathState != 11 && pathState != 16 &&
+                        pathState != 101 && pathState != 105 && pathState != 110 && pathState != 115) {
+                    break;
+                }
 
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -513,6 +504,13 @@ public class A_state_farblueoptimized extends OpMode {
 
             case 2: // Wait for shooter to spin up
                 depo.updatePID();
+
+                if (pathState != 2 && pathState != 6 && pathState != 11 && pathState != 16 &&
+                        pathState != 101 && pathState != 105 && pathState != 110 && pathState != 115) {
+                    setActionState(0); // Abort if somehow path state changed
+                    break;
+                }
+
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -526,7 +524,7 @@ public class A_state_farblueoptimized extends OpMode {
                 // ✅ ALWAYS use motif-based shooting from the start
                 executeShootingSequence();
 
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.15) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
@@ -643,15 +641,14 @@ public class A_state_farblueoptimized extends OpMode {
     private void buildGatePaths() {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
-                .setLinearHeadingInterpolation(cur.getHeading(),infront_of_lever_new.getHeading(),0.65)
-                .setTimeoutConstraint(1.6)
+                .addPath(new Path(new BezierCurve(cur, midpoint3, lever_touch)))
+                .setLinearHeadingInterpolation(cur.getHeading(), lever_touch.getHeading(),0.65)
+                .setTimeoutConstraint(1)
                 .build();
 
         gatebackPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .addPath(new Path(new BezierCurve(lever_touch, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
-                .setTimeoutConstraint(0.2)
                 .build();
     }
 
