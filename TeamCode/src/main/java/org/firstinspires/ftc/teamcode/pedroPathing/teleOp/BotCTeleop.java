@@ -26,7 +26,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop red", group = "TeleOp")
+@TeleOp(name = "Bot C teleop red", group = "A_TeleOp")
 public class BotCTeleop extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
@@ -78,7 +78,7 @@ public class BotCTeleop extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(62,140,0);//used for close turret aim
+    private final Pose redGoal = new Pose(62,137,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(62,144,0);//used for far turret aim
@@ -431,7 +431,7 @@ public class BotCTeleop extends OpMode {
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("shooter sequence",shooterSequence);
-        telemetry.addData("actual depo velo",depo.getVelocity());
+//        telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addData("first shot velo",firstShot);
         telemetry.addData("second shot",secondShot);
         telemetry.addData("third shot",thirdShot);

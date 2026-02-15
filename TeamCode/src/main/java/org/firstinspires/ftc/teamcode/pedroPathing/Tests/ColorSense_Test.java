@@ -7,9 +7,12 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "ColorSense_Test")
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
+
+@TeleOp(name = "ColorSense_Test", group = "z")
 public class ColorSense_Test extends LinearOpMode {
     Servo led;
+    Servo led2;
     DcMotor intake;
     String detectedColor = "Unknown";
     String sensorname = "back";
@@ -32,28 +35,35 @@ public class ColorSense_Test extends LinearOpMode {
     public NormalizedColorSensor SensorRight2;
     public NormalizedColorSensor SensorBack2;
 
+    Timer timer1;
+    boolean intaking;
+
     @Override
     public void runOpMode() {
         intake = hardwareMap.get(DcMotor.class, "intake");
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         led = hardwareMap.get(Servo.class, "led");
+        led2 = hardwareMap.get(Servo.class, "led2");
         SensorBack = hardwareMap.get(NormalizedColorSensor.class, "color_back");
         SensorLeft = hardwareMap.get(NormalizedColorSensor.class, "color_left");
         SensorRight = hardwareMap.get(NormalizedColorSensor.class, "color_right");
         SensorBack2 = hardwareMap.get(NormalizedColorSensor.class, "color_back2");
         SensorLeft2 = hardwareMap.get(NormalizedColorSensor.class, "color_left2");
         SensorRight2 = hardwareMap.get(NormalizedColorSensor.class, "color_right2");
+        timer1 = new Timer();
         waitForStart();
-
+        timer1.resetTimer();
         while (opModeIsActive()) {
             if(gamepad1.right_bumper){
                 intake.setPower(-1);
+                intaking = false;
+                timer1.stopTimer();
             }
             else if(gamepad1.left_bumper){
                 intake.setPower(1);
             }
-            else intake.setPower(0);
+            else if(!intaking && timer1.timerIsOff()) intake.setPower(0);
 
 //            telemetry.addData("left", left2);
 //            telemetry.addData("right", right2);
@@ -112,14 +122,37 @@ public class ColorSense_Test extends LinearOpMode {
                 telemetry.addData("Blue",  blue);
                 telemetry.addData("Detected Color", detectedColor);
             }
-            if(left1==1|| left2==1){
-                led.setPosition(0.5);
-            }
-            else if(left1==2|| left2==2){
-                led.setPosition(0.72);
-            }
+            left1 = detect(SensorLeft);
+            left2 = detect(SensorLeft2);
+            right1 = detect(SensorRight);
+            right2 = detect(SensorRight2);
+            back1 = detect(SensorBack);
+            back2 = detect(SensorBack2);
+
+            if(left1==1|| left2==1) led.setPosition(0.5);
+            else if(left1==2|| left2==2) led.setPosition(0.72);
             else led.setPosition(0);
 
+            if(right1==1|| right2==1) led2.setPosition(0.5);
+            else if(right1==2|| right2==2) led2.setPosition(0.72);
+            else led2.setPosition(0);
+
+            if(back1==1|| back2==1) gamepad1.setLedColor(0,255,0,100);
+            else if(back1==2|| back2==2) gamepad1.setLedColor(255,0,255,100);
+            else gamepad1.setLedColor(0,0,0,100);
+            if(gamepad1.dpadDownWasPressed()){
+                intaking = true;
+                intake.setPower(-1);
+            }
+            if(intaking){
+                if((back1!=0|| back2!=0) && (right1!=0|| right2!=0) && (left1!=0|| left2!=0) ){
+                    timer1.startTimer();
+                    intake.setPower(1);
+                    intaking = false;
+                }
+
+            }
+            if(timer1.checkAtSeconds(3)) timer1.stopTimer();
 
 //            telemetry.addData("Red", red);
 //            telemetry.addData("Green", green);
@@ -132,14 +165,14 @@ public class ColorSense_Test extends LinearOpMode {
     public int detect(NormalizedColorSensor colorSensor){
         NormalizedRGBA colors = colorSensor.getNormalizedColors();
 
-        red = colors.red;
-        green = colors.green;
-        blue = colors.blue;
+        red = colors.red*1000;
+        green = colors.green*1000;
+        blue = colors.blue*1000;
 
 
 
         // --- Step 1: Detect if no ball is present ---
-        if (red < 0.005 && green < 0.005 && blue < 0.005) {
+        if (red < 7 && green < 7 && blue < 7) {
 //            if(blue>=green){
 //                detectedColor = "Purple Ball";
 ////                led.setPosition(0.72);

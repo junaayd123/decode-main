@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_New;
 
-@TeleOp(name = "ColorSense_Test_V2")
+@TeleOp(name = "ColorSense_Test_V2", group = "z")
 public class ColorSense_Test_V2 extends LinearOpMode {
     Servo led;
     DcMotor intake;

@@ -29,7 +29,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop blue", group = "TeleOp")
+@TeleOp(name = "Bot C teleop blue", group = "A_TeleOp")
 public class BotCTeleopBlue extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
@@ -51,6 +51,8 @@ public class BotCTeleopBlue extends OpMode {
     private Deposition_C depo;
     boolean shootingTest =false;
     boolean intakeRunning;
+    int firstShot, secondShot, thirdShot;
+
     Servo led;
     Servo led2;
     int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
@@ -62,6 +64,12 @@ public class BotCTeleopBlue extends OpMode {
     Timer timer3;
     Timer timer4;
     Timer timer5;
+    Timer timerfirstshot;
+    Timer timersecondshot;
+    Timer timerthirdshot;
+
+
+
     double ourVelo = 1300;
     boolean shooting = false;
     double shootinterval = 0.35;
@@ -79,7 +87,7 @@ public class BotCTeleopBlue extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(-64,132,0);//used for close turret aim
+    private final Pose redGoal = new Pose(-62,132,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(-72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(-66,132,0);//used for far turret aim
@@ -159,6 +167,10 @@ public class BotCTeleopBlue extends OpMode {
         timer4 = new Timer();
         timer5 = new Timer();
         turretTimer = new Timer();
+        timerfirstshot = new Timer();
+        timersecondshot = new Timer();
+        timerthirdshot = new Timer();
+
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -180,6 +192,10 @@ public class BotCTeleopBlue extends OpMode {
         timer4.resetTimer();
         timer5.resetTimer();
         turretTimer.resetTimer();
+        timerfirstshot.resetTimer();
+        timersecondshot.resetTimer();
+        timerthirdshot.resetTimer();
+
 //        tagInitializing = true;
     }
 
@@ -319,11 +335,11 @@ public class BotCTeleopBlue extends OpMode {
 
             }
         }
-        if(distanceToGoal>125) shootinterval = 0.4;
+        if(distanceToGoal>125) shootinterval = 0.43;
 //        else if (distanceToGoal<75){
 //            shootinterval = 0.25;
 //        }
-        else shootinterval = 0.3;
+        else shootinterval = 0.2;
         if(g2.cross && !preG2.cross){//shoot 3 close
             LL.allDown();
             if(!LL.checkNoBalls()) {
@@ -432,7 +448,9 @@ public class BotCTeleopBlue extends OpMode {
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("shooter sequence",shooterSequence);
-        telemetry.addData("actual depo velo",depo.getVelocity());
+        telemetry.addData("first shot velo",firstShot);
+        telemetry.addData("second shot velo",secondShot);
+        telemetry.addData("third shot velo",thirdShot);
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
         telemetry.addData("distance to goal",distanceToGoal);
         telemetry.addData("target velocity", ourVelo);
@@ -505,17 +523,21 @@ public class BotCTeleopBlue extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            if(dist<75){
-                return (int) (4.16622*(dist+5)+875.18954); //today 875
-            }
-            else {
-//                return (int) (5.35158*dist+873.83526);//old stuff
-                return (int) (4.16622*(dist+5)+915.18954); //today 915
-            }
+            return (int) (8.21956*(dist+5)+1019.53588);
+            //everything below was before for lmq
+//            if(dist<75){
+//                return (int) (4.16622*dist+875.18954); //today 875
+//            }
+//            else {
+////                return (int) (5.35158*dist+873.83526);//old stuff
+//                return (int) (4.16622*dist+915.18954); //today 915
+//            }
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
-            return (int) (7.14286*dist+589.28571); //far
+            return (int)(1.64948*dist+1949.63918);
+        //below is at lmq
+//            return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
 //            if (dist < 60) return 1125; //close distance
 //            else if (dist < 70) return 1150;
@@ -543,14 +565,16 @@ public class BotCTeleopBlue extends OpMode {
 //        else if(dist<110) return 0.12; //close distance
 //        else if(dist>115 && dist<150) return 0.18;//far distance
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>125) return 0.27;//far
+        if (dist>125) return 0.22;//far
         else{
-            if(dist<75){
-                return 0.00180592*dist-0.0205829;//works for very close
-            }
-            else{
-                return 0.00180592*dist-0.0005829;//works for very close
-            }
+            return (0.00218724*dist-0.0681913);
+            //everything below was for lmq
+//            if(dist<75){
+//                return 0.00180592*dist-0.0205829;//works for very close
+//            }
+//            else{
+//                return 0.00180592*dist-0.0005829;//works for very close
+//            }
 
 //            if(dist<58) return 0.06;
 //            else if(dist<70) return 0.09;
@@ -616,20 +640,23 @@ public class BotCTeleopBlue extends OpMode {
     }
     private void LRBnoRecovery(){
         if (timer1.checkAtSeconds(0)) {
+            firstShot = (int) depo.getVelocity();
             LL.leftUp();
             shooterSequence = 1;
         }
         if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            secondShot = (int) depo.getVelocity();
             LL.allDown();
             LL.rightUp();
             shooterSequence = 2;
         }
         if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            thirdShot= (int) depo.getVelocity();
             LL.allDown();
             LL.backUp();
             shooterSequence = 3;
         }
-        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+        if(timer1.checkAtSeconds(shootinterval*3+0.25) && shooterSequence==3){
             LL.allDown();
             depo.setTargetVelocity(0);
             timer1.stopTimer();

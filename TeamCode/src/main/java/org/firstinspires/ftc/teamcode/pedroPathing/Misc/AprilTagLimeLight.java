@@ -11,7 +11,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.jetbrains.annotations.TestOnly;
 
-@TeleOp(name = "apriltaglime")
+@TeleOp(name = "apriltaglime",group="z")
 public class AprilTagLimeLight extends OpMode {
     private Limelight3A limelight;
     private IMU imu;

@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 
-@TeleOp
+@TeleOp(name = "Freeze Drive Test", group="z")
 public class freezeDriveTest extends OpMode {
 
     public Follower follower;

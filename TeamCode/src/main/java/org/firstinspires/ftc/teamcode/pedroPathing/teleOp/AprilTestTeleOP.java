@@ -20,7 +20,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-@TeleOp
+@TeleOp(name = "AprilTestTeleOP", group = "z")
 public class AprilTestTeleOP extends LinearOpMode {
 
     public TagCoordinate Tag20 = new TagCoordinate(12, 125, (float)29, -54);

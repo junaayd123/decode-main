@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 
-@TeleOp(name = "ColorSenser test rev")
+@TeleOp(name = "ColorSenser test rev", group = "z")
 public class colortestrev extends LinearOpMode {
     Servo led;
 

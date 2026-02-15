@@ -67,7 +67,7 @@ import java.util.List;
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@TeleOp(name = "OpenCV DEVELOPMENT FILE")
+@TeleOp(name = "OpenCV DEVELOPMENT FILE",group="z")
 public class OpenCVWorkFile extends LinearOpMode {
     // ===== PURPLE HSV RANGE =====
     public static int P_H_MIN = 130;

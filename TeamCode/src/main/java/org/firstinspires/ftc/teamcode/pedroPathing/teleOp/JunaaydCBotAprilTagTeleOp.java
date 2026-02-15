@@ -76,7 +76,7 @@ import java.util.List;
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list.
  */
-@TeleOp(name = "CBotAprilTagTeleOp")
+@TeleOp(name = "JunaaydCBotAprilTagTeleOp", group = "z")
 public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
 
 
@@ -256,8 +256,8 @@ public class JunaaydCBotAprilTagTeleOp extends LinearOpMode {
         aprilTag = new AprilTagProcessor.Builder()
 
                 // The following default settings are available to un-comment and edit as needed.
-                //.setDrawAxes(false)
-                //.setDrawCubeProjection(false)
+                .setDrawAxes(true)
+                .setDrawCubeProjection(true)
                 //.setDrawTagOutline(true)
                 //.setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)
                 //.setTagLibrary(AprilTagGameDatabase.getCenterStageTagLibrary())
