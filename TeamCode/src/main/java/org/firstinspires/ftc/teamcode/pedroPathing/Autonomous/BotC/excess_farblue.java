@@ -32,7 +32,7 @@ import java.util.List;
  * excess_farblue
  *
  * SCENARIO_4_DOMINATES sequence:
- *   Preload (far shot) → Third line pickup → Far shot → Excess #1 → Far shot → Excess #2 → Far shot → Get out
+ *   Preload → Third line pickup → Shot → Excess → Shot → Gate collect #1 → Shot → Gate collect #2 → Shot → Get out
  *
  * Poses: farshotpose family from state_farblueoptimized
  * Excess area: from scenariofarblue
@@ -65,6 +65,7 @@ public class excess_farblue extends OpMode {
     private int actionState;
     private int greenInSlot;
     private int excessPickupCount = 0;
+    private int gateCollectCount = 0;
     private int shotCycleCount = 0;
     private int ballCount = 3;
 
@@ -81,25 +82,31 @@ public class excess_farblue extends OpMode {
     private static final double EXCESS_WAIT_FIRST_POSITION = 2.0;
     private static final double EXCESS_WAIT_SECOND_POSITION = 1.5;
     private static final double EXCESS_PATH_SPEED = 0.5;
-    private static final int TOTAL_EXCESS_PICKUPS = 2;
+    private static final double GATE_COLLECT_WAIT = 2.0;
+    private static final double GATE_FIRST_WAIT = 1.5;
+    private static final double GATE_STRAFE_SPEED = 0.85;
+    private static final int TOTAL_GATE_COLLECTS = 2;
 
     // ========== POSES (far shot family from state_farblueoptimized) ==========
     private final Pose startPose           = new Pose(7 + 6.5, -7,    Math.toRadians(0));
     private final Pose farshotpose         = new Pose(12,      -17,   Math.toRadians(0));
     private final Pose ThirdPickupPose     = new Pose(56,      -35,   Math.toRadians(0));
-    private final Pose midpoint2           = new Pose(22,      -36,   Math.toRadians(0));
+    private final Pose midpoint2           = new Pose(8,      -38,   Math.toRadians(0));
     private final Pose outPose             = new Pose(30,      -17,   Math.toRadians(0));
+    private final Pose collectFromGate     = new Pose(66,      -52,   Math.toRadians(-53));
 
     // Excess area poses from scenariofarblue
     private final Pose excessBallArea          = new Pose(61,  -12,  Math.toRadians(10));
+    private final Pose gateExcess1         = new Pose(68,  -12,  Math.toRadians(-40));
     private final Pose excessBallAreaStrafeEnd = new Pose(60,  -9.8, Math.toRadians(13));
-
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
     private PathChain goBackPath;
     private PathChain excessPath;
     private PathChain excessPathStrafe;
+    private PathChain gateStrafePath;
     private PathChain getOut;
+    private PathChain gateAreaPath2;
 
     // ========== INIT ==========
     @Override
@@ -139,7 +146,7 @@ public class excess_farblue extends OpMode {
         motifDetectionCount = 0;
         detectedMotif       = "";
 
-        telemetry.addLine("excess_farblue initialized | SCENARIO 4: preload → third → 2x excess");
+        telemetry.addLine("excess_farblue initialized | preload → third → excess → 2x gate collect");
         telemetry.update();
     }
 
@@ -169,12 +176,13 @@ public class excess_farblue extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(66.5);
+        turret.setDegreesTarget(65);
         turret.setPid();
 
-        shotCycleCount   = 0;
+        shotCycleCount    = 0;
         excessPickupCount = 0;
-        ballCount        = 3;
+        gateCollectCount  = 0;
+        ballCount         = 3;
 
         telemetry.update();
         setPathState(0);
@@ -194,7 +202,7 @@ public class excess_farblue extends OpMode {
         telemetry.addData("Shot Cycle",   shotCycleCount);
         telemetry.addData("Ball Count",   ballCount);
         telemetry.addData("Motif",        motif + " (locked)");
-        telemetry.addData("Excess Done",  excessPickupCount + "/" + TOTAL_EXCESS_PICKUPS);
+        telemetry.addData("Excess Done",  excessPickupCount);
 
         if (pathState == -1) {
             telemetry.addData("Auto Status", "Complete");
@@ -250,10 +258,12 @@ public class excess_farblue extends OpMode {
     }
 
     // ========== PATH STATE MACHINE ==========
+    // Flywheel only spins up at shooting position (not during driving/collecting)
     // Sequence: 0→1→101→2 (preload shot)
-    //           → 20→21→22→23→24→25 (third line pickup + shot)
-    //           → 30→31→311→32→321→33→34→35→36 (excess #1 + shot)
-    //           → 30→31→311→32→321→33→34→35→36 (excess #2 + shot)
+    //           → 20→21→211→22→23→24→25 (third line pickup + shot)
+    //           → 30→31→311→32→321→33→34→35→36 (excess + shot)
+    //           → 40→41→411→412→413→42→43→44→45 (gate collect #1 + shot)
+    //           → 40→41→411→412→413→42→43→44→45 (gate collect #2 + shot)
     //           → 17→18→-1 (get out)
 
     public void autonomousPathUpdate() {
@@ -261,9 +271,9 @@ public class excess_farblue extends OpMode {
 
             // ===== PRELOAD =====
             case 0: // Spin up flywheel
-                LL.set_angle_far_auto();
+                LL.set_angle_far_auto2();
                 depo.setTargetVelocity(depo.farVeloblueauto);
-                SHOOT_INTERVAL = 0.375;
+                SHOOT_INTERVAL = 0.43;
                 setPathState(1);
                 break;
 
@@ -287,15 +297,13 @@ public class excess_farblue extends OpMode {
                 if (actionState == 0) {
                     ballCount = 0;
                     intake.setPower(-1);
-                    SHOOT_INTERVAL = 0.335;
+                    SHOOT_INTERVAL = 0.43;
                     setPathState(20);
                 }
                 break;
 
             // ===== THIRD LINE PICKUP =====
             case 20: // Drive to third line
-                LL.set_angle_far_auto();
-                depo.setTargetVelocity(depo.farVeloblueauto);
                 intake.setPower(-1);
                 buildThirdLinePickupPath();
                 follower.followPath(ThirdLinePickupPath, true);
@@ -304,16 +312,21 @@ public class excess_farblue extends OpMode {
 
             case 21: // Wait until third line reached
                 intake.setPower(-1);
-                depo.updatePID();
                 if (!follower.isBusy()) {
                     ballCount = 3;
+                    actionTimer.resetTimer();
+                    setPathState(211);
+                }
+                break;
+
+            case 211: // Settle at third line before returning
+                intake.setPower(-1);
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setPathState(22);
                 }
                 break;
 
             case 22: // Drive back to far shooting pose
-                LL.set_angle_far_auto();
-                depo.setTargetVelocity(depo.farVeloblueauto);
                 if (ballCount >= 3) intake.setPower(1);
                 else                intake.setPower(0);
                 buildReturnToShootingPath();
@@ -321,11 +334,12 @@ public class excess_farblue extends OpMode {
                 setPathState(23);
                 break;
 
-            case 23: // Wait until back at far shooting pose
-                depo.updatePID();
+            case 23: // Arrived at shooting pose — spin up flywheel
                 if (ballCount >= 3) intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
+                    LL.set_angle_far_auto2();
+                    depo.setTargetVelocity(depo.farVeloblueauto);
                     actionTimer.resetTimer();
                     setPathState(24);
                 }
@@ -347,10 +361,8 @@ public class excess_farblue extends OpMode {
                 }
                 break;
 
-            // ===== EXCESS PICKUP LOOP (runs TOTAL_EXCESS_PICKUPS times) =====
+            // ===== EXCESS PICKUP =====
             case 30: // Drive to excess area at half speed
-                LL.set_angle_far_auto();
-                depo.setTargetVelocity(depo.farVeloblueauto);
                 intake.setPower(-1);
                 buildExcessPath();
                 follower.setMaxPower(EXCESS_PATH_SPEED);
@@ -361,7 +373,6 @@ public class excess_farblue extends OpMode {
 
             case 31: // Wait until first position reached (or timeout)
                 intake.setPower(-1);
-                depo.updatePID();
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     actionTimer.resetTimer();
                     setPathState(311);
@@ -370,7 +381,6 @@ public class excess_farblue extends OpMode {
 
             case 311: // Wait at first position
                 intake.setPower(-1);
-                depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
                     buildExcessStrafePath();
                     follower.followPath(excessPathStrafe, true);
@@ -381,7 +391,6 @@ public class excess_farblue extends OpMode {
 
             case 32: // Wait until strafe done
                 intake.setPower(-1);
-                depo.updatePID();
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     ballCount = 3;
                     actionTimer.resetTimer();
@@ -390,7 +399,6 @@ public class excess_farblue extends OpMode {
                 break;
 
             case 321: // Wait at second position
-                depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
                     follower.setMaxPower(1.0);
                     setPathState(33);
@@ -398,8 +406,6 @@ public class excess_farblue extends OpMode {
                 break;
 
             case 33: // Drive back to far shooting pose from excess
-                LL.set_angle_far_auto();
-                depo.setTargetVelocity(depo.farVeloblueauto);
                 if (ballCount >= 3) intake.setPower(1);
                 else                intake.setPower(0);
                 buildReturnToShootingPath();
@@ -407,11 +413,12 @@ public class excess_farblue extends OpMode {
                 setPathState(34);
                 break;
 
-            case 34: // Wait until back at far shooting pose
-                depo.updatePID();
+            case 34: // Arrived at shooting pose from excess — spin up flywheel
                 if (ballCount >= 3) intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
+                    LL.set_angle_far_auto2();
+                    depo.setTargetVelocity(depo.farVeloblueauto);
                     actionTimer.resetTimer();
                     setPathState(35);
                 }
@@ -425,12 +432,94 @@ public class excess_farblue extends OpMode {
                 }
                 break;
 
-            case 36: // Wait for excess shot to finish
+            case 36: // Wait for excess shot to finish → go to gate collect
                 if (actionState == 0) {
                     ballCount = 0;
                     excessPickupCount++;
-                    if (excessPickupCount < TOTAL_EXCESS_PICKUPS) {
-                        setPathState(30); // Loop back for second excess
+                    gateCollectCount = 0;
+                    setPathState(40);
+                }
+                break;
+
+            // ===== GATE COLLECT (runs TOTAL_GATE_COLLECTS times) =====
+            case 40: // Drive to gateExcess1 at half speed
+                intake.setPower(-1);
+                buildGateAreaPath();
+
+                follower.followPath(gateAreaPath2, true);
+                excessPathTimeoutTimer.resetTimer();
+                setPathState(41);
+                break;
+
+            case 41: // Wait until gateExcess1 reached (or timeout)
+                intake.setPower(-1);
+                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
+                    actionTimer.resetTimer();
+                    setPathState(411);
+                }
+                break;
+
+            case 411: // Wait at gateExcess1 before strafing
+                intake.setPower(-1);
+                if (actionTimer.getElapsedTimeSeconds() >= GATE_FIRST_WAIT) {
+                    buildGateStrafePath();
+
+                    follower.followPath(gateStrafePath, true);
+                    excessPathTimeoutTimer.resetTimer();
+                    setPathState(412);
+                }
+                break;
+
+            case 412: // Wait until strafe to collectFromGate done
+                intake.setPower(-1);
+                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
+                    actionTimer.resetTimer();
+                    setPathState(413);
+                }
+                break;
+
+            case 413: // Wait at gate to collect balls
+                intake.setPower(-1);
+                if (actionTimer.getElapsedTimeSeconds() >= GATE_COLLECT_WAIT) {
+                    ballCount = 3;
+                    follower.setMaxPower(1.0);
+                    setPathState(42);
+                }
+                break;
+
+            case 42: // Drive back to far shooting pose from gate
+                if (ballCount >= 3) intake.setPower(1);
+                else                intake.setPower(0);
+                buildReturnToShootingPath();
+                follower.followPath(goBackPath, true);
+                setPathState(43);
+                break;
+
+            case 43: // Arrived at shooting pose from gate — spin up flywheel
+                if (ballCount >= 3) intake.setPower(1);
+                if (!follower.isBusy()) {
+                    intake.setPower(0);
+                    LL.set_angle_far_auto2();
+                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    actionTimer.resetTimer();
+                    setPathState(44);
+                }
+                break;
+
+            case 44: // Settle before gate collect shot
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
+                    setPathState(45);
+                }
+                break;
+
+            case 45: // Wait for gate collect shot to finish
+                if (actionState == 0) {
+                    ballCount = 0;
+                    gateCollectCount++;
+                    if (gateCollectCount < TOTAL_GATE_COLLECTS) {
+                        setPathState(40); // Loop back for another gate collect
                     } else {
                         buildGetOutPath();
                         setPathState(17);
@@ -459,12 +548,13 @@ public class excess_farblue extends OpMode {
                 break;
 
             case 1: // Initialize shooting
-                LL.set_angle_far_auto();
+                LL.set_angle_far_auto2();
                 depo.setTargetVelocity(depo.farVeloblueauto);
 
                 // Guard: only allow shooting from valid path states
                 if (pathState != 2  && pathState != 25 && pathState != 36 &&
-                        pathState != 101 && pathState != 24 && pathState != 35) {
+                        pathState != 45 && pathState != 101 && pathState != 24 &&
+                        pathState != 35 && pathState != 44) {
                     break;
                 }
 
@@ -481,7 +571,8 @@ public class excess_farblue extends OpMode {
                 depo.updatePID();
 
                 if (pathState != 2  && pathState != 25 && pathState != 36 &&
-                        pathState != 101 && pathState != 24 && pathState != 35) {
+                        pathState != 45 && pathState != 101 && pathState != 24 &&
+                        pathState != 35 && pathState != 44) {
                     setActionState(0);
                     break;
                 }
@@ -562,8 +653,9 @@ public class excess_farblue extends OpMode {
     private void buildThirdLinePickupPath() {
         Pose cur = follower.getPose();
         ThirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, ThirdPickupPose)))
+                .addPath(new Path(new BezierCurve(cur, midpoint2, ThirdPickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), ThirdPickupPose.getHeading())
+                .setTimeoutConstraint(0.2)
                 .build();
     }
 
@@ -594,6 +686,24 @@ public class excess_farblue extends OpMode {
                 .build();
     }
 
+    private void buildGateAreaPath() {
+        Pose cur = follower.getPose();
+        gateAreaPath2 = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, gateExcess1)))
+                .setLinearHeadingInterpolation(cur.getHeading(), gateExcess1.getHeading())
+                .setTimeoutConstraint(0.2)
+                .build();
+    }
+
+    private void buildGateStrafePath() {
+        Pose cur = follower.getPose();
+        gateStrafePath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, collectFromGate)))
+                .setLinearHeadingInterpolation(cur.getHeading(), collectFromGate.getHeading())
+                .setTimeoutConstraint(1.2)
+                .build();
+    }
+
     private void buildGetOutPath() {
         Pose cur = follower.getPose();
         getOut = follower.pathBuilder()
@@ -606,7 +716,7 @@ public class excess_farblue extends OpMode {
     // ========== UTILITY ==========
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
-        if (d2 != null) d2.setPower(0.0);
+        if (d2 != null) d2.setPower (0.0);
     }
 
     private void setPathState(int pState) {
