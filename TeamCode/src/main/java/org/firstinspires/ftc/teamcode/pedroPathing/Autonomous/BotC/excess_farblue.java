@@ -96,6 +96,8 @@ public class excess_farblue extends OpMode {
     private final Pose collectFromGate     = new Pose(66,      -52,   Math.toRadians(-53));
 
     // Excess area poses from scenariofarblue
+
+    //
     private final Pose excessBallArea          = new Pose(61,  -12,  Math.toRadians(10));
     private final Pose gateExcess1         = new Pose(68,  -12,  Math.toRadians(-40));
     private final Pose excessBallAreaStrafeEnd = new Pose(60,  -9.8, Math.toRadians(13));

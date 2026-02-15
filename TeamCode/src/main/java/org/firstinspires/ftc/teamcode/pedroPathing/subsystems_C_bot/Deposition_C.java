@@ -34,6 +34,7 @@ public class Deposition_C {
     public double farVeloredauto2 = 2220.0; // roughly 1590
     public double farVeloblue = 1600;
     //
+    //
     public double farVeloblueauto = 2265.0;
     public double farVeloblueauto2 = 2170.0;
 
