@@ -79,28 +79,28 @@ public class excess_farblue extends OpMode {
     // ========== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.375;
     private static final double SETTLE_TIME = 0.15;
-    private static final double EXCESS_WAIT_FIRST_POSITION = 2.0;
-    private static final double EXCESS_WAIT_SECOND_POSITION = 1.5;
-    private static final double EXCESS_PATH_SPEED = 0.5;
-    private static final double GATE_COLLECT_WAIT = 2.0;
-    private static final double GATE_FIRST_WAIT = 1.5;
+    private static final double EXCESS_WAIT_FIRST_POSITION = 1;
+    private static final double EXCESS_WAIT_SECOND_POSITION = 1;
+    private static final double EXCESS_PATH_SPEED = 0.8;
+    private static final double GATE_COLLECT_WAIT = 0.5;//2.0
+    private static final double GATE_FIRST_WAIT = 0.0;//0.5
     private static final double GATE_STRAFE_SPEED = 0.85;
     private static final int TOTAL_GATE_COLLECTS = 2;
 
     // ========== POSES (far shot family from state_farblueoptimized) ==========
     private final Pose startPose           = new Pose(7 + 6.5, -7,    Math.toRadians(0));
     private final Pose farshotpose         = new Pose(12,      -17,   Math.toRadians(0));
-    private final Pose ThirdPickupPose     = new Pose(56,      -35,   Math.toRadians(0));
+    private final Pose ThirdPickupPose     = new Pose(60,      -35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      -38,   Math.toRadians(0));
     private final Pose outPose             = new Pose(30,      -17,   Math.toRadians(0));
-    private final Pose collectFromGate     = new Pose(66,      -52,   Math.toRadians(-53));
+    private final Pose collectFromGate     = new Pose(66,      -40,   Math.toRadians(-63));
 
     // Excess area poses from scenariofarblue
 
     //
-    private final Pose excessBallArea          = new Pose(61,  -12,  Math.toRadians(10));
-    private final Pose gateExcess1         = new Pose(68,  -12,  Math.toRadians(-40));
-    private final Pose excessBallAreaStrafeEnd = new Pose(60,  -9.8, Math.toRadians(13));
+    private final Pose excessBallArea          = new Pose(66,  -35,  Math.toRadians(90));//hp stuff
+    private final Pose gateExcess1         = new Pose(68,  -12,  Math.toRadians(-60));//ts is actual excess
+    private final Pose excessBallAreaStrafeEnd = new Pose(66,  -9.8, Math.toRadians(90)); //hp stuff
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
     private PathChain goBackPath;
@@ -178,7 +178,7 @@ public class excess_farblue extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(65);
+        turret.setDegreesTarget(68);
         turret.setPid();
 
         shotCycleCount    = 0;
@@ -274,7 +274,7 @@ public class excess_farblue extends OpMode {
             // ===== PRELOAD =====
             case 0: // Spin up flywheel
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.farVeloblueautoPreload);
                 SHOOT_INTERVAL = 0.43;
                 setPathState(1);
                 break;
@@ -308,6 +308,7 @@ public class excess_farblue extends OpMode {
             case 20: // Drive to third line
                 intake.setPower(-1);
                 buildThirdLinePickupPath();
+                turret.setDegreesTarget(65);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(21);
                 break;
@@ -363,8 +364,8 @@ public class excess_farblue extends OpMode {
                 }
                 break;
 
-            // ===== EXCESS PICKUP =====
-            case 30: // Drive to excess area at half speed
+            // ===== human player PICKUP =====
+            case 30: // Drive to hp area at half speed
                 intake.setPower(-1);
                 buildExcessPath();
                 follower.setMaxPower(EXCESS_PATH_SPEED);
@@ -490,8 +491,8 @@ public class excess_farblue extends OpMode {
                 break;
 
             case 42: // Drive back to far shooting pose from gate
-                if (ballCount >= 3) intake.setPower(1);
-                else                intake.setPower(0);
+//                if (ballCount >= 3) intake.setPower(1);
+//                else                intake.setPower(0);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(43);
