@@ -61,7 +61,7 @@ public class Closeblueoptimized extends OpMode {
     private boolean intakeRunning = false;
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.335;
+    private static final double SHOOT_INTERVAL = 0.25;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
@@ -74,17 +74,16 @@ public class Closeblueoptimized extends OpMode {
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
-    private final Pose firstPickupPose = new Pose(42, -81, Math.toRadians(0));
+    private final Pose firstPickupPose = new Pose(53, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
-    //
     private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
+    private final Pose infront_of_lever_new = new Pose(57.7, -55.6, Math.toRadians(-34));
     private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-36.5));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
-    private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
+    private final Pose outPose = new Pose(30, -81.5, Math.toRadians(-34));
 
     private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
@@ -472,7 +471,7 @@ public class Closeblueoptimized extends OpMode {
                     executeShootingSequence();
                 }
 
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.25) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
@@ -616,7 +615,7 @@ public class Closeblueoptimized extends OpMode {
         Pose cur = follower.getPose();
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
+                .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading(),0.3)
                 .build();
     }
 
