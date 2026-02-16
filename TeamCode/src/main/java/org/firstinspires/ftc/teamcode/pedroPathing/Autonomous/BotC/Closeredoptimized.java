@@ -61,7 +61,7 @@ public class Closeredoptimized extends OpMode {
     private boolean intakeRunning = false;  // ✅ ADD THIS
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.335;
+    private static final double SHOOT_INTERVAL = 0.25;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.2;
@@ -162,7 +162,7 @@ public class Closeredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-44.5);
+        turret.setDegreesTarget(-42);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -276,7 +276,7 @@ public class Closeredoptimized extends OpMode {
 
             case 2: // Wait for shooting to complete
                 if (actionState == 0) { // Shooting done
-                    turret.setDegreesTarget(-15);
+                    turret.setDegreesTarget(-13);
                     setPathState(3);
                 }
                 break;
@@ -507,7 +507,7 @@ public class Closeredoptimized extends OpMode {
                     executeShootingSequence();
                 }
 
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3+0.25) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();

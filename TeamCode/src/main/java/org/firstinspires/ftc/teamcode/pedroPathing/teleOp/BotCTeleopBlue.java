@@ -567,7 +567,7 @@ public class BotCTeleopBlue extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return 0.15;//far
         else{
-            return (0.00218724*(dist+7)-0.0681913);
+            return (0.00218724*(dist)-0.0681913);
             //everything below was for lmq
 //            if(dist<75){
 //                return 0.00180592*dist-0.0205829;//works for very close

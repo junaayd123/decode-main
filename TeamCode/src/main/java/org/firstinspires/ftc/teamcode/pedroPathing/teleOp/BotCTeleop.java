@@ -510,7 +510,7 @@ public class BotCTeleop extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            return (int) (8.21956*dist+1019.53588);
+            return (int) (8.21956*(dist+3)+1019.53588);
             //everything below was before for lmq
 //            if(dist<75){
 //                return (int) (4.16622*dist+875.18954); //today 875
@@ -522,7 +522,7 @@ public class BotCTeleop extends OpMode {
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
-            return (int)(4.49259*dist+1581.95157);
+            return (int)(4.49259*(dist+3)+1581.95157);
             //below is at lmq
 //            return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
