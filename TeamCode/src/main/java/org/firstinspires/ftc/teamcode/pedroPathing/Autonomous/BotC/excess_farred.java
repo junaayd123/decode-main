@@ -77,11 +77,11 @@ public class excess_farred extends OpMode {
     private static final int MOTIF_DETECTION_THRESHOLD = 3;
 
     // ========== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.375;
+    private static double SHOOT_INTERVAL = 0.3;
     private static final double SETTLE_TIME = 0.15;
     private static final double EXCESS_WAIT_FIRST_POSITION = 1;
     private static final double EXCESS_WAIT_SECOND_POSITION = 1;
-    private static final double EXCESS_PATH_SPEED = 0.8;
+    private static final double EXCESS_PATH_SPEED = 1;
     private static final double GATE_COLLECT_WAIT = 0.5;//2.0
     private static final double GATE_FIRST_WAIT = 0.0;//0.5
     private static final double GATE_STRAFE_SPEED = 0.85;
@@ -93,13 +93,13 @@ public class excess_farred extends OpMode {
     private final Pose ThirdPickupPose     = new Pose(60,      35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      38,   Math.toRadians(0));
     private final Pose outPose             = new Pose(30,      17,   Math.toRadians(0));
-    private final Pose collectFromGate     = new Pose(66,      40,   Math.toRadians(63));
+    private final Pose collectFromGate     = new Pose(76,      40,   Math.toRadians(45));
 
     // Excess area poses from scenariofarred
 
     //
-    private final Pose excessBallArea          = new Pose(66,  35,  Math.toRadians(-90));//hp stuff
-    private final Pose gateExcess1         = new Pose(68,  12,  Math.toRadians(60));//ts is actual excess
+    private final Pose excessBallArea          = new Pose(66,  30,  Math.toRadians(-90));//hp stuff
+    private final Pose gateExcess1         = new Pose(76,  5,  Math.toRadians(45));//ts is actual excess
     private final Pose excessBallAreaStrafeEnd = new Pose(66,  9.8, Math.toRadians(-90)); //hp stuff
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -275,7 +275,7 @@ public class excess_farred extends OpMode {
             case 0: // Spin up flywheel
                 LL.set_angle_far_auto2();
                 depo.setTargetVelocity(depo.farVeloblueautoPreload);
-                SHOOT_INTERVAL = 0.43;
+                SHOOT_INTERVAL = 0.35;
                 setPathState(1);
                 break;
 
@@ -299,7 +299,7 @@ public class excess_farred extends OpMode {
                 if (actionState == 0) {
                     ballCount = 0;
                     intake.setPower(-1);
-                    SHOOT_INTERVAL = 0.43;
+                    SHOOT_INTERVAL = 0.35;
                     setPathState(20);
                 }
                 break;
@@ -308,7 +308,7 @@ public class excess_farred extends OpMode {
             case 20: // Drive to third line
                 intake.setPower(-1);
                 buildThirdLinePickupPath();
-                turret.setDegreesTarget(-65);
+                turret.setDegreesTarget(-67.6);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(21);
                 break;
