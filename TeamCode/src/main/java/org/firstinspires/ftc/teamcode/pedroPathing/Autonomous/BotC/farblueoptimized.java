@@ -79,11 +79,11 @@ public class farblueoptimized extends OpMode {
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(56, -62, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(56, -64, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(60, -55, Math.toRadians(-32));
+    private final Pose infront_of_lever_new = new Pose(60, -61, Math.toRadians(-32));
     private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
 
@@ -158,7 +158,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(64);
+        turret.setDegreesTarget(65);
         turret.setPid();
         shotCycleCount = 0;
         ballCount = 3;
