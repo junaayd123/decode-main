@@ -4,7 +4,6 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
@@ -170,7 +169,7 @@ public class farbluetesting extends OpMode {
 
             case 0: // Spin up shooter
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
                 break;
@@ -249,7 +248,7 @@ public class farbluetesting extends OpMode {
 
             case 1: // Start shooting
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
 
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();

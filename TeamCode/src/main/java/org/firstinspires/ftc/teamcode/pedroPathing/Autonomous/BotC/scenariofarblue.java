@@ -458,7 +458,7 @@ public class scenariofarblue extends OpMode {
         switch (pathState) {
             case 0: // Start - spin up flywheel
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
                 break;
@@ -943,7 +943,7 @@ public class scenariofarblue extends OpMode {
                 LL.set_angle_far();
                 // Use the correct velocity based on path state
                 if (pathState == 2) {
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
                 } else {
                     depo.setTargetVelocity(depo.farVeloblueauto2);
                 }

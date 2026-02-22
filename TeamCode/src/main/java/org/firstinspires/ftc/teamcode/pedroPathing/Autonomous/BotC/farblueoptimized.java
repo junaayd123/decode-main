@@ -253,7 +253,7 @@ public class farblueoptimized extends OpMode {
         switch (pathState) {
             case 0: // Start - spin up flywheel
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
                 SHOOT_INTERVAL = 0.375;
                 setPathState(1);
                 break;
@@ -294,7 +294,7 @@ public class farblueoptimized extends OpMode {
                 if (!follower.isBusy()) {
                     ballCount = 3;
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
 
                     if (ballCount >= 3) {
                         intake.setPower(1); // Out-take
@@ -374,7 +374,7 @@ public class farblueoptimized extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     ballCount = 3;
                     LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
@@ -419,7 +419,7 @@ public class farblueoptimized extends OpMode {
             // ===== THIRD LINE PICKUP =====
             case 12: // Drive straight to third line pickup
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
@@ -436,7 +436,7 @@ public class farblueoptimized extends OpMode {
 
             case 14: // Drive straight back to shooting pose
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
 
                 if (ballCount >= 3) {
                     intake.setPower(1);
@@ -500,7 +500,7 @@ public class farblueoptimized extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
 
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
