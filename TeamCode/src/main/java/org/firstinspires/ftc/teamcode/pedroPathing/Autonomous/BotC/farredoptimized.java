@@ -159,7 +159,7 @@ public class farredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-68.6);
+        turret.setDegreesTarget(-67.6);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
