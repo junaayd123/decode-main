@@ -555,12 +555,13 @@ public class BotCTeleop extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return LL.farShotPos;//far
         else{
-            if(dist<117){
-                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
-            }
-            else{
-                return 0.00194321*dist-0.0188222;
-            }
+            return 0.00194321*dist-0.0088222;
+//            if(dist<117){
+//                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
+//            }
+//            else{
+//
+//            }
 //            return (0.00218724*dist-0.0581913);
 //            (0.00218724*dist-0.0581913) //before 2/18
             //everything below was for lmq

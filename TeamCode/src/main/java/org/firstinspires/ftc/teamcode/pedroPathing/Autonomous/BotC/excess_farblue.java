@@ -274,7 +274,7 @@ public class excess_farblue extends OpMode {
             // ===== PRELOAD =====
             case 0: // Spin up flywheel
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.farVeloblueautoPreload);
+                depo.setTargetVelocity(depo.ExcessBluePreload);
                 SHOOT_INTERVAL = 0.43;
                 setPathState(1);
                 break;
@@ -342,7 +342,7 @@ public class excess_farblue extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
                     actionTimer.resetTimer();
                     setPathState(24);
                 }
@@ -421,7 +421,7 @@ public class excess_farblue extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
                     actionTimer.resetTimer();
                     setPathState(35);
                 }
@@ -503,7 +503,7 @@ public class excess_farblue extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessBlue);
                     actionTimer.resetTimer();
                     setPathState(44);
                 }
@@ -552,7 +552,7 @@ public class excess_farblue extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessBlue);
 
                 // Guard: only allow shooting from valid path states
                 if (pathState != 2  && pathState != 25 && pathState != 36 &&

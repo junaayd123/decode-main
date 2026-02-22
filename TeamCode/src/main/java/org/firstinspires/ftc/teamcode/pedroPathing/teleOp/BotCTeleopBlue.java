@@ -87,7 +87,7 @@ public class BotCTeleopBlue extends OpMode {
 
     private final Pose startPose = new Pose(53,70,0); //red
     private final Pose blueGoal = new Pose(-72,140,0);
-    private final Pose redGoal = new Pose(-65,132,0);//used for close turret aim
+    private final Pose redGoal = new Pose(-67,132,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(-72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(-66,132,0);//used for far turret aim
@@ -523,7 +523,8 @@ public class BotCTeleopBlue extends OpMode {
         //x is distanceCM y1 is velo y2 is launch angle
         //below is old stuff
         if(dist<125){
-            return (int) (8.21956*(dist+5)+1019.53588);
+            return (int) (7.07643*dist+1142.07867);
+//            (8.21956*(dist+3)+1019.53588) before 2/18
             //everything below was before for lmq
 //            if(dist<75){
 //                return (int) (4.16622*dist+875.18954); //today 875
@@ -535,7 +536,7 @@ public class BotCTeleopBlue extends OpMode {
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
-            return (int)(1.64948*dist+1949.63918);
+            return (int)(4.49259*(dist+3)+1581.95157);
         //below is at lmq
 //            return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
@@ -567,7 +568,15 @@ public class BotCTeleopBlue extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return LL.farShotPos;//far
         else{
-            return (0.00218724*(dist)-0.0681913);
+            return 0.00194321*dist-0.0088222;
+//            if(dist<117){
+//                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
+//            }
+//            else{
+//
+//            }
+//            return (0.00218724*dist-0.0581913);
+//            (0.00218724*dist-0.0581913) //before 2/18
             //everything below was for lmq
 //            if(dist<75){
 //                return 0.00180592*dist-0.0205829;//works for very close

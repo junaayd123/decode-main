@@ -93,13 +93,14 @@ public class excess_farred extends OpMode {
     private final Pose ThirdPickupPose     = new Pose(60,      35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      38,   Math.toRadians(0));
     private final Pose outPose             = new Pose(30,      17,   Math.toRadians(0));
-    private final Pose collectFromGate     = new Pose(76,      40,   Math.toRadians(45));
+    private final Pose collectFromGate     = new Pose(73,      45,   Math.toRadians(85));
+
 
     // Excess area poses from scenariofarred
 
     //
     private final Pose excessBallArea          = new Pose(66,  30,  Math.toRadians(-90));//hp stuff
-    private final Pose gateExcess1         = new Pose(76,  5,  Math.toRadians(45));//ts is actual excess
+    private final Pose gateExcess1         = new Pose(76,  2,  Math.toRadians(45));//ts is actual excess
     private final Pose excessBallAreaStrafeEnd = new Pose(66,  9.8, Math.toRadians(-90)); //hp stuff
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -274,7 +275,7 @@ public class excess_farred extends OpMode {
             // ===== PRELOAD =====
             case 0: // Spin up flywheel
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.farVeloblueautoPreload);
+                depo.setTargetVelocity(depo.ExcessRedPreload);
                 SHOOT_INTERVAL = 0.35;
                 setPathState(1);
                 break;
@@ -342,7 +343,7 @@ public class excess_farred extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessRed);
                     actionTimer.resetTimer();
                     setPathState(24);
                 }
@@ -421,7 +422,7 @@ public class excess_farred extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessRed);
                     actionTimer.resetTimer();
                     setPathState(35);
                 }
@@ -503,7 +504,7 @@ public class excess_farred extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.farVeloblueauto);
+                    depo.setTargetVelocity(depo.ExcessRed);
                     actionTimer.resetTimer();
                     setPathState(44);
                 }
@@ -552,7 +553,7 @@ public class excess_farred extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.farVeloblueauto);
+                depo.setTargetVelocity(depo.ExcessRed);
 
                 // Guard: only allow shooting from valid path states
                 if (pathState != 2  && pathState != 25 && pathState != 36 &&
