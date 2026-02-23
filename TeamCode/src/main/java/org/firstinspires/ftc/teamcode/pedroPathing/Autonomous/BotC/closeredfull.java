@@ -96,8 +96,8 @@ public class closeredfull extends OpMode {
     private final Pose secondpickuppose = new Pose(56, 55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.3, 56.3, Math.toRadians(34));
-    private final Pose back_lever = new Pose(58.3, 50.3, Math.toRadians(36.5));
+    private final Pose infront_of_lever_new = new Pose(56, 56.3, Math.toRadians(34));
+    private final Pose back_lever = new Pose(56, 50.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
@@ -193,7 +193,7 @@ public class closeredfull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-47);
+        turret.setDegreesTarget(-46);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);

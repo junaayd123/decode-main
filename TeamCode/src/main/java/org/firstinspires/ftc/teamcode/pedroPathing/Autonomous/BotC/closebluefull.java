@@ -77,7 +77,7 @@ public class closebluefull extends OpMode {
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 0.85;
-    private static final double GATE_WAIT_TIME_LATER = 0.40;
+    private static final double GATE_WAIT_TIME_LATER = 0.85;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES ==========
@@ -85,7 +85,7 @@ public class closebluefull extends OpMode {
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
 
-    private final Pose shotPoseInside = new Pose(13, -112, Math.toRadians(-12.5));
+    private final Pose shotPoseInside = new Pose(15, -106, Math.toRadians(-90));
 
     private final Pose firstPickupPose = new Pose(53, -81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
@@ -93,7 +93,8 @@ public class closebluefull extends OpMode {
     private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(57.7, -55.6, Math.toRadians(-34));
+    private final Pose infront_of_lever_new = new Pose(59, -54, Math.toRadians(-34));
+    private final Pose infront_of_lever_new2 = new Pose(59, -53, Math.toRadians(-34));
     private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-36.5));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose outfromgate1 = new Pose(50, -43, Math.toRadians(-42));
@@ -146,7 +147,8 @@ public class closebluefull extends OpMode {
         stopShooter();
 
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(110);
+        turret.setDegreesTarget(-41);
+//        turret.setDegreesTarget(110);
 
         initAprilTag();
 
@@ -191,7 +193,7 @@ public class closebluefull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(43);
+        turret.setDegreesTarget(41);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -274,7 +276,7 @@ public class closebluefull extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-40);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -339,7 +341,8 @@ public class closebluefull extends OpMode {
             // ===== GATE CYCLE LOOP =====
             case 7:
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-                buildGatePaths(waitTime);
+                if(gateHitCount==0) buildGatePaths(waitTime);
+                else buildGatePaths2(waitTime);
                 intake.setPower(-1);
                 follower.followPath(gateFirstPath, true);
                 setPathState(8);
@@ -424,13 +427,16 @@ public class closebluefull extends OpMode {
                 break;
 
             case 14:
-                LL.set_angle_close();
                 if (gateMode) {
+                    LL.set_angle_close();
                     depo.setTargetVelocity(depo.closeVelo_New_auto-80);
+                    turret.setDegreesTarget(-65);
                     buildReturnToShootingLastGate();
                     follower.followPath(goBackPath1, true);
                 } else {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto+20);
+                    turret.setDegreesTarget(9);
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto+60);
                     buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                 }
@@ -486,6 +492,7 @@ public class closebluefull extends OpMode {
             case 22:
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto-120);
+                turret.setDegreesTarget(-65);
                 buildReturnToShootingLast();
                 follower.followPath(goBackPath1, true);
                 setPathState(23);
@@ -538,7 +545,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 1:
-                LL.set_angle_close();
+//                LL.set_angle_close();
 //                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -703,6 +710,20 @@ public class closebluefull extends OpMode {
 
         gatebackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
+                .setTimeoutConstraint(0.3)
+                .build();
+    }
+    private void buildGatePaths2(double waitTime) {//does this on cycles 2+
+        Pose cur = follower.getPose();
+        gateFirstPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new2.getHeading(), 0.5)
+                .setTimeoutConstraint(1)
+                .build();
+
+        gatebackPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(infront_of_lever_new2, back_lever)))
                 .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
                 .setTimeoutConstraint(0.3)
                 .build();
