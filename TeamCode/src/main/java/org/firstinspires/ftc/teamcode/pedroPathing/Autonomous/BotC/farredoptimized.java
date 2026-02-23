@@ -64,7 +64,7 @@ public class farredoptimized extends OpMode {
     private static double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
-    private static final double GATE_WAIT_TIME_LATER = 1.2;
+    private static final double GATE_WAIT_TIME_LATER = 1.6;
     private static final int TOTAL_GATE_CYCLES = 2;
     private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
 
