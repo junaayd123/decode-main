@@ -76,8 +76,8 @@ public class closebluefull extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.65;
-    private static final double GATE_WAIT_TIME_LATER = 0.35;
+    private static final double GATE_WAIT_TIME_FIRST = 0.85;
+    private static final double GATE_WAIT_TIME_LATER = 0.40;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES ==========
@@ -191,7 +191,7 @@ public class closebluefull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(44.5);
+        turret.setDegreesTarget(43);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -290,7 +290,7 @@ public class closebluefull extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(7);
+                    turret.setDegreesTarget(10);
                     setPathState(3);
                 }
                 break;
@@ -320,8 +320,8 @@ public class closebluefull extends OpMode {
                 break;
 
             case 105:
-                intake.setPower(1);
                 depo.updatePID();
+                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(6);
@@ -330,7 +330,7 @@ public class closebluefull extends OpMode {
 
             case 6:
                 intake.setPower(0);
-                if (actionState == 0) {
+                if (actionState == 31) {
                     gateHitCount = 0;
                     setPathState(7);
                 }
@@ -395,7 +395,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 11:
-                if (actionState == 0) {
+                if (actionState == 31) {
                     gateHitCount++;
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
                         setPathState(7);
@@ -408,7 +408,7 @@ public class closebluefull extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
@@ -418,18 +418,19 @@ public class closebluefull extends OpMode {
             case 13:
                 depo.updatePID();
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+//                    manageSecondHopIntake();
                     setPathState(14);
                 }
                 break;
 
             case 14:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (gateMode) {
+                    depo.setTargetVelocity(depo.closeVelo_New_auto-80);
                     buildReturnToShootingLastGate();
                     follower.followPath(goBackPath1, true);
                 } else {
+                    depo.setTargetVelocity(depo.closeVelo_New_auto+20);
                     buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                 }
@@ -453,7 +454,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 16:
-                if (actionState == 0) {
+                if (actionState == 31) {
                     intake.setPower(1);
                     if (gateMode) {
                         buildGetOutPath();
@@ -468,7 +469,7 @@ public class closebluefull extends OpMode {
             case 20:
                 intake.setPower(-1);
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-120);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -477,14 +478,14 @@ public class closebluefull extends OpMode {
             case 21:
                 depo.updatePID();
                 if (!follower.isBusy()) {
-                    manageSecondHopIntake();
+//                    manageSecondHopIntake();
                     setPathState(22);
                 }
                 break;
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-70);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-120);
                 buildReturnToShootingLast();
                 follower.followPath(goBackPath1, true);
                 setPathState(23);
@@ -500,6 +501,7 @@ public class closebluefull extends OpMode {
 
             case 123:
                 depo.updatePID();
+                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(24);
@@ -507,8 +509,8 @@ public class closebluefull extends OpMode {
                 break;
 
             case 24:
-                if (actionState == 0) {
-                    intake.setPower(1);
+                intake.setPower(0);
+                if (actionState == 31) {
                     buildGetOutPath();
                     setPathState(17);
                 }
@@ -537,7 +539,7 @@ public class closebluefull extends OpMode {
 
             case 1:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -566,7 +568,13 @@ public class closebluefull extends OpMode {
                     executeShootingSequence();
                 }
 
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.20) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 2) {
+                    setActionState(31);
+                }
+                break;
+            case 31:
+                depo.updatePID();
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.25) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
@@ -686,20 +694,16 @@ public class closebluefull extends OpMode {
     }
 
     private void buildGatePaths(double waitTime) {
-        double yOffset = (gateHitCount == 2) ? -1.5 : gateHitCount * -0.5;
-        Pose adjustedLever = new Pose(infront_of_lever_new.getX(), infront_of_lever_new.getY() + yOffset, infront_of_lever_new.getHeading());
-        Pose adjustedBackLever = new Pose(back_lever.getX(), back_lever.getY() + yOffset, back_lever.getHeading());
-
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate, adjustedLever)))
-                .setLinearHeadingInterpolation(cur.getHeading(), adjustedLever.getHeading(), 0.5)
+                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1)
                 .build();
 
         gatebackPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(adjustedLever, adjustedBackLever)))
-                .setLinearHeadingInterpolation(adjustedBackLever.getHeading(), adjustedBackLever.getHeading(), 0.1)
+                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.1)
                 .setTimeoutConstraint(0.3)
                 .build();
     }
@@ -740,7 +744,7 @@ public class closebluefull extends OpMode {
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
         goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpointToThird, shotPoseInside)))
+                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .build();
     }
@@ -748,7 +752,7 @@ public class closebluefull extends OpMode {
     private void buildReturnToShootingLastGate() {
         Pose cur = follower.getPose();
         goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpoint1, shotPoseInside)))
+                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .build();
     }

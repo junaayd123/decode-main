@@ -79,8 +79,8 @@ public class closeredfull extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.65;
-    private static final double GATE_WAIT_TIME_LATER = 0.35;
+    private static final double GATE_WAIT_TIME_FIRST = 0.85;
+    private static final double GATE_WAIT_TIME_LATER = 0.4;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES ==========
@@ -193,7 +193,7 @@ public class closeredfull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-46);
+        turret.setDegreesTarget(-47);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -321,8 +321,8 @@ public class closeredfull extends OpMode {
                 break;
 
             case 105:
-                intake.setPower(1);
                 depo.updatePID();
+                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(6);
@@ -430,7 +430,7 @@ public class closeredfull extends OpMode {
             case 14:
                 LL.set_angle_close();
                 if (gateMode) {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto-120);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto-80);
                     turret.setDegreesTarget(65);
                     buildReturnToShootingLastGate();
                     follower.followPath(goBackPath1, true);
@@ -507,6 +507,7 @@ public class closeredfull extends OpMode {
 
             case 123:
                 depo.updatePID();
+                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(24);
@@ -514,8 +515,8 @@ public class closeredfull extends OpMode {
                 break;
 
             case 24:
+                intake.setPower(0);
                 if (actionState == 31) {
-                    intake.setPower(1);
                     buildGetOutPath();
                     setPathState(17);
                 }
@@ -544,7 +545,7 @@ public class closeredfull extends OpMode {
 
             case 1://starting shooting
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
