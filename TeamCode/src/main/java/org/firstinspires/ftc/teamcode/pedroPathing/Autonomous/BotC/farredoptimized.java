@@ -61,7 +61,7 @@ public class farredoptimized extends OpMode {
     private boolean intakeRunning = false;
 
     // ======== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.335;
+    private static double SHOOT_INTERVAL = 0.35;
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1.6;
     private static final double GATE_WAIT_TIME_LATER = 1.6;
@@ -159,7 +159,7 @@ public class farredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-67.6);
+        turret.setDegreesTarget(-68);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -234,11 +234,10 @@ public class farredoptimized extends OpMode {
     // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
-            case 0: // Start - spin up flywheel
-                // ✅ Start spinning flywheel at the very beginning
-                LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto);
-                SHOOT_INTERVAL = 0.375;
+            case 0: // Spin up flywheel
+                LL.set_angle_far_auto2();
+                depo.setTargetVelocity(depo.ExcessRedPreload);
+                SHOOT_INTERVAL = 0.35;
                 setPathState(1);
                 break;
 
@@ -262,22 +261,22 @@ public class farredoptimized extends OpMode {
                 intake.setPower(-1);
                 if (actionState == 0) { // Shooting done
 
-                    SHOOT_INTERVAL = 0.335;
+                    SHOOT_INTERVAL = 0.35;
                     setPathState(3);
                 }
                 break;
 
             case 3: // Bezier curve pickup - first path
                 buildBezierPaths();
-                LL.set_angle_far_auto();
+                LL.set_angle_far_auto2();
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
 
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
-                    LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloredauto2);
+                    LL.set_angle_far_auto2();
+                    depo.setTargetVelocity(depo.ExcessRedPreload);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -343,8 +342,8 @@ public class farredoptimized extends OpMode {
 
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
-                    LL.set_angle_far();
-                    depo.setTargetVelocity(depo.farVeloredauto2);
+                    LL.set_angle_far_auto2();
+                    depo.setTargetVelocity(depo.ExcessRedPreload);
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -384,8 +383,8 @@ public class farredoptimized extends OpMode {
             // ===== THIRD LINE PICKUP =====
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
-                LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto2);
+                LL.set_angle_far_auto2();
+                depo.setTargetVelocity(depo.ExcessRedPreload);
 
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -403,8 +402,8 @@ public class farredoptimized extends OpMode {
 
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
-                LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto2);
+                LL.set_angle_far_auto2();
+                depo.setTargetVelocity(depo.ExcessRedPreload);
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
@@ -453,8 +452,8 @@ public class farredoptimized extends OpMode {
                 break;
 
             case 1: // Initialize shooting
-                LL.set_angle_far();
-                depo.setTargetVelocity(depo.farVeloredauto);
+                LL.set_angle_far_auto2();
+                depo.setTargetVelocity(depo.ExcessRedPreload);
 
                 // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
