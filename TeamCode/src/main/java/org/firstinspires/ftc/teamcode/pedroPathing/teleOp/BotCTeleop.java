@@ -81,7 +81,7 @@ public class BotCTeleop extends OpMode {
     private final Pose redGoal = new Pose(62,137,0);//used for close turret aim
     private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
-    private final Pose redGoalfar = new Pose(62,144,0);//used for far turret aim
+    private final Pose redGoalfar = new Pose(62,140,0);//used for far turret aim
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -433,7 +433,7 @@ public class BotCTeleop extends OpMode {
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("shooter sequence",shooterSequence);
-//        telemetry.addData("actual depo velo",depo.getVelocity());
+        telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addData("first shot velo",firstShot);
         telemetry.addData("second shot",secondShot);
         telemetry.addData("third shot",thirdShot);
@@ -523,7 +523,7 @@ public class BotCTeleop extends OpMode {
 //            return (int) (5.35158*dist+873.83526); before today
         }//(3.69593*dist+960.60458); old
         else
-            return (int)(4.49259*(dist+3)+1581.95157);
+            return (int)(4.49259*(dist)+1581.95157);
             //below is at lmq
 //            return (int) (7.14286*dist+589.28571); //far
 //        if(!bluealliance) {
@@ -555,7 +555,8 @@ public class BotCTeleop extends OpMode {
 //        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
         if (dist>125) return LL.farShotPos;//far
         else{
-            return 0.00194321*dist-0.0088222;
+            if(dist<100) return 0.00194321*dist-0.0088222;
+            else return 0.00194321*dist-0.0188222;
 //            if(dist<117){
 //                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
 //            }
