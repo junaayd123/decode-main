@@ -159,7 +159,7 @@ public class farredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-68);
+        turret.setDegreesTarget(-67.2);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -236,7 +236,7 @@ public class farredoptimized extends OpMode {
         switch (pathState) {
             case 0: // Spin up flywheel
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.ExcessRedPreload);
+                depo.setTargetVelocity(depo.ExcessRedPreload -30 );
                 SHOOT_INTERVAL = 0.35;
                 setPathState(1);
                 break;
@@ -276,7 +276,7 @@ public class farredoptimized extends OpMode {
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.ExcessRedPreload);
+                    depo.setTargetVelocity(depo.ExcessRed -30);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -343,7 +343,7 @@ public class farredoptimized extends OpMode {
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_far_auto2();
-                    depo.setTargetVelocity(depo.ExcessRedPreload);
+                    depo.setTargetVelocity(depo.ExcessRed -30 );
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -384,7 +384,7 @@ public class farredoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.ExcessRedPreload);
+                depo.setTargetVelocity(depo.ExcessRed -30);
 
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -403,7 +403,7 @@ public class farredoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_far_auto2();
-                depo.setTargetVelocity(depo.ExcessRedPreload);
+                depo.setTargetVelocity(depo.ExcessRed -30);
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
@@ -474,19 +474,34 @@ public class farredoptimized extends OpMode {
                 }
                 break;
 
+//            case 3: // Execute shooting sequence
+//                depo.updatePID();
+//
+//                // Use random shooting for first 2 cycles (6 balls), then motif
+//                boolean useRandomShooting = (shotCycleCount < 2);
+//
+//                if (useRandomShooting) {
+//                    shootThreeRandom();
+//                } else {
+//                    executeShootingSequence();
+//                }
+//
+//                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
+//                    LL.allDown();
+//                    depo.setTargetVelocity(0);
+//                    stopShooter();
+//                    shotCycleCount++;
+//                    setActionState(0);
+//                }
+//                break;
+//        }
+//     }
+
             case 3: // Execute shooting sequence
                 depo.updatePID();
+                executeShootingSequence();
 
-                // Use random shooting for first 2 cycles (6 balls), then motif
-                boolean useRandomShooting = (shotCycleCount < 2);
-
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
-
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.15) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
@@ -496,7 +511,6 @@ public class farredoptimized extends OpMode {
                 break;
         }
     }
-
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
         if (motif.equals("gpp")) {
