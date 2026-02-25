@@ -113,6 +113,7 @@ public class lifters {
     public void set_angle_far_auto(){launchAngleServo.setPosition(0.19);}
     public double farShotPos = 0.22;
     public void set_angle_far_auto2(){launchAngleServo.setPosition(farShotPos);}
+    public void set_angle_farredoptimized(){launchAngleServo.setPosition(0.23);}
     //
     public void set_angle_close(){launchAngleServo.setPosition(0.09);}
     public void set_angle_close2(){launchAngleServo.setPosition(0.11);}
