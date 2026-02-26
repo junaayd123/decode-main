@@ -65,8 +65,8 @@ public class farblueoptimized extends OpMode {
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.335;
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.8;  // 1.0 in farredoptimized
-    private static final double GATE_WAIT_TIME_LATER = 0.7;  // 0.8 in farredoptimized
+    private static final double GATE_WAIT_TIME_FIRST = 0.6;  //
+    private static final double GATE_WAIT_TIME_LATER = 0.6;  //
     private static final int TOTAL_GATE_CYCLES = 2;
     private static final double SETTLE_TIME = 0.3;
 
@@ -158,7 +158,7 @@ public class farblueoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(67.5); // -67.2 in farredoptimized
+        turret.setDegreesTarget(66.50); // -67.2 in farredoptimized
         turret.setPid();
         shotCycleCount = 0;
         ballCount = 3; //  not in farredoptimized
@@ -287,29 +287,36 @@ public class farblueoptimized extends OpMode {
                 buildBezierPaths();
                 intake.setPower(-1);
                 LL.set_angle_farblueoptimized();
-                // this line is supposed to have intake set power -1
-                //this line is supposed to be LL.set angle
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
 
+
             case 4: // Wait for first bezier path (picking up balls)
-                //intake.setPower(-1); // not in farredoptimized
-                if (!follower.isBusy()) {
-                    ballCount = 3; // not in farredoptimized
-                    LL.set_angle_farblueoptimized();
-                    depo.setTargetVelocity(depo.ExcessBlue - 10 );
+//                intake.setPower(-1); // not in farredoptimized
+//                if (!follower.isBusy()) {
+//                    ballCount = 3; // not in farredoptimized
+//                    LL.set_angle_farblueoptimized();
+//                    depo.setTargetVelocity(depo.ExcessBlue - 10 );
+//
+//                    if (ballCount >= 3) {
+//                        intake.setPower(1); // Out-take
+//                    } else {
+//                        intake.setPower(-1);
+//                    }
+//
+//                    follower.followPath(bezierSecondPath, true);
+//                    setPathState(5);
+//                }
+//                break;
 
-                    if (ballCount >= 3) {
-                        intake.setPower(1); // Out-take
-                    } else {
-                        intake.setPower(0);
-                    }
-
-                    follower.followPath(bezierSecondPath, true);
-                    setPathState(5);
-                }
-                break;
+            if (!follower.isBusy()) {
+                LL.set_angle_farblueoptimized();
+                depo.setTargetVelocity(depo.ExcessBlue -10);
+                follower.followPath(bezierSecondPath, true);
+                setPathState(5);
+            }
+            break;
 
             case 5: // Wait for second bezier path
                 depo.updatePID();
@@ -318,7 +325,7 @@ public class farblueoptimized extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
+                    intake.setPower(-1);
                     actionTimer.resetTimer();
                     setPathState(105);
                 }
@@ -390,15 +397,25 @@ public class farblueoptimized extends OpMode {
                     intake.setPower(0);
                     intake.setPower(1);
                 } else {
-                    intake.setPower(0);
+                    intake.setPower(-1);
                 }
 
                 if (!follower.isBusy()) {
-                    intake.setPower(0);
+                    intake.setPower(1);
                     actionTimer.resetTimer();
                     setPathState(110);
                 }
                 break;
+
+//            intake.setPower(0);
+//            intake.setPower(1);
+//            depo.setTargetVelocity(depo.ExcessBlue -10 );
+//            depo.updatePID();  // ✅ Keep updating PID during drive
+//            if (!follower.isBusy()) {
+//                actionTimer.resetTimer();  // ✅ Start settle timer
+//                setPathState(110);  // ✅ Go to settling state
+//            }
+//            break;
 
             case 110: // Settle before gate shot
                 depo.updatePID();
@@ -414,7 +431,7 @@ public class farblueoptimized extends OpMode {
                     gateHitCount++;
 
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
-                        setPathState(7);
+                        setPathState(7); // Loop back to gate cycle
                     } else {
                         setPathState(12);
                     }
@@ -432,9 +449,10 @@ public class farblueoptimized extends OpMode {
 
             case 13: // Wait until pickup reached
                 depo.updatePID();
-                intake.setPower(-1);
+                //intake.setPower(-1);
                 if (!follower.isBusy()) {
-                    ballCount = 3;
+                    buildReturnToShootingPath();
+                    //ballCount = 3;
                     setPathState(14);
                 }
                 break;
@@ -446,13 +464,20 @@ public class farblueoptimized extends OpMode {
                 if (ballCount >= 3) {
                     intake.setPower(1);
                 } else {
-                    intake.setPower(0);
+                    intake.setPower(-1);
                 }
 
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
+
+//            // ✅ Start spinning flywheel BEFORE return path
+//            LL.set_angle_farblueoptimized();
+//            depo.setTargetVelocity(depo.ExcessBlue -10);
+//            follower.followPath(goBackPath, true);
+//            setPathState(15);
+//            break;
 
             case 15: // Wait until back at shooting pose
                 depo.updatePID();
@@ -505,7 +530,7 @@ public class farblueoptimized extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue);
+                depo.setTargetVelocity(depo.ExcessBlue-10);
 
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
