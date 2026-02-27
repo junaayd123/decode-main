@@ -76,8 +76,8 @@ public class closebluefull extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.85;
-    private static final double GATE_WAIT_TIME_LATER = 0.40;
+    private static final double GATE_WAIT_TIME_FIRST = 0.9;
+    private static final double GATE_WAIT_TIME_LATER = 0.675;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES ==========
@@ -290,7 +290,7 @@ public class closebluefull extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(10);
+                    turret.setDegreesTarget(13);
                     setPathState(3);
                 }
                 break;
@@ -315,6 +315,7 @@ public class closebluefull extends OpMode {
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
+                    intake.setPower(1);
                     setPathState(105);
                 }
                 break;
@@ -346,7 +347,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 8:
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.4){
                     actionTimer.resetTimer();
                     setPathState(99);
                 }
@@ -359,7 +360,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 102:
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(9);
                 }
@@ -379,7 +380,7 @@ public class closebluefull extends OpMode {
             case 10:
                 intake.setPower(1);
                 depo.updatePID();
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(110);
                 }
@@ -428,6 +429,7 @@ public class closebluefull extends OpMode {
                 if (gateMode) {
                     depo.setTargetVelocity(depo.closeVelo_New_auto-80);
                     buildReturnToShootingLastGate();
+                    turret.setDegreesTarget(10);
                     follower.followPath(goBackPath1, true);
                 } else {
                     depo.setTargetVelocity(depo.closeVelo_New_auto+20);
@@ -487,12 +489,14 @@ public class closebluefull extends OpMode {
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto-120);
                 buildReturnToShootingLast();
+                turret.setDegreesTarget(10);
                 follower.followPath(goBackPath1, true);
                 setPathState(23);
                 break;
 
             case 23:
                 depo.updatePID();
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(123);

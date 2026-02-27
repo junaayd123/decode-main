@@ -79,8 +79,8 @@ public class closeredfull extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.85;
-    private static final double GATE_WAIT_TIME_LATER = 0.4;
+    private static final double GATE_WAIT_TIME_FIRST = 0.9;
+    private static final double GATE_WAIT_TIME_LATER = 0.675;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES ==========
@@ -316,13 +316,13 @@ public class closeredfull extends OpMode {
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
+                    intake.setPower(1);
                     setPathState(105);
                 }
                 break;
 
             case 105:
                 depo.updatePID();
-                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(6);
@@ -347,7 +347,7 @@ public class closeredfull extends OpMode {
                 break;
 
             case 8://does the first part of gate cycle to bump the gate
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.4){
                     actionTimer.resetTimer();
                     setPathState(99);
                 }
@@ -361,7 +361,7 @@ public class closeredfull extends OpMode {
 
             case 102://does the 2nd path of moving back
 //                hasThreeBalls = checkThreeBalls();
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8) {
                     actionTimer.resetTimer();
                     setPathState(9);
                 }
@@ -383,7 +383,7 @@ public class closeredfull extends OpMode {
                 intake.setPower(1);
 //                hasThreeBalls=false;
                 depo.updatePID();
-                if (!follower.isBusy()) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8) {
                     actionTimer.resetTimer();
                     setPathState(110);
                 }
@@ -499,6 +499,7 @@ public class closeredfull extends OpMode {
 
             case 23:
                 depo.updatePID();
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(123);
