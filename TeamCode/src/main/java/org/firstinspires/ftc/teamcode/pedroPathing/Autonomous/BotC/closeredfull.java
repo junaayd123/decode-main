@@ -70,16 +70,16 @@ public class closeredfull extends OpMode {
     private int TOTAL_GATE_CYCLES = 2;
 
     // Normal mode values
-    private static final double SHOOT_INTERVAL_NORMAL = 0.23;
+    private static final double SHOOT_INTERVAL_NORMAL = 0.233;
     private static final int TOTAL_GATE_CYCLES_NORMAL = 2;
 
     // Gate mode values
-    private static final double SHOOT_INTERVAL_GATE = 0.23;
+    private static final double SHOOT_INTERVAL_GATE = 0.233;
     private static final int TOTAL_GATE_CYCLES_GATE = 3;
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.9;
+    private static final double GATE_WAIT_TIME_FIRST = 0.93;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
     private static final double SETTLE_TIME = 0.05;
 
@@ -316,7 +316,6 @@ public class closeredfull extends OpMode {
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
-                    intake.setPower(1);
                     setPathState(105);
                 }
                 break;
@@ -325,6 +324,7 @@ public class closeredfull extends OpMode {
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(0);
                     setPathState(6);
                 }
                 break;
@@ -347,7 +347,7 @@ public class closeredfull extends OpMode {
                 break;
 
             case 8://does the first part of gate cycle to bump the gate
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.4){
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8){
                     actionTimer.resetTimer();
                     setPathState(99);
                 }
@@ -361,7 +361,7 @@ public class closeredfull extends OpMode {
 
             case 102://does the 2nd path of moving back
 //                hasThreeBalls = checkThreeBalls();
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(9);
                 }
@@ -383,7 +383,7 @@ public class closeredfull extends OpMode {
                 intake.setPower(1);
 //                hasThreeBalls=false;
                 depo.updatePID();
-                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8) {
+                if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(110);
                 }
@@ -454,13 +454,14 @@ public class closeredfull extends OpMode {
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(0);
                     setPathState(16);
                 }
                 break;
 
             case 16:
                 if (actionState == 31) {
-                    intake.setPower(1);
+                    intake.setPower(0);
                     if (gateMode) {
                         buildGetOutPath();
                         setPathState(17);
@@ -499,7 +500,6 @@ public class closeredfull extends OpMode {
 
             case 23:
                 depo.updatePID();
-                intake.setPower(1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(123);
@@ -508,9 +508,9 @@ public class closeredfull extends OpMode {
 
             case 123:
                 depo.updatePID();
-                intake.setPower(1);
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(0);
                     setPathState(24);
                 }
                 break;
@@ -698,6 +698,7 @@ public class closeredfull extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
+                .addParametricCallback(0.65, () -> intake.setPower(1))
                 .build();
     }
 
@@ -750,14 +751,16 @@ public class closeredfull extends OpMode {
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
+                .addParametricCallback(0.5, () -> intake.setPower(1))
                 .build();
     }
 
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
         goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur ,shotPoseInside)))
+                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
+                .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();
     }
 
@@ -766,6 +769,7 @@ public class closeredfull extends OpMode {
         goBackPath1 = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
+                .addParametricCallback(0.5, () -> intake.setPower(1))
                 .build();
     }
 

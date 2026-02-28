@@ -58,7 +58,7 @@ public class closeblue12 extends OpMode {
     private int shotCycleCount = 0;
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.23;
+    private static final double SHOOT_INTERVAL = 0.233;
     private static final double SETTLE_TIME = 0.05;
 
     // ========== POSES (mirrored from closeredfull) ==========

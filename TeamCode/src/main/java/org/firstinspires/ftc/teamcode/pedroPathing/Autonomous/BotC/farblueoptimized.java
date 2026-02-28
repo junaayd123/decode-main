@@ -28,7 +28,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Farblue optimized", group = "Pedro")
+@Autonomous(name = "Farblue 15", group = "Pedro")
 public class farblueoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
