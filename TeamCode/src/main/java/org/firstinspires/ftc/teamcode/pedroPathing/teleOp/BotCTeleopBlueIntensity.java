@@ -5,31 +5,20 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 
 @TeleOp(name = "Bot C blue intake intensity test", group = "A_TeleOp")
 public class BotCTeleopBlueIntensity extends OpMode {
 
-    private enum DetectionMode {
-        REGULAR_COLOR,
-        INTENSITY
-    }
-
-    private lifters LL;
     private ColorSensors_Intensity intensitySensors;
     private DcMotor intake;
 
     private boolean prevRightBumper = false;
-    private boolean prevPs = false;
 
     private boolean intakeRunning = false;
     private boolean outtakeActive = false;
     private double outtakeStartSec = -1.0;
     private double fullCandidateStartSec = -1.0;
 
-    private boolean regRightHasBall;
-    private boolean regBackHasBall;
-    private boolean regLeftHasBall;
     private boolean intRightRaw;
     private boolean intBackRaw;
     private boolean intLeftRaw;
@@ -38,8 +27,6 @@ public class BotCTeleopBlueIntensity extends OpMode {
     private boolean intLeftSticky;
     private boolean intLikelyFull;
 
-    private DetectionMode mode = DetectionMode.INTENSITY;
-
     private static final double INTAKE_POWER = -1.0;
     private static final double OUTTAKE_POWER = 1.0;
     private static final double OUTTAKE_DURATION_SEC = 0.40;
@@ -47,15 +34,13 @@ public class BotCTeleopBlueIntensity extends OpMode {
 
     @Override
     public void init() {
-        LL = new lifters(hardwareMap);
         intensitySensors = new ColorSensors_Intensity(hardwareMap);
         intake = hardwareMap.get(DcMotor.class, "intake");
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         prevRightBumper = false;
-        prevPs = false;
 
         telemetry.addLine("Bot C intensity intake test ready");
-        telemetry.addLine("RB: intake on/off | PS: switch mode | LB: manual outtake");
+        telemetry.addLine("RB: intake on/off | LB: manual outtake");
         telemetry.update();
     }
 
@@ -74,12 +59,7 @@ public class BotCTeleopBlueIntensity extends OpMode {
     public void loop() {
         updateBallStates();
 
-        boolean psPressed = gamepad2.ps && !prevPs;
         boolean rbPressed = gamepad2.right_bumper && !prevRightBumper;
-
-        if (psPressed) {
-            mode = (mode == DetectionMode.REGULAR_COLOR) ? DetectionMode.INTENSITY : DetectionMode.REGULAR_COLOR;
-        }
 
         if (rbPressed) {
             if (intakeRunning || outtakeActive) {
@@ -105,25 +85,20 @@ public class BotCTeleopBlueIntensity extends OpMode {
             runIntakeAndAutoOuttake(getRuntime());
         }
 
-        telemetry.addData("Mode", mode);
+        telemetry.addData("Mode", "INTENSITY_ONLY");
         telemetry.addData("Intake Toggle", intakeRunning);
         telemetry.addData("Intake Running", intake.getPower() < -0.05);
         telemetry.addData("Outtaking", intake.getPower() > 0.05);
         telemetry.addData("Intake Power", intake.getPower());
         telemetry.addData("Outtake Active", outtakeActive);
-        telemetry.addData("Regular Full", isFullByRegularColor());
         telemetry.addData("Intensity Full Raw", isFullByIntensityRaw());
         telemetry.addData("Intensity Full Sticky", isFullByIntensitySticky());
         telemetry.addData("Intensity Likely Full", intLikelyFull);
         telemetry.addData("Guardian Full", isFullByGuardian());
         telemetry.addData("Toggle-On Full", shouldOuttakeOnToggleOn());
-        telemetry.addData("Full Candidate", isFullByGuardian() || isFullBySelectedMode());
+        telemetry.addData("Full Candidate", isFullByGuardian() || isFullByIntensityCandidate());
         telemetry.addData("Full Confirming", fullCandidateStartSec >= 0 ? "YES" : "NO");
 
-        telemetry.addData("REG Ball In Slot", "R:%s B:%s L:%s",
-                regRightHasBall,
-                regBackHasBall,
-                regLeftHasBall);
         telemetry.addData("INT Raw Ball Slot", "R:%s B:%s L:%s",
                 intRightRaw,
                 intBackRaw,
@@ -141,7 +116,6 @@ public class BotCTeleopBlueIntensity extends OpMode {
         telemetry.update();
 
         prevRightBumper = gamepad2.right_bumper;
-        prevPs = gamepad2.ps;
     }
 
     private void runIntakeAndAutoOuttake(double nowSec) {
@@ -162,7 +136,7 @@ public class BotCTeleopBlueIntensity extends OpMode {
             return;
         }
 
-        boolean fullCandidate = isFullByGuardian() || isFullBySelectedMode();
+        boolean fullCandidate = isFullByGuardian() || isFullByIntensityCandidate();
         if (fullCandidate) {
             if (fullCandidateStartSec < 0) {
                 fullCandidateStartSec = nowSec;
@@ -189,10 +163,8 @@ public class BotCTeleopBlueIntensity extends OpMode {
         outtakeStartSec = -1.0;
     }
 
-    private boolean isFullBySelectedMode() {
-        return (mode == DetectionMode.REGULAR_COLOR)
-                ? isFullByRegularColor()
-                : (isFullByIntensityRaw() || intLikelyFull);
+    private boolean isFullByIntensityCandidate() {
+        return isFullByIntensityRaw() || intLikelyFull;
     }
 
     private boolean isFullByGuardian() {
@@ -214,26 +186,21 @@ public class BotCTeleopBlueIntensity extends OpMode {
         if (isLeftNow()) nowCount++;
 
         // Strong immediate check for "already full" when enabling intake.
-        return isFullByRegularColor()
-                || isFullByIntensityRaw()
+        return isFullByIntensityRaw()
                 || (isFullByIntensitySticky() && nowCount >= 2)
                 || (intLikelyFull && nowCount >= 2);
     }
 
     private boolean isRightNow() {
-        return regRightHasBall || intRightRaw;
+        return intRightRaw;
     }
 
     private boolean isBackNow() {
-        return regBackHasBall || intBackRaw;
+        return intBackRaw;
     }
 
     private boolean isLeftNow() {
-        return regLeftHasBall || intLeftRaw;
-    }
-
-    private boolean isFullByRegularColor() {
-        return regRightHasBall && regBackHasBall && regLeftHasBall;
+        return intLeftRaw;
     }
 
     private boolean isFullByIntensityRaw() {
@@ -246,10 +213,6 @@ public class BotCTeleopBlueIntensity extends OpMode {
 
     private void updateBallStates() {
         intensitySensors.update();
-
-        regRightHasBall = LL.sensors.getRight() != 0;
-        regBackHasBall = LL.sensors.getBack() != 0;
-        regLeftHasBall = LL.sensors.getLeft() != 0;
 
         intRightRaw = intensitySensors.rightHasBallRaw();
         intBackRaw = intensitySensors.backHasBallRaw();
