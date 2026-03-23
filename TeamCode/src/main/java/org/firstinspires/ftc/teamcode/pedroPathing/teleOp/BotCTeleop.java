@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -72,6 +73,7 @@ public class BotCTeleop extends OpMode {
     Gamepad preG1 = new Gamepad();
     Gamepad g2= new Gamepad();
     TurretLimelight turret;
+    regressions reg;
 //    boolean alignToTags;
 
     private Follower follower;
@@ -273,7 +275,7 @@ public class BotCTeleop extends OpMode {
             turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
         }
         if(mode == Mode.nothing){
-            turret.TurretMotor.setPower(0);
+//            turret.TurretMotor.setPower(0);
         }
         if(mode == Mode.findTag){
             turret.toTargetInDegrees();
@@ -320,11 +322,11 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(distanceToGoal>125) shootinterval = 0.43;
+        if(distanceToGoal>125) shootinterval = 0.2;
 //        else if (distanceToGoal<75){
 //            shootinterval = 0.25;
 //        }
-        else shootinterval = 0.2;
+        else shootinterval = 0.17;
         if(g2.cross && !preG2.cross){//shoot 3 close
             LL.allDown();
             if(!LL.checkNoBalls()) {
@@ -505,80 +507,10 @@ public class BotCTeleop extends OpMode {
 //    }
     //b
     private int veloBasedOnDistance(double dist){
-        //https://www.desmos.com/calculator/nxghj961jg
-        //desmos table for the shooting velo
-        //x is distanceCM y1 is velo y2 is launch angle
-        //below is old stuff
-        if(dist<125){
-            return (int) (7.07643*dist+1142.07867);
-//            (8.21956*(dist+3)+1019.53588) before 2/18
-            //everything below was before for lmq
-//            if(dist<75){
-//                return (int) (4.16622*dist+875.18954); //today 875
-//            }
-//            else {
-////                return (int) (5.35158*dist+873.83526);//old stuff
-//                return (int) (4.16622*dist+915.18954); //today 915
-//            }
-//            return (int) (5.35158*dist+873.83526); before today
-        }//(3.69593*dist+960.60458); old
-        else
-            return (int)(4.49259*(dist)+1581.95157);
-            //below is at lmq
-//            return (int) (7.14286*dist+589.28571); //far
-//        if(!bluealliance) {
-//            if (dist < 60) return 1125; //close distance
-//            else if (dist < 70) return 1150;
-//            else if (dist < 75) return 1175;
-//            else if (dist < 80) return 1200;
-//            else if (dist < 87) return 1225;
-//            else if (dist < 110) return 1300;
-//            else if (dist > 115 && dist < 150) return 1480;//far distance
-//            else return 0;//didnt localize the tag
-//        }
-//        else{
-//            if (dist+5 < 60) return 1125; //close distance
-//            else if (dist+5 < 70) return 1150;
-//            else if (dist+5 < 75) return 1175;
-//            else if (dist+5 < 80) return 1200;
-//            else if (dist+5 < 87) return 1225;
-//            else if (dist+5 < 110) return 1300;
-//            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
-//            else return 0;//didnt localize the tag
-//        }
+        return reg.distanceToVelo(dist);
     }
     private double angleBasedOnDistance(double dist){
-//        if(dist<70) return 0.06; //close distance
-//        else if(dist<87) return 0.09; //close distance
-//        else if(dist<110) return 0.12; //close distance
-//        else if(dist>115 && dist<150) return 0.18;//far distance
-//        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>125) return LL.farShotPos;//far
-        else{
-            if(dist<100) return 0.00194321*dist-0.0088222;
-            else return 0.00194321*dist-0.0188222;
-//            if(dist<117){
-//                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
-//            }
-//            else{
-//
-//            }
-//            return (0.00218724*dist-0.0581913);
-//            (0.00218724*dist-0.0581913) //before 2/18
-            //everything below was for lmq
-//            if(dist<75){
-//                return 0.00180592*dist-0.0205829;//works for very close
-//            }
-//            else{
-//                return 0.00180592*dist-0.0005829;//works for very close
-//            }
-
-//            if(dist<58) return 0.06;
-//            else if(dist<70) return 0.09;
-//            else if(dist<94) return 0.12;
-//            else return 0.15;
-        }
-        //old 0.00132566*dist+0.00291356
+        return reg.distanceToAngle(dist);
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {

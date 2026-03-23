@@ -13,6 +13,7 @@ public class Deposition_C {
     // --- Motors ---
     public DcMotorEx left;    // Has encoder
     public DcMotor right;     // Follower (no encoder)
+    public DcMotor middle;     // Follower (no encoder)
 
     // --- PID controller for velocity ---
     private PIDController pid;
@@ -45,7 +46,7 @@ public class Deposition_C {
     public  double targetVelocity = 0;
 
     // Optional: motor-specific constant for simple feedforward
-    public static double kF = -0.00043;
+    public static double kF = -0.00035;
 
     // --- Pre-set powers ---
     public double closePower = 0.56;
@@ -63,14 +64,18 @@ public class Deposition_C {
     public Deposition_C(HardwareMap hardwareMap) {
         left = hardwareMap.get(DcMotorEx.class, "depo");
         right = hardwareMap.get(DcMotor.class, "depo1");
+        middle = hardwareMap.get(DcMotor.class, "depo2");
 
         left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         left.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         right.setDirection(DcMotorSimple.Direction.REVERSE);
+
         right.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        middle.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        middle.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         pid = new PIDController(p, i, d);
     }
@@ -98,12 +103,14 @@ public class Deposition_C {
 
         left.setPower(powerOutput);
         right.setPower(powerOutput);
+        middle.setPower(powerOutput);
     }
 
     // --- Manual control (driver mode) ---
     public void setPowerBoth(double power) {
         left.setPower(power);
         right.setPower(power);
+        middle.setPower(power);
     }
 
     // --- Preset shooting powers ---

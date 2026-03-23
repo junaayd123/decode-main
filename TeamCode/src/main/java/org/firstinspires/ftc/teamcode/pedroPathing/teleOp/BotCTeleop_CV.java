@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -264,6 +265,7 @@ public class BotCTeleop_CV extends OpMode {
     Timer timer3;
     Timer timerthirdshot;
     Timer timerfirstshot;
+    regressions reg;
     double ourVelo = 1300;
     boolean shooting = false;
     double shootinterval = 0.35;
@@ -518,7 +520,7 @@ public class BotCTeleop_CV extends OpMode {
 
         // --- TURRET MODES ---
         if (mode == Mode.faceGoal)  turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
-        if (mode == Mode.nothing)   turret.TurretMotor.setPower(0);
+//        if (mode == Mode.nothing)   turret.TurretMotor.setPower(0);
         if (mode == Mode.findTag)   turret.toTargetInDegrees();
         if (mode == Mode.faceRamp) {
             // Same geometry as faceGoal, but we must normalize the result to [-180, 180]
@@ -740,19 +742,11 @@ public class BotCTeleop_CV extends OpMode {
     // HELPERS (all unchanged from original)
     // -----------------------------------------------------------------------
 
-    private int veloBasedOnDistance(double dist) {
-        if (dist < 125)
-            return (int)(7.07643 * dist + 1142.07867);
-        else
-            return (int)(4.49259 * (dist + 3) + 1581.95157);
+    private int veloBasedOnDistance(double dist){
+        return reg.distanceToVelo(dist);
     }
-
-    private double angleBasedOnDistance(double dist) {
-        if (dist>125) return LL.farShotPos;//far
-        else {
-            if (dist < 100) return 0.00194321 * dist - 0.0088222;
-            else return 0.00194321 * dist - 0.0188222;
-        }
+    private double angleBasedOnDistance(double dist){
+        return reg.distanceToAngle(dist);
     }
 
     private void reverseIntake() {

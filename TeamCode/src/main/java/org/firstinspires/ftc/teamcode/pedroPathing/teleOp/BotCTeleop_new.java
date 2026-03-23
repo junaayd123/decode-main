@@ -22,6 +22,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretTest;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -60,6 +61,7 @@ public class BotCTeleop_new extends OpMode {
     Timer timer3;
     Timer timer4;
     Timer timer5;
+    regressions reg;
     double ourVelo = 1300;
     boolean shooting = false;
     double shootinterval = 0.35;
@@ -307,7 +309,7 @@ public class BotCTeleop_new extends OpMode {
             turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
         }
         if(mode == Mode.nothing){
-            turret.TurretMotor.setPower(0);
+//            turret.TurretMotor.setPower(0);
         }
         if(mode == Mode.findTag){
             turret.toTargetInDegrees();
@@ -509,42 +511,10 @@ public class BotCTeleop_new extends OpMode {
     }
     //b
     private int veloBasedOnDistance(double dist){
-        //https://www.desmos.com/calculator/nxghj961jg
-        //desmos table for the shooting velo
-        //x is distanceCM y1 is velo y2 is launch angle
-        //below is old stuff
-        if(dist<120){
-            return (int) (3.69593*dist+960.60458);}//(3.69593*dist+929.60458) old
-        else return 1650; //far
-//        if(!bluealliance) {
-//            if (dist < 60) return 1125; //close distance
-//            else if (dist < 70) return 1150;
-//            else if (dist < 75) return 1175;
-//            else if (dist < 80) return 1200;
-//            else if (dist < 87) return 1225;
-//            else if (dist < 110) return 1300;
-//            else if (dist > 115 && dist < 150) return 1480;//far distance
-//            else return 0;//didnt localize the tag
-//        }
-//        else{
-//            if (dist+5 < 60) return 1125; //close distance
-//            else if (dist+5 < 70) return 1150;
-//            else if (dist+5 < 75) return 1175;
-//            else if (dist+5 < 80) return 1200;
-//            else if (dist+5 < 87) return 1225;
-//            else if (dist+5 < 110) return 1300;
-//            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
-//            else return 0;//didnt localize the tag
-//        }
+        return reg.distanceToVelo(dist);
     }
     private double angleBasedOnDistance(double dist){
-//        if(dist<70) return 0.06; //close distance
-//        else if(dist<87) return 0.09; //close distance
-//        else if(dist<110) return 0.12; //close distance
-//        else if(dist>115 && dist<150) return 0.18;//far distance
-//        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
-        if (dist>120) return 0.21;
-        else return 0.00132566*dist+0.00291356;
+        return reg.distanceToAngle(dist);
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {
