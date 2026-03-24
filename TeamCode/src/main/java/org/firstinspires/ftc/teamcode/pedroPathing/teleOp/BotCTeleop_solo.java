@@ -35,8 +35,8 @@ import android.graphics.Canvas;
 import java.util.ArrayList;
 import java.util.List;
 
-@TeleOp(name = "Bot C teleop red CV", group = "A_TeleOp")
-public class BotCTeleop_CV extends OpMode {
+@TeleOp(name = "Teleop solo", group = "A_TeleOp")
+public class BotCTeleop_solo extends OpMode {
 
     // -----------------------------------------------------------------------
     // OPENCV RAMP DETECTOR — ported from OpenCVRampVP
@@ -274,9 +274,7 @@ public class BotCTeleop_CV extends OpMode {
     double timeOfSecondShot;
 
     Gamepad g1  = new Gamepad();
-    Gamepad preG2 = new Gamepad();
     Gamepad preG1 = new Gamepad();
-    Gamepad g2  = new Gamepad();
     TurretLimelight turret;
 
     private Follower follower;
@@ -389,7 +387,6 @@ public class BotCTeleop_CV extends OpMode {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
         g1.copy(gamepad1);
-        g2.copy(gamepad2);
         timer1          = new Timer();
         timersecondshot = new Timer();
         timer3          = new Timer();
@@ -434,15 +431,14 @@ public class BotCTeleop_CV extends OpMode {
     public void loop() {
         Pose cur = follower.getPose();
         preG1.copy(g1);
-        preG2.copy(g2);
         g1.copy(gamepad1);
-        g2.copy(gamepad2);
         depo.updatePID();
         follower.getTotalHeading();
         turret.updateEncoderPos();
 
         // --- RAMP SCAN TRIGGER: gamepad1.b starts a 1-second ramp scan ---
         if (g1.b && !preG1.b && !rampScanning) {
+            LL.set_camera_ramp_pos();
             startRampScan();
         }
 
@@ -473,7 +469,7 @@ public class BotCTeleop_CV extends OpMode {
         while (robHeading < -Math.PI)              robHeading += 2 * Math.PI;
 
         // --- INTAKE (unchanged) ---
-        if (gamepad2.rightBumperWasPressed()) {
+        if (g1.rightBumperWasPressed()) {
             LL.allDown();
             if (intake.getPower() < -0.5) {
                 intake.setPower(0);
@@ -497,9 +493,9 @@ public class BotCTeleop_CV extends OpMode {
                 led2.setPosition(0.5);
             }
         }
-        if (g2.left_bumper) {
+        if (g1.left_bumper) {
             intake.setPower(1);
-        } else if (!g2.left_bumper && !intakeRunning && !timer3.timerIsOn()) {
+        } else if (!g1.left_bumper && !intakeRunning && !timer3.timerIsOn()) {
             intake.setPower(0);
         }
 
@@ -508,13 +504,10 @@ public class BotCTeleop_CV extends OpMode {
         if (g1.cross) speed = 0.3;
         else          speed = 1;
 
-        if (g2.dpad_down && !preG2.dpad_down) {
-            shootingTest = !shootingTest;
-        }
         if (g1.shareWasPressed()) {
             turret.resetTurretEncoder();
         }
-        if (g2.psWasPressed()) {
+        if (g1.psWasPressed()) {
             if      (motif.equals("gpp")) motif = "pgp";
             else if (motif.equals("pgp")) motif = "ppg";
             else                          motif = "gpp";
@@ -564,6 +557,7 @@ public class BotCTeleop_CV extends OpMode {
                 mode = Mode.nothing;
                 pauseAprilTagDetection();
             } else {
+                LL.set_camera_tag_pos();
                 turretTimer.startTimer();
                 mode = Mode.findTag;
                 turret.setDegreesTarget(0);
@@ -587,17 +581,18 @@ public class BotCTeleop_CV extends OpMode {
                 follower.setPose(pedroPose.getPose());
                 totalHedOffset = follower.getTotalHeading() - pedroPose.getHeading();
                 tagInitializing = false;
+                LL.set_camera_ramp_pos();
                 led.setPosition(0.6);
                 pauseAprilTagDetection();
             }
         }
 
         // --- SHOOT INTERVAL BASED ON DISTANCE (unchanged) ---
-        if      (distanceToGoal > 125) shootinterval = 0.43;
-        else                           shootinterval = 0.2;
+        if      (distanceToGoal > 125) shootinterval = 0.2;
+        else                           shootinterval = 0.15;
 
         // --- SHOOTING TRIGGERS (unchanged, but ballOnRamp already pre-filled by CV) ---
-        if (g2.cross && !preG2.cross) { // shoot 3 close
+        if (g1.squareWasPressed()) { // shoot 3 close
             LL.allDown();
             if (!LL.checkNoBalls()) {
                 if (shootingTest) {
@@ -622,56 +617,13 @@ public class BotCTeleop_CV extends OpMode {
                 }
             }
         }
-        if (g2.dpadLeftWasPressed()) {
+        if (g1.dpadLeftWasPressed()) {
             timer1.stopTimer();
             intakeRunning = false;
             shooting = false;
             intake.setPower(0);
             depo.setTargetVelocity(0);
             LL.allDown();
-        }
-
-        if (g2.square && !preG2.square) { // gpp
-            LL.allDown();
-            if (!LL.checkNoBalls()) {
-                if (shootingTest) {
-                    depo.setTargetVelocity(ourVelo);
-                } else {
-                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-                }
-                shooting = true;
-                ballOnRamp = 0;
-                greenInSlot = getGreenPos();
-            }
-        }
-        if (g2.triangle && !preG2.triangle) { // pgp
-            LL.allDown();
-            if (!LL.checkNoBalls()) {
-                if (shootingTest) {
-                    depo.setTargetVelocity(ourVelo);
-                } else {
-                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-                }
-                shooting = true;
-                ballOnRamp = 1;
-                greenInSlot = getGreenPos();
-            }
-        }
-        if (g2.circle && !preG2.circle) { // ppg
-            LL.allDown();
-            if (!LL.checkNoBalls()) {
-                if (shootingTest) {
-                    depo.setTargetVelocity(ourVelo);
-                } else {
-                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-                }
-                shooting = true;
-                ballOnRamp = 2;
-                greenInSlot = getGreenPos();
-            }
         }
 
         followerstuff();
@@ -705,12 +657,6 @@ public class BotCTeleop_CV extends OpMode {
         else if (sequence.equals("rbl")) RBLnoRecovery();
         else                             BLRnoRecovery();
 
-        if (g1.dpad_up && !preG1.dpad_up)   ourVelo += 20;
-        else if (g1.dpad_down && !preG1.dpad_down) ourVelo -= 20;
-        if (g1.dpad_left && !preG1.dpad_left)
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition() - 0.01);
-        else if (g1.dpad_right && !preG1.dpad_right)
-            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition() + 0.01);
 
         // --- TELEMETRY ---
         telemetry.addData("motif",            motif);

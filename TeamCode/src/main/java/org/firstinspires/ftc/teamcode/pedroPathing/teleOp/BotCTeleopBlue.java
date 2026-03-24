@@ -172,6 +172,7 @@ public class BotCTeleopBlue extends OpMode {
         timerfirstshot = new Timer();
         timersecondshot = new Timer();
         timerthirdshot = new Timer();
+        reg = new regressions();
 
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -197,6 +198,7 @@ public class BotCTeleopBlue extends OpMode {
         timerfirstshot.resetTimer();
         timersecondshot.resetTimer();
         timerthirdshot.resetTimer();
+        LL.set_camera_tag_pos();
 
 //        tagInitializing = true;
     }

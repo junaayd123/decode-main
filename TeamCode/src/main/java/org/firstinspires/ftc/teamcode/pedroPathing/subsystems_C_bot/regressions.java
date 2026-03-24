@@ -14,7 +14,7 @@ public class regressions {
         }
     }
     public double distanceToAngle(double dist){
-        if (dist>125) return LL.farShotPos;//far
+        if (dist>125) return 0.25;//far
         else{
             if(dist<100) return 0.00194321*dist+0.0488222;
             else return 0.00194321*dist+0.0388222;}

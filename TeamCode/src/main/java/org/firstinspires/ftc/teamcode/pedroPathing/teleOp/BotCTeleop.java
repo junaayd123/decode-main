@@ -162,6 +162,7 @@ public class BotCTeleop extends OpMode {
         timerthirdshot = new Timer();
         timerfirstshot = new Timer();
         turretTimer = new Timer();
+        reg = new regressions();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -177,6 +178,7 @@ public class BotCTeleop extends OpMode {
         depo.setTargetVelocity(0);
         LL.allDown();
         LL.set_angle_min();
+        LL.set_camera_tag_pos();
         timer1.resetTimer();
         timersecondshot.resetTimer();
         timer3.resetTimer();
@@ -435,13 +437,13 @@ public class BotCTeleop extends OpMode {
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("shooter sequence",shooterSequence);
-        telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addData("first shot velo",firstShot);
         telemetry.addData("second shot",secondShot);
         telemetry.addData("third shot",thirdShot);
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
         telemetry.addData("distance to goal",distanceToGoal);
-        telemetry.addData("target velocity", ourVelo);
+        telemetry.addData("actual depo velo",depo.getVelocity());
+        telemetry.addData("target velocity", shootingTest? ourVelo: depo.targetVelocity);
         telemetry.addData("shooting angle", LL.launchAngleServo.getPosition());
         telemetry.addData("X", cur.getX());
         telemetry.addData("y", cur.getY());

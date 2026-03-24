@@ -194,6 +194,7 @@ public class BlueTeleOp_archive extends OpMode {
         timer3 = new Timer();
         timer4 = new Timer();
         timer5 = new Timer();
+        reg = new regressions();
         turretTimer = new Timer();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -210,6 +211,7 @@ public class BlueTeleOp_archive extends OpMode {
         depo.setTargetVelocity(0);
         LL.allDown();
         LL.set_angle_min();
+        LL.set_camera_tag_pos();
         timer1.resetTimer();
         timer2.resetTimer();
         timer3.resetTimer();

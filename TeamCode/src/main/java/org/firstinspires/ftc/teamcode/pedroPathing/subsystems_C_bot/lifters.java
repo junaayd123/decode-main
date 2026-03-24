@@ -9,6 +9,7 @@ public class lifters {
     public Servo liftRight;
     public Servo liftLeft;
     public Servo liftBack;
+    public Servo camera;
     //
     public lifters(HardwareMap hardwareMap){
         sensors = new ColorSensors_New(hardwareMap);
@@ -16,6 +17,7 @@ public class lifters {
         liftRight = hardwareMap.get(Servo.class, "lift_right");
         liftBack = hardwareMap.get(Servo.class, "lift_back");
         liftLeft = hardwareMap.get(Servo.class, "lift_left");
+        camera = hardwareMap.get(Servo.class, "cam_tilt");
 //        liftLeft.setDirection(Servo.Direction.REVERSE);
 //        liftBack.setDirection(Servo.Direction.REVERSE);
         liftRight.setDirection(Servo.Direction.REVERSE);
@@ -116,8 +118,11 @@ public class lifters {
     public void set_angle_farredoptimized(){launchAngleServo.setPosition(0.23);}
     public void set_angle_farblueoptimized(){launchAngleServo.setPosition(0.23);}
 
-    public void set_angle_close(){launchAngleServo.setPosition(0.09);}
+    public void set_angle_close(){launchAngleServo.setPosition(0.11);}
     public void set_angle_close2(){launchAngleServo.setPosition(0.11);}
+    public void set_camera_tag_pos(){camera.setPosition(0.36);}
+    public void set_camera_ramp_pos(){camera.setPosition(0.24);}
+    public void set_camera_obelisk_pos(){camera.setPosition(0.24);}
 
     public void allDown(){
         leftDown();

@@ -27,6 +27,7 @@ public class testFlippers_botC extends LinearOpMode {
         waitForStart();
         timer3.resetTimer();
         LL.allDown();
+        LL.set_camera_tag_pos();
         LL.set_angle_close();
         while (opModeIsActive()) {
             if(gamepad1.dpadUpWasPressed()){
@@ -40,6 +41,8 @@ public class testFlippers_botC extends LinearOpMode {
                     LL.liftBack.setPosition(LL.liftBack.getPosition()+0.01);
                 }else if(whichServo ==3){
                     LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.01);
+                }else if(whichServo ==4){
+                    LL.camera.setPosition(LL.camera.getPosition()+0.01);
                 }
             }else if(gamepad1.dpadDownWasPressed()){
                 if(whichServo ==0){
@@ -52,6 +55,8 @@ public class testFlippers_botC extends LinearOpMode {
                     LL.liftBack.setPosition(LL.liftBack.getPosition()-0.01);
                 }else if(whichServo ==3){
                     LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.01);
+                }else if(whichServo ==4){
+                    LL.camera.setPosition(LL.camera.getPosition()-0.01);
                 }
             }
             if(gamepad1.triangleWasPressed()){
@@ -67,7 +72,7 @@ public class testFlippers_botC extends LinearOpMode {
                 else LL.rightUp();
             }
             if(gamepad1.aWasPressed()){
-                if(whichServo ==3) whichServo = 0;
+                if(whichServo ==4) whichServo = 0;
                 else whichServo++;
             }
             if (gamepad1.leftBumperWasPressed()) {
@@ -86,11 +91,12 @@ public class testFlippers_botC extends LinearOpMode {
                     intakeRunning = false;
                 }
             }
-            telemetry.addData("Servo controlled",whichServo==0?"left":whichServo==1?"right":whichServo==2?"back":"luanch angle");
+            telemetry.addData("Servo controlled",whichServo==0?"left":whichServo==1?"right":whichServo==2?"back":whichServo==4?"camera":"launch");
             telemetry.addData("left lift pos",LL.liftLeft.getPosition());
             telemetry.addData("right lift pos",LL.liftRight.getPosition());
             telemetry.addData("back lift pos",LL.liftBack.getPosition());
             telemetry.addData("angle pos",LL.launchAngleServo.getPosition());
+            telemetry.addData("camera pos",LL.camera.getPosition());
             telemetry.update();
 
             reverseIntake();
