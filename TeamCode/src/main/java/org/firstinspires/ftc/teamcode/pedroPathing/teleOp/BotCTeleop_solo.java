@@ -589,7 +589,7 @@ public class BotCTeleop_solo extends OpMode {
 
         // --- SHOOT INTERVAL BASED ON DISTANCE (unchanged) ---
         if      (distanceToGoal > 125) shootinterval = 0.2;
-        else                           shootinterval = 0.15;
+        else                           shootinterval = 0.17;
 
         // --- SHOOTING TRIGGERS (unchanged, but ballOnRamp already pre-filled by CV) ---
         if (g1.squareWasPressed()) { // shoot 3 close

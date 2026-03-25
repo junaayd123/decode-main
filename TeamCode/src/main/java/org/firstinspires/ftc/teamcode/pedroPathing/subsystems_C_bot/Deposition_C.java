@@ -46,7 +46,7 @@ public class Deposition_C {
     public  double targetVelocity = 0;
 
     // Optional: motor-specific constant for simple feedforward
-    public static double kF = -0.00035;
+    public static double kF = -0.0004;
 
     // --- Pre-set powers ---
     public double closePower = 0.56;
