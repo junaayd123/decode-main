@@ -55,10 +55,9 @@ public class PedroBrakeTest extends OpMode {
     private Pose targetPose;
     private boolean holding = false;
 
-    private static final double POSITION_TOLERANCE = 2.0; // inches
-    private static final double HEADING_TOLERANCE = Math.toRadians(5); // degrees
-
-
+    private double drivePValue = 0.035;
+    private boolean prevLeftBumper = false;
+    private boolean prevRightBumper = false;
 
     @Override
     public void init() {
@@ -69,18 +68,23 @@ public class PedroBrakeTest extends OpMode {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setMaxPower(1);
         follower.activateAllPIDFs();
-        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.5, 0.07, 0.3, 0.1));
+        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.8, 0.06, 0.4, 0.1));
         follower.setSecondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.35, 0, 0.02, 0.025));
         follower.setHeadingPIDFCoefficients(new PIDFCoefficients(3, 0.003, 0.09, 0.09));
         follower.setSecondaryHeadingPIDFCoefficients(new PIDFCoefficients(2, 0.0005, 0.05, 0.01));
-        follower.setDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.035, 0.003, 0, 0.6, 0));
+        follower.setDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.135, 0.003, 0, 0.6, 0));
     }
 
     @Override
     public void start() {
+        // Replace these with however your drivetrain motors are accessed
+        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         targetPose = new Pose(follower.getPose().getX(), follower.getPose().getY(), follower.getHeading());
         holding = true;
-        hardwareBrake();
+        follower.holdPoint(targetPose);
     }
 
     @Override
@@ -89,35 +93,22 @@ public class PedroBrakeTest extends OpMode {
 
         if (!holding) return;
 
-        Pose current = follower.getPose();
-        double posError = Math.hypot(
-                current.getX() - targetPose.getX(),
-                current.getY() - targetPose.getY()
-        );
-        double headingError = Math.abs(current.getHeading() - targetPose.getHeading());
+        // Bumper control for Drive PIDF P value (step = 0.05)
+        boolean curLeft = gamepad1.left_bumper;
+        boolean curRight = gamepad1.right_bumper;
 
-        boolean outOfTolerance = posError > POSITION_TOLERANCE || headingError > HEADING_TOLERANCE;
-
-        if (outOfTolerance) {
-            // PID correct back to target
-            follower.holdPoint(targetPose);
-        } else {
-            // Close enough — hand off to hardware brake
-            follower.breakFollowing();
-            hardwareBrake();
+        if (curRight && !prevRightBumper) {
+            drivePValue = Math.round((drivePValue + 0.05) * 1000.0) / 1000.0;
+            follower.setDrivePIDFCoefficients(new FilteredPIDFCoefficients(drivePValue, 0.003, 0, 0.6, 0));
+        } else if (curLeft && !prevLeftBumper) {
+            drivePValue = Math.max(0.0, Math.round((drivePValue - 0.05) * 1000.0) / 1000.0);
+            follower.setDrivePIDFCoefficients(new FilteredPIDFCoefficients(drivePValue, 0.003, 0, 0.6, 0));
         }
+        prevLeftBumper = curLeft;
+        prevRightBumper = curRight;
+
+        telemetry.addData("Drive PIDF P", drivePValue);
+        telemetry.update();
     }
 
-    private void hardwareBrake() {
-        // Replace these with however your drivetrain motors are accessed
-        frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        frontLeft.setPower(0);
-        frontRight.setPower(0);
-        backLeft.setPower(0);
-        backRight.setPower(0);
-    }
 }
