@@ -18,7 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 public class C_Bot_Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(10.8862)
+            .mass(12.29235)
             .forwardZeroPowerAcceleration(-47.11204666214807)
             .lateralZeroPowerAcceleration(-55.07048078651405)
             .useSecondaryTranslationalPIDF(false)
@@ -61,9 +61,13 @@ public class C_Bot_Constants {
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     public static PathConstraints pathConstraints = new PathConstraints(
-            0.995,
-            500,
-            0.800, // original val:  0.875
+            0.985,
+            5,
+            0.5,
+            0.05,
+            100,
+            1.25,
+            10,
             1
     );
 
