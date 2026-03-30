@@ -61,13 +61,9 @@ public class C_Bot_Constants {
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     public static PathConstraints pathConstraints = new PathConstraints(
-            0.985,
-            5,
-            0.5,
-            0.05,
-            100,
-            1.25,
-            10,
+            0.995,
+            500,
+            0.800,
             1
     );
 
