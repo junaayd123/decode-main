@@ -66,22 +66,22 @@ public class closeredfull extends OpMode {
     private boolean prevTriangle = false;
 
     // ========== MODE-DEPENDENT SETTINGS ==========
-    private double SHOOT_INTERVAL = 0.23;
+    private double SHOOT_INTERVAL = 0.21;
     private int TOTAL_GATE_CYCLES = 2;
 
     // Normal mode values
-    private static final double SHOOT_INTERVAL_NORMAL = 0.233;
+    private static final double SHOOT_INTERVAL_NORMAL = 0.21;
     private static final int TOTAL_GATE_CYCLES_NORMAL = 2;
 
     // Gate mode values
-    private static final double SHOOT_INTERVAL_GATE = 0.233;
+    private static final double SHOOT_INTERVAL_GATE = 0.22;
     private static final int TOTAL_GATE_CYCLES_GATE = 3;
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 0.93;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
-    private static final double SETTLE_TIME = 0.05;
+    private static final double SETTLE_TIME = 0.075;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -145,6 +145,7 @@ public class closeredfull extends OpMode {
 
         LL.allDown();
         LL.set_angle_min();
+        LL.set_camera_ramp_pos();
         stopShooter();
 
         turret.resetTurretEncoder();
@@ -193,7 +194,7 @@ public class closeredfull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-47);
+        turret.setDegreesTarget(-48);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -361,6 +362,8 @@ public class closeredfull extends OpMode {
 
             case 102://does the 2nd path of moving back
 //                hasThreeBalls = checkThreeBalls();
+                depo.setTargetVelocity(depo.closeVelo_New_auto+50);
+                depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -370,9 +373,9 @@ public class closeredfull extends OpMode {
             case 9://waits at gate
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
 //                hasThreeBalls = checkThreeBalls();
+                depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     LL.set_angle_close();
-                    depo.setTargetVelocity(depo.closeVelo_New_auto);
                     buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -399,7 +402,7 @@ public class closeredfull extends OpMode {
                 break;
 
             case 11:
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     gateHitCount++;
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
                         setPathState(7);
@@ -430,12 +433,12 @@ public class closeredfull extends OpMode {
             case 14:
                 LL.set_angle_close();
                 if (gateMode) {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto-80);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto+50);
                     turret.setDegreesTarget(65);
                     buildReturnToShootingLastGate();
                     follower.followPath(goBackPath1, true);
                 } else {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto+20);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto+50);
                     buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                 }
@@ -475,7 +478,7 @@ public class closeredfull extends OpMode {
             case 20:
                 intake.setPower(-1);
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-120);
+                depo.setTargetVelocity(depo.closeVelo_New_auto+30);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -491,7 +494,7 @@ public class closeredfull extends OpMode {
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-120);
+                depo.setTargetVelocity(depo.closeVelo_New_auto+30);
                 buildReturnToShootingLast();
                 turret.setDegreesTarget(65);
                 follower.followPath(goBackPath1, true);

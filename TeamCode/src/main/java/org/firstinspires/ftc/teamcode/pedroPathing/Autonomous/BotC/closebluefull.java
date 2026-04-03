@@ -360,6 +360,8 @@ public class closebluefull extends OpMode {
                 break;
 
             case 102:
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
                     setPathState(9);
@@ -368,9 +370,9 @@ public class closebluefull extends OpMode {
 
             case 9:
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     LL.set_angle_close();
-                    depo.setTargetVelocity(depo.closeVelo_New_auto);
                     buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -396,7 +398,7 @@ public class closebluefull extends OpMode {
                 break;
 
             case 11:
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     gateHitCount++;
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
                         setPathState(7);
