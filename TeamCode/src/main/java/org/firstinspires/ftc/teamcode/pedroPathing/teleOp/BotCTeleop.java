@@ -1,7 +1,13 @@
 package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 
+import android.graphics.Point;
+
 import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -19,7 +25,6 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -32,6 +37,7 @@ public class BotCTeleop extends OpMode {
     private boolean aligning = false;
     private boolean aligning2 = false;
     private boolean alignForFar = false;
+    private boolean goingToGate = false;
     private double distanceToGoal;
     // Coordinates of red/blue speaker tags (meters)
 
@@ -44,7 +50,7 @@ public class BotCTeleop extends OpMode {
 
     public boolean tagInitializing;
     int[] ballsInRobot = {0,0,0};
-    int greenInSlot;//0 if in left 1 if right, 2 if back
+    int greenInSlot;//0 if in left, 1 if right, 2 if back
     private DcMotor intake = null;
     private Deposition_C depo;
     boolean shootingTest =false;
@@ -73,7 +79,6 @@ public class BotCTeleop extends OpMode {
     Gamepad preG1 = new Gamepad();
     Gamepad g2= new Gamepad();
     TurretLimelight turret;
-    regressions reg;
 //    boolean alignToTags;
 
     private Follower follower;
@@ -84,6 +89,7 @@ public class BotCTeleop extends OpMode {
     private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
     private final Pose blueGoalfar = new Pose(-69,144,0);
     private final Pose redGoalfar = new Pose(62,140,0);//used for far turret aim
+    private final Pose gatePose = new Pose(62, 62, 34);
 
     //below is all camera stuff
     private static final boolean USE_WEBCAM = true;
@@ -162,7 +168,6 @@ public class BotCTeleop extends OpMode {
         timerthirdshot = new Timer();
         timerfirstshot = new Timer();
         turretTimer = new Timer();
-        reg = new regressions();
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -178,7 +183,6 @@ public class BotCTeleop extends OpMode {
         depo.setTargetVelocity(0);
         LL.allDown();
         LL.set_angle_min();
-        LL.set_camera_tag_pos();
         timer1.resetTimer();
         timersecondshot.resetTimer();
         timer3.resetTimer();
@@ -276,9 +280,6 @@ public class BotCTeleop extends OpMode {
         if(mode == Mode.faceGoal){
             turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
         }
-        if(mode == Mode.nothing){
-//            turret.TurretMotor.setPower(0);
-        }
         if(mode == Mode.findTag){
             turret.toTargetInDegrees();
         }
@@ -324,11 +325,11 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(distanceToGoal>125) shootinterval = 0.2;
+        if(distanceToGoal>125) shootinterval = 0.43;
 //        else if (distanceToGoal<75){
 //            shootinterval = 0.25;
 //        }
-        else shootinterval = 0.17;
+        else shootinterval = 0.2;
         if(g2.cross && !preG2.cross){//shoot 3 close
             LL.allDown();
             if(!LL.checkNoBalls()) {
@@ -407,24 +408,46 @@ public class BotCTeleop extends OpMode {
 
             }
         }
-        if(g2.circle && !preG2.circle){//ppg
-            LL.allDown();
-            if(!LL.checkNoBalls()) {
-                if(shootingTest){
-                    depo.setTargetVelocity(ourVelo);
-                }
-                else {
-                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
-                    LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
-                }
-                shooting = true;
-//                motif = "ppg";
-                ballOnRamp = 2;
-                greenInSlot = getGreenPos();
-                ballsInRobot[0] = LL.sensors.getLeft();
-                ballsInRobot[1] = LL.sensors.getRight();
-                ballsInRobot[2] = LL.sensors.getBack();
+        if (g1.circleWasPressed()) {
+            goingToGate = true;
+            resumeAprilTagDetection();
+            tagInitializing = true;
+        }
 
+        if (goingToGate && !aligning) {
+            updateAprilTagLocalization();
+            if (tagDetected && pedroPose != null) {
+                follower.setPose(pedroPose.getPose());
+                pauseAprilTagDetection();
+                tagInitializing = false;
+
+                Pose cur2 = follower.getPose();
+                PathChain gateChain = follower.pathBuilder()
+                        .addPath(new BezierLine(cur2, gatePose))
+                        .setLinearHeadingInterpolation(cur2.getHeading(), gatePose.getHeading())
+                        .build();
+                follower.followPath(gateChain);
+                aligning = true;
+            }
+        }
+
+// Resume teleop when path finishes
+        if (goingToGate && aligning && !follower.isBusy()) {
+            aligning = false;
+            goingToGate = false;
+            follower.startTeleopDrive();
+        }
+
+// Cancel gate drive if driver moves a stick
+        if (goingToGate && aligning && follower.isBusy()) {
+            double stickMag = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
+            if (stickMag > 0.15 || Math.abs(gamepad1.right_stick_x) > 0.15) {
+                follower.breakFollowing();
+                aligning = false;
+                goingToGate = false;
+                tagInitializing = false;
+                pauseAprilTagDetection();
+                follower.startTeleopDrive();
             }
         }
 
@@ -437,13 +460,13 @@ public class BotCTeleop extends OpMode {
         distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
         telemetry.addData("turret tick pos",turret.currentPos);
         telemetry.addData("shooter sequence",shooterSequence);
+        telemetry.addData("actual depo velo",depo.getVelocity());
         telemetry.addData("first shot velo",firstShot);
         telemetry.addData("second shot",secondShot);
         telemetry.addData("third shot",thirdShot);
         telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
         telemetry.addData("distance to goal",distanceToGoal);
-        telemetry.addData("actual depo velo",depo.getVelocity());
-        telemetry.addData("target velocity", shootingTest? ourVelo: depo.targetVelocity);
+        telemetry.addData("target velocity", ourVelo);
         telemetry.addData("shooting angle", LL.launchAngleServo.getPosition());
         telemetry.addData("X", cur.getX());
         telemetry.addData("y", cur.getY());
@@ -509,10 +532,80 @@ public class BotCTeleop extends OpMode {
 //    }
     //b
     private int veloBasedOnDistance(double dist){
-        return reg.distanceToVelo(dist);
+        //https://www.desmos.com/calculator/nxghj961jg
+        //desmos table for the shooting velo
+        //x is distanceCM y1 is velo y2 is launch angle
+        //below is old stuff
+        if(dist<125){
+            return (int) (7.07643*dist+1142.07867);
+//            (8.21956*(dist+3)+1019.53588) before 2/18
+            //everything below was before for lmq
+//            if(dist<75){
+//                return (int) (4.16622*dist+875.18954); //today 875
+//            }
+//            else {
+////                return (int) (5.35158*dist+873.83526);//old stuff
+//                return (int) (4.16622*dist+915.18954); //today 915
+//            }
+//            return (int) (5.35158*dist+873.83526); before today
+        }//(3.69593*dist+960.60458); old
+        else
+            return (int)(4.49259*(dist)+1581.95157);
+            //below is at lmq
+//            return (int) (7.14286*dist+589.28571); //far
+//        if(!bluealliance) {
+//            if (dist < 60) return 1125; //close distance
+//            else if (dist < 70) return 1150;
+//            else if (dist < 75) return 1175;
+//            else if (dist < 80) return 1200;
+//            else if (dist < 87) return 1225;
+//            else if (dist < 110) return 1300;
+//            else if (dist > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
+//        else{
+//            if (dist+5 < 60) return 1125; //close distance
+//            else if (dist+5 < 70) return 1150;
+//            else if (dist+5 < 75) return 1175;
+//            else if (dist+5 < 80) return 1200;
+//            else if (dist+5 < 87) return 1225;
+//            else if (dist+5 < 110) return 1300;
+//            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
     }
     private double angleBasedOnDistance(double dist){
-        return reg.distanceToAngle(dist);
+//        if(dist<70) return 0.06; //close distance
+//        else if(dist<87) return 0.09; //close distance
+//        else if(dist<110) return 0.12; //close distance
+//        else if(dist>115 && dist<150) return 0.18;//far distance
+//        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
+        if (dist>125) return LL.farShotPos;//far
+        else{
+            if(dist<100) return 0.00194321*dist-0.0088222;
+            else return 0.00194321*dist-0.0188222;
+//            if(dist<117){
+//                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
+//            }
+//            else{
+//
+//            }
+//            return (0.00218724*dist-0.0581913);
+//            (0.00218724*dist-0.0581913) //before 2/18
+            //everything below was for lmq
+//            if(dist<75){
+//                return 0.00180592*dist-0.0205829;//works for very close
+//            }
+//            else{
+//                return 0.00180592*dist-0.0005829;//works for very close
+//            }
+
+//            if(dist<58) return 0.06;
+//            else if(dist<70) return 0.09;
+//            else if(dist<94) return 0.12;
+//            else return 0.15;
+        }
+        //old 0.00132566*dist+0.00291356
     }
     private void reverseIntake() {
         if (timer3.checkAtSeconds(0)) {
