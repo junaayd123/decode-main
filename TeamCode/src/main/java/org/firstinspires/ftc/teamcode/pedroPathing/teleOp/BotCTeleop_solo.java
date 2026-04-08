@@ -60,9 +60,9 @@ public class BotCTeleop_solo extends OpMode {
     static final Scalar PURPLE_UPPER = new Scalar(255, 155, 169);
 
     // Blob filters
-    static final double MIN_AREA            = 10;
-    static final double MAX_AREA            = 100_000;
-    static final double MIN_CIRCULARITY     = 0.2;
+    static final double MIN_AREA               = 10;
+    static final double MAX_AREA               = 100_000;
+    static final double MIN_CIRCULARITY        = 0.2;
     static final double EXPECTED_BALL_WIDTH_PX = 60;
 
     /** Holds data about one detected blob on the ramp. */
@@ -230,6 +230,9 @@ public class BotCTeleop_solo extends OpMode {
     // ORIGINAL BotCTeleop FIELDS
     // -----------------------------------------------------------------------
 
+    // Manual turret power applied when holding dpad left/right in Mode.nothing
+    static final double MANUAL_TURRET_POWER = 0.4;
+
     private boolean aligning = false;
     private boolean aligning2 = false;
     private boolean alignForFar = false;
@@ -266,7 +269,7 @@ public class BotCTeleop_solo extends OpMode {
     Timer timerthirdshot;
     Timer timerfirstshot;
     regressions reg;
-    double ourVelo = 1300;
+    double ourVelo = 1800;
     boolean shooting = false;
     double shootinterval = 0.35;
     int shooterSequence;
@@ -504,9 +507,6 @@ public class BotCTeleop_solo extends OpMode {
         if (g1.cross) speed = 0.3;
         else          speed = 1;
 
-        if (g1.shareWasPressed()) {
-            turret.resetTurretEncoder();
-        }
         if (g1.psWasPressed()) {
             if      (motif.equals("gpp")) motif = "pgp";
             else if (motif.equals("pgp")) motif = "ppg";
@@ -514,9 +514,20 @@ public class BotCTeleop_solo extends OpMode {
         }
 
         // --- TURRET MODES ---
-        if (mode == Mode.faceGoal)  turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
-//        if (mode == Mode.nothing)   turret.TurretMotor.setPower(0);
-        if (mode == Mode.findTag)   turret.toTargetInDegrees();
+        if (mode == Mode.faceGoal) {
+            turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingTotag));
+        }
+        if (mode == Mode.nothing) {
+            // Manual turret control: hold dpad_left to pan left, dpad_right to pan right
+            if (g1.dpad_left) {
+                turret.toTargetInDegrees2(Math.toDegrees(turret.currentPos / 670.0 * Math.PI) - 1.5);
+            } else if (g1.dpad_right) {
+                turret.toTargetInDegrees2(Math.toDegrees(turret.currentPos / 670.0 * Math.PI) + 1.5);
+            }
+        }
+        if (mode == Mode.findTag) {
+            turret.toTargetInDegrees();
+        }
         if (mode == Mode.faceRamp) {
             // Same geometry as faceGoal, but we must normalize the result to [-180, 180]
             // so the turret always takes the shortest path. Without normalization the
@@ -537,13 +548,13 @@ public class BotCTeleop_solo extends OpMode {
         if (rampScanning && rampScanTimer.checkAtSeconds(0.3)) {
             rampVotes.clear();
         }
-        if (rampScanTimer.checkAtSeconds(1)&& rampScanning) {
+        if (rampScanTimer.checkAtSeconds(1) && rampScanning) {
             LL.allDown();
             finishRampScan();
-            ballOnRamp = rampBallVerdict%3;
+            ballOnRamp = rampBallVerdict % 3;
             greenInSlot = getGreenPos();
         }
-        if(rampScanTimer.checkAtSeconds(1.3)){
+        if (rampScanTimer.checkAtSeconds(1.3)) {
             rampScanTimer.stopTimer();
             depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
             LL.set_angle_custom(angleBasedOnDistance(distanceToGoal));
@@ -586,6 +597,10 @@ public class BotCTeleop_solo extends OpMode {
                 pauseAprilTagDetection();
             }
         }
+        if(gamepad1.psWasPressed()){
+            shootingTest=!shootingTest;
+        }
+
 
         // --- SHOOT INTERVAL BASED ON DISTANCE (unchanged) ---
         if      (distanceToGoal > 125) shootinterval = 0.2;
@@ -617,7 +632,17 @@ public class BotCTeleop_solo extends OpMode {
                 }
             }
         }
-        if (g1.dpadLeftWasPressed()) {
+        if(g1.leftStickButtonWasPressed()) {
+            ourVelo-=50;
+        }if(g1.rightStickButtonWasPressed()) {
+            ourVelo+=50;
+        }
+        if(g1.dpadUpWasPressed()){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.01);
+        }if(g1.dpadDownWasPressed()){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.01);
+        }
+        if (g1.shareWasPressed()) {
             timer1.stopTimer();
             intakeRunning = false;
             shooting = false;
@@ -657,7 +682,6 @@ public class BotCTeleop_solo extends OpMode {
         else if (sequence.equals("rbl")) RBLnoRecovery();
         else                             BLRnoRecovery();
 
-
         // --- TELEMETRY ---
         telemetry.addData("motif",            motif);
         telemetry.addData("turret tick pos",  turret.currentPos);
@@ -667,14 +691,15 @@ public class BotCTeleop_solo extends OpMode {
         telemetry.addData("third shot",       thirdShot);
         telemetry.addLine(shootingTest ? "Testing shooting using cross" : "regular teleOp shooting");
         telemetry.addData("distance to goal", distanceToGoal);
-        telemetry.addData("actual depo velo",depo.getVelocity());
-        telemetry.addData("target velocity", shootingTest? ourVelo: depo.targetVelocity);
+        telemetry.addData("actual depo velo", depo.getVelocity());
+        telemetry.addData("target velocity",  shootingTest ? ourVelo : depo.targetVelocity);
         telemetry.addData("shooting angle",   LL.launchAngleServo.getPosition());
         telemetry.addData("X",                cur.getX());
         telemetry.addData("y",                cur.getY());
         telemetry.addData("heading",          Math.toDegrees(cur.getHeading()));
         telemetry.addData("total heading",    Math.toDegrees(follower.getTotalHeading() - totalHedOffset));
         telemetry.addData("green in slot",    greenInSlot);
+        telemetry.addData("turret mode",      mode);
         // Ramp CV telemetry
         telemetry.addLine("--- RAMP CV ---");
         telemetry.addData("Scanning (g1.b to trigger)", rampScanning);
@@ -691,10 +716,10 @@ public class BotCTeleop_solo extends OpMode {
     // HELPERS (all unchanged from original)
     // -----------------------------------------------------------------------
 
-    private int veloBasedOnDistance(double dist){
+    private int veloBasedOnDistance(double dist) {
         return reg.distanceToVelo(dist);
     }
-    private double angleBasedOnDistance(double dist){
+    private double angleBasedOnDistance(double dist) {
         return reg.distanceToAngle(dist);
     }
 
@@ -731,21 +756,21 @@ public class BotCTeleop_solo extends OpMode {
     }
 
     private void LRBnoRecovery() {
-        if (timer1.checkAtSeconds(0))                         { firstShot = (int) depo.getVelocity(); LL.leftUp();  shooterSequence = 1; }
+        if (timer1.checkAtSeconds(0))                       { firstShot = (int) depo.getVelocity(); LL.leftUp();  shooterSequence = 1; }
         if (timer1.checkAtSeconds(shootinterval)          && shooterSequence==1) { secondShot=(int)depo.getVelocity(); LL.allDown(); LL.rightUp(); shooterSequence=2; }
         if (timer1.checkAtSeconds(shootinterval*2)        && shooterSequence==2) { thirdShot =(int)depo.getVelocity(); LL.allDown(); LL.backUp();  shooterSequence=3; }
         if (timer1.checkAtSeconds(shootinterval*3+0.25)   && shooterSequence==3) { LL.allDown(); depo.setTargetVelocity(0); timer1.stopTimer(); shooterSequence=0; }
     }
 
     private void BLRnoRecovery() {
-        if (timer1.checkAtSeconds(0))                 { LL.backUp();  shooterSequence=1; }
+        if (timer1.checkAtSeconds(0))                            { LL.backUp();  shooterSequence=1; }
         if (timer1.checkAtSeconds(shootinterval)   && shooterSequence==1) { LL.allDown(); LL.leftUp();  shooterSequence=2; }
         if (timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2) { LL.allDown(); LL.rightUp(); shooterSequence=3; }
         if (timer1.checkAtSeconds(shootinterval*3+0.25) && shooterSequence==3) { LL.allDown(); depo.setTargetVelocity(0); timer1.stopTimer(); shooterSequence=0; }
     }
 
     private void RBLnoRecovery() {
-        if (timer1.checkAtSeconds(0))                 { LL.rightUp(); shooterSequence=1; }
+        if (timer1.checkAtSeconds(0))                            { LL.rightUp(); shooterSequence=1; }
         if (timer1.checkAtSeconds(shootinterval)   && shooterSequence==1) { LL.allDown(); LL.backUp();  shooterSequence=2; }
         if (timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2) { LL.allDown(); LL.leftUp();  shooterSequence=3; }
         if (timer1.checkAtSeconds(shootinterval*3+0.25) && shooterSequence==3) { LL.allDown(); depo.setTargetVelocity(0); timer1.stopTimer(); shooterSequence=0; }
@@ -777,7 +802,6 @@ public class BotCTeleop_solo extends OpMode {
      */
     private void finishRampScan() {
         rampScanning = false;
-//        rampScanTimer.stopTimer();
         visionPortal.setProcessorEnabled(ballProcessor, false);
 
         // Majority-vote across all ticks collected during the scan window
