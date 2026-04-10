@@ -12,7 +12,7 @@ public class Deposition_C {
 
     // --- Motors ---
     public DcMotorEx left;    // Has encoder
-    public DcMotor right;     // Follower (no encoder)
+    public DcMotorEx right;     // Follower (no encoder)
     public DcMotor middle;     // Follower (no encoder)
 
     // --- PID controller for velocity ---
@@ -51,6 +51,7 @@ public class Deposition_C {
     // --- Pre-set powers ---
     public double closePower = 0.56;
     public double farPower   = 0.70;
+    public double currentVelocity;
     //    public double farPower2  = 0.70;
     // CALCULATED THE NEW GEAR RATIO TO GO FROM 1:1 to 10:14 MEANING ALL VALUES MUST BE MULTIPLIED BY 1.4
     public double farVelo_auto = 1675;
@@ -63,7 +64,7 @@ public class Deposition_C {
 
     public Deposition_C(HardwareMap hardwareMap) {
         left = hardwareMap.get(DcMotorEx.class, "depo");
-        right = hardwareMap.get(DcMotor.class, "depo1");
+        right = hardwareMap.get(DcMotorEx.class, "depo1");
         middle = hardwareMap.get(DcMotor.class, "depo2");
 
         left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -94,7 +95,7 @@ public class Deposition_C {
     public void updatePID() {
         pid.setPID(p, i, d);
 
-        double currentVelocity = left.getVelocity();  // ticks per second
+        currentVelocity = -right.getVelocity();  // ticks per second
         double pidOutput = pid.calculate(currentVelocity, targetVelocity);
         double ff = kF * targetVelocity;
 
@@ -124,7 +125,7 @@ public class Deposition_C {
     }
 
     // --- Getters for telemetry/debugging ---
-    public double getVelocity() { return left.getVelocity(); }
+    public double getVelocity() { return currentVelocity; }
     public double getTargetVelocity() { return targetVelocity; }
     public double getPowerOutput() { return powerOutput; }
 }
