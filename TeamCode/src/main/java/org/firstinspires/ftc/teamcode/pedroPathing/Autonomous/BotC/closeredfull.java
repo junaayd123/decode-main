@@ -91,9 +91,9 @@ public class closeredfull extends OpMode {
     private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
 
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 55, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 51, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 56.4, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
@@ -749,32 +749,29 @@ public class closeredfull extends OpMode {
                 .build();
     }
 
-    // CHANGED: now uses tangential heading interpolation
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose2)))
-                .setTangentHeadingInterpolation()
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
                 .addParametricCallback(0.5, () -> intake.setPower(1))
                 .build();
     }
 
-    // CHANGED: now uses tangential heading interpolation
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
         goBackPath1 = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, shotPoseInside)))
-                .setTangentHeadingInterpolation()
+                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();
     }
 
-    // CHANGED: now uses tangential heading interpolation
     private void buildReturnToShootingLastGate() {
         Pose cur = follower.getPose();
         goBackPath1 = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, shotPoseInside)))
-                .setTangentHeadingInterpolation()
+                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .addParametricCallback(0.5, () -> intake.setPower(1))
                 .build();
     }
