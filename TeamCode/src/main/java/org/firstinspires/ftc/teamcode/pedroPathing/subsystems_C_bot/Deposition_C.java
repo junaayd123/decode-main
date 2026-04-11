@@ -58,6 +58,7 @@ public class Deposition_C {
     public double closeVelo_New = 1250; //use for new bot
     //public double closeVelo_New_auto = 1305; //use for new bot
     public double closeVelo_New_auto = 1720; //use for new bot
+    public double closeVelo_New_autoBlue = 1767; //use only for closebluefull
 
 
     private double powerOutput = 0.0;
