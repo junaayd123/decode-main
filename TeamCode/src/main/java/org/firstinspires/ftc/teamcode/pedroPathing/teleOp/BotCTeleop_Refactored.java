@@ -106,6 +106,13 @@ public class BotCTeleop_Refactored extends OpMode {
         doTelemetry(cur);
     }
 
+    @Override
+    public void stop() {
+        if (vision != null) {
+            vision.close();
+        }
+    }
+
     private void handleRampScan() {
         if (gamepad1.bWasPressed() && !vision.isRampScanning()) {
             modeBeforeRampScan = mode;

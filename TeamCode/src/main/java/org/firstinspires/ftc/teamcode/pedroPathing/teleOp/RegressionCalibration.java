@@ -39,8 +39,8 @@ public class RegressionCalibration extends OpMode {
 
     private double distanceToGoal;
     private String motif = "gpp";
-    private double ourVelo = 1300;
-    private double manualAngle = 0.55;
+    private double ourVelo = 1600;
+    private double manualAngle = 0.1;
     private double totalHedOffset;
     private double speed = 1.0;
     private boolean tagInitializing = false;
@@ -112,6 +112,13 @@ public class RegressionCalibration extends OpMode {
         doTelemetry(cur);
     }
 
+    @Override
+    public void stop() {
+        if (vision != null) {
+            vision.close();
+        }
+    }
+
     private void handleTurretMode(Pose cur) {
         Pose target = (distanceToGoal > 125) ? redGoalfar : redGoal;
         double headingToTarget = calculateHeadingTo(cur, target);
@@ -173,12 +180,12 @@ public class RegressionCalibration extends OpMode {
 
     private void handleShooting() {
         // Manual Velo Control (Gamepad 1 Dpad Up/Down)
-        if (gamepad1.dpad_up) ourVelo += 2.0;
-        if (gamepad1.dpad_down) ourVelo -= 2.0;
+        if (gamepad1.dpadUpWasPressed()) ourVelo += 20;
+        if (gamepad1.dpadDownWasPressed()) ourVelo -= 20;
         
         // Manual Angle Control (Gamepad 1 Dpad Left/Right)
-        if (gamepad1.dpad_right) manualAngle += 0.0005;
-        if (gamepad1.dpad_left) manualAngle -= 0.0005;
+        if (gamepad1.dpadRightWasPressed()) manualAngle += 0.01;
+        if (gamepad1.dpadLeftWasPressed()) manualAngle -= 0.01;
 
         // Stop Shot (Gamepad 2 Circle)
         if (gamepad2.circleWasPressed()) shooter.stop();
