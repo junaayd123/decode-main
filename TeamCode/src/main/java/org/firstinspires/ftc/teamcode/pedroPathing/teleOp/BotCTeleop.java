@@ -152,6 +152,7 @@ public class BotCTeleop extends OpMode {
     boolean flywheelEarlyStart;
     private boolean frozen = false;
     private Pose holdPose;
+    private Pose savedGatePose = null;
     @Override
     public void init() {
         turret = new TurretLimelight(hardwareMap);
@@ -409,24 +410,18 @@ public class BotCTeleop extends OpMode {
             }
         }
         if (g1.circleWasPressed()) {
-            goingToGate = true;
-            resumeAprilTagDetection();
-            tagInitializing = true;
-        }
-
-        if (goingToGate && !aligning) {
-            updateAprilTagLocalization();
-            if (tagDetected && pedroPose != null) {
-                follower.setPose(pedroPose.getPose());
-                pauseAprilTagDetection();
-                tagInitializing = false;
-
-                Pose cur2 = follower.getPose();
+            if (savedGatePose == null) {
+                // First press — save current position as gate
+                savedGatePose = new Pose(cur.getX(), cur.getY(), cur.getHeading());
+                // flash telemetry confirmation, control returns immediately
+            } else {
+                // Second press — path back to saved position
                 PathChain gateChain = follower.pathBuilder()
-                        .addPath(new BezierLine(cur2, gatePose))
-                        .setLinearHeadingInterpolation(cur2.getHeading(), gatePose.getHeading())
+                        .addPath(new BezierLine(cur, savedGatePose))
+                        .setLinearHeadingInterpolation(cur.getHeading(), savedGatePose.getHeading())
                         .build();
                 follower.followPath(gateChain);
+                goingToGate = true;
                 aligning = true;
             }
         }
@@ -438,19 +433,16 @@ public class BotCTeleop extends OpMode {
             follower.startTeleopDrive();
         }
 
-// Cancel gate drive if driver moves a stick
+// Cancel with stick
         if (goingToGate && aligning && follower.isBusy()) {
             double stickMag = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
             if (stickMag > 0.15 || Math.abs(gamepad1.right_stick_x) > 0.15) {
                 follower.breakFollowing();
                 aligning = false;
                 goingToGate = false;
-                tagInitializing = false;
-                pauseAprilTagDetection();
                 follower.startTeleopDrive();
             }
         }
-
 
         // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
 
@@ -474,6 +466,8 @@ public class BotCTeleop extends OpMode {
         telemetry.addData("total heading", Math.toDegrees(follower.getTotalHeading()-totalHedOffset));
         telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
         telemetry.addData("green in slot",greenInSlot);
+        telemetry.addLine(savedGatePose != null ?
+                "YES GATE (" + savedGatePose.getX() + ", " + savedGatePose.getY() + ")" : "NO GATE");
 //        telemetry.addData("left color",LL.sensors.getLeft());
 //        telemetry.addData("right color",LL.sensors.getRight());
 //        telemetry.addData("back color",LL.sensors.getBack());
