@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Close Red Full", group = "Pedro")
-public class closeredfull extends OpMode {
+@Autonomous(name = "Close Red 15", group = "Pedro")
+public class closered15 extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -61,21 +61,9 @@ public class closeredfull extends OpMode {
     private boolean intakeRunning = false;
     private boolean hasThreeBalls = false;
 
-    // ========== MODE TOGGLE ==========
-    private boolean gateMode = false;
-    private boolean prevTriangle = false;
-
-    // ========== MODE-DEPENDENT SETTINGS ==========
-    private double SHOOT_INTERVAL = 0.24;
-    private int TOTAL_GATE_CYCLES = 2;
-
-    // Normal mode values
-    private static final double SHOOT_INTERVAL_NORMAL = 0.24;
-    private static final int TOTAL_GATE_CYCLES_NORMAL = 2;
-
-    // Gate mode values
-    private static final double SHOOT_INTERVAL_GATE = 0.24;
-    private static final int TOTAL_GATE_CYCLES_GATE = 3;
+    // ========== SETTINGS ==========
+    private static final double SHOOT_INTERVAL = 0.35;
+    private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
@@ -91,14 +79,14 @@ public class closeredfull extends OpMode {
     private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
 
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 54, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 51, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
-    private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
+    private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -114,11 +102,8 @@ public class closeredfull extends OpMode {
     private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
     private PathChain firstLineSecondHopPath;
-    private PathChain thirdLinePickupPath;
     private PathChain gatebackPath;
     private PathChain getOut;
-    private final Pose thirdLinePickupPose = new Pose(54, 33.5, Math.toRadians(0));
-    private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
 
     @Override
     public void init() {
@@ -153,9 +138,7 @@ public class closeredfull extends OpMode {
 
         initAprilTag();
 
-        applyMode();
-
-        telemetry.addLine("Close Red Full initialized - Triangle to toggle mode");
+        telemetry.addLine("Close Red 15 initialized (2 gate cycles)");
         telemetry.update();
     }
 
@@ -166,29 +149,9 @@ public class closeredfull extends OpMode {
 
         detectMotifFromAprilTags();
 
-        boolean currTriangle = gamepad1.triangle;
-        if (currTriangle && !prevTriangle) {
-            gateMode = !gateMode;
-            applyMode();
-        }
-        prevTriangle = currTriangle;
-
-        telemetry.addData("MODE", gateMode ? "GATE (3 gate cycles)" : "NORMAL (2 gates + third line)");
-        telemetry.addData("Shoot Interval", SHOOT_INTERVAL);
         telemetry.addData("Gate Cycles", TOTAL_GATE_CYCLES);
         telemetry.addData("Motif Detected", motif);
-        telemetry.addLine("Press TRIANGLE to toggle mode");
         telemetry.update();
-    }
-
-    private void applyMode() {
-        if (gateMode) {
-            SHOOT_INTERVAL = SHOOT_INTERVAL_GATE;
-            TOTAL_GATE_CYCLES = TOTAL_GATE_CYCLES_GATE;
-        } else {
-            SHOOT_INTERVAL = SHOOT_INTERVAL_NORMAL;
-            TOTAL_GATE_CYCLES = TOTAL_GATE_CYCLES_NORMAL;
-        }
     }
 
     @Override
@@ -209,7 +172,6 @@ public class closeredfull extends OpMode {
         autonomousPathUpdate();
         autonomousActionUpdate();
 
-        telemetry.addData("Mode", gateMode ? "GATE" : "NORMAL");
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
@@ -217,13 +179,7 @@ public class closeredfull extends OpMode {
         if (pathState >= 7 && pathState <= 11) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
         } else if (pathState >= 12 && pathState <= 16) {
-            if (pathState == 13 || pathState == 14) {
-                telemetry.addData("Sequence", "First Line - Second Hop");
-            } else {
-                telemetry.addData("Sequence", "First Line Pickup");
-            }
-        } else if ((pathState >= 20 && pathState <= 24) || pathState == 123) {
-            telemetry.addData("Sequence", "Third Line Pickup");
+            telemetry.addData("Sequence", "First Line Pickup");
         }
         if (pathState == -1) {
             telemetry.addData("Auto Status", "Complete");
@@ -432,16 +388,10 @@ public class closeredfull extends OpMode {
 
             case 14:
                 LL.set_angle_close();
-                if (gateMode) {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
-                    turret.setDegreesTarget(65);
-                    buildReturnToShootingLastGate();
-                    follower.followPath(goBackPath1, true);
-                } else {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
-                    buildReturnToShootingPath();
-                    follower.followPath(goBackPath, true);
-                }
+                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
+                turret.setDegreesTarget(65);
+                buildReturnToShootingLastGate();
+                follower.followPath(goBackPath1, true);
                 setPathState(15);
                 break;
 
@@ -465,62 +415,6 @@ public class closeredfull extends OpMode {
             case 16:
                 if (actionState == 31) {
                     intake.setPower(0);
-                    if (gateMode) {
-                        buildGetOutPath();
-                        setPathState(17);
-                    } else {
-                        setPathState(20);
-                    }
-                }
-                break;
-
-            // ===== THIRD LINE PICKUP (normal mode only) =====
-            case 20:
-                intake.setPower(-1);
-                LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
-                buildThirdLinePickupPath();
-                follower.followPath(thirdLinePickupPath, true);
-                setPathState(21);
-                break;
-
-            case 21:
-                depo.updatePID();
-                if (!follower.isBusy()) {
-//                    manageSecondHopIntake();
-                    setPathState(22);
-                }
-                break;
-
-            case 22:
-                LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
-                buildReturnToShootingLast();
-                turret.setDegreesTarget(65);
-                follower.followPath(goBackPath1, true);
-                setPathState(23);
-                break;
-
-            case 23:
-                depo.updatePID();
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();
-                    setPathState(123);
-                }
-                break;
-
-            case 123:
-                depo.updatePID();
-                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1);
-                    intake.setPower(0);
-                    setPathState(24);
-                }
-                break;
-
-            case 24:
-                intake.setPower(0);
-                if (actionState == 31) {
                     buildGetOutPath();
                     setPathState(17);
                 }
@@ -570,13 +464,7 @@ public class closeredfull extends OpMode {
 
             case 3: // shooting and turning shoot off
                 depo.updatePID();
-                boolean useRandomShooting = (shotCycleCount < 2);
-
-                if (useRandomShooting) {
-                    shootThreeRandom();
-                } else {
-                    executeShootingSequence();
-                }
+                executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 2) {
                     setActionState(31);
@@ -658,21 +546,6 @@ public class closeredfull extends OpMode {
         }
     }
 
-    private void shootThreeRandom() {
-        double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
-        }
-    }
-
     private int getGreenPos() {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
@@ -737,33 +610,6 @@ public class closeredfull extends OpMode {
         firstLinePickupPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, firstPickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), firstPickupPose.getHeading())
-                .build();
-    }
-
-    private void buildThirdLinePickupPath() {
-        Pose cur = follower.getPose();
-        thirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpointToThird, thirdLinePickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading(), 0.2)
-                .setTimeoutConstraint(0.3)
-                .build();
-    }
-
-    private void buildReturnToShootingPath() {
-        Pose cur = follower.getPose();
-        goBackPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, nearshotpose2)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
-                .addParametricCallback(0.5, () -> intake.setPower(1))
-                .build();
-    }
-
-    private void buildReturnToShootingLast() {
-        Pose cur = follower.getPose();
-        goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
-                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
-                .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();
     }
 
