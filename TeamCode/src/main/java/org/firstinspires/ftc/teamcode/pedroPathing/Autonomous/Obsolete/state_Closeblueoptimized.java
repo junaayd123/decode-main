@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotC;
+package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.Obsolete;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -8,6 +8,7 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -16,20 +17,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
-
-@Autonomous(name = "Close Red 12", group = "Pedro")
-public class closered12 extends OpMode {
+@Disabled
+@Autonomous(name = "A_state_Closeblue optimized", group = "Pedro")
+public class state_Closeblueoptimized extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -53,37 +54,55 @@ public class closered12 extends OpMode {
     // ========== STATE VARIABLES ==========
     private int pathState;
     private int actionState;
+    private int shooterSequence;
     private int greenInSlot;
     private String motif = "empty";
+    private int gateHitCount = 0;
     private int shotCycleCount = 0;
+    private boolean intakeRunning = false;
 
     // ========== CONSTANTS ==========
-    private static final double SHOOT_INTERVAL = 0.23;
-    private static final double SETTLE_TIME = 0.05;
+    private static final double SHOOT_INTERVAL = 0.25;
+    private static final double SECOND_HOP_IN = 8;
+    private static final double GATE_WAIT_TIME_FIRST = 1.6;
+    private static final double GATE_WAIT_TIME_LATER = 1.2;
+    private static final int TOTAL_GATE_CYCLES = 2;
+    private static final double SETTLE_TIME = 0.3;
 
-    // ========== POSES (from closeredfull) ==========
-    private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
-    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
+    // ========== POSES - CORRECTLY MIRRORED FROM CLOSE RED ==========
+    // Close Red: X positive, Y positive, heading positive
+    // Close Blue: X negative, Y positive, heading negative
+    private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
+    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
+    private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
+    private final Pose firstPickupPose = new Pose(46, -81, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
+    //
+    private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
+    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
+    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(57.2, -56.1, Math.toRadians(-34));
+    private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-46.5)); //2/13: -36.5 to -46.5
+    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+    private final Pose outPose = new Pose(26, -81.5, Math.toRadians(-34));
 
-    private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
-
-    private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 58, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 55, Math.toRadians(0));
-    private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
-    private final Pose thirdLinePickupPose = new Pose(54, 33.5, Math.toRadians(0));
-    private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
+    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
+    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
+    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
-    private PathChain goBackPath1;
     private PathChain bezierFirstPath;
     private PathChain bezierSecondPath;
+    private PathChain gateFirstPath;
+    private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
+    private PathChain firstLineSecondHopPath;
     private PathChain thirdLinePickupPath;
+    private PathChain gatebackPath;
     private PathChain getOut;
+    private Pose thirdPickupPose;
 
     @Override
     public void init() {
@@ -96,7 +115,7 @@ public class closered12 extends OpMode {
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
-        turret.setRedAlliance();
+        turret.setBlueAlliance();
 
         intake = hardwareMap.get(DcMotor.class, "intake");
         d1 = hardwareMap.get(DcMotor.class, "depo");
@@ -104,6 +123,10 @@ public class closered12 extends OpMode {
 
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        // ========== RESET LOCALIZER AND RECALIBRATE IMU ==========
+        // This is CRITICAL when switching between red/blue programs without restarting
+        // The coordinate system is initialized by the first program, so we need to reset it
 
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -113,11 +136,11 @@ public class closered12 extends OpMode {
         stopShooter();
 
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-105);
+        turret.setDegreesTarget(110);
 
         initAprilTag();
 
-        telemetry.addLine("Close Red 12 initialized (3 walls, no gates)");
+        telemetry.addLine("State-based Auto initialized (Webcam) - OPTIMIZED");
         telemetry.update();
     }
 
@@ -125,10 +148,7 @@ public class closered12 extends OpMode {
     public void init_loop() {
         turret.setPid();
         turret.toTargetInDegrees();
-
         detectMotifFromAprilTags();
-
-        telemetry.addData("Mode", "3 walls, no gates");
         telemetry.addData("Motif Detected", motif);
         telemetry.update();
     }
@@ -136,7 +156,7 @@ public class closered12 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-47);
+        turret.setDegreesTarget(44.5);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -155,11 +175,16 @@ public class closered12 extends OpMode {
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
 
-        if (pathState >= 12 && pathState <= 16) {
-            telemetry.addData("Sequence", "First Line Pickup");
-        } else if ((pathState >= 20 && pathState <= 24) || pathState == 123) {
-            telemetry.addData("Sequence", "Third Line Pickup");
+        if (pathState >= 7 && pathState <= 11) {
+            telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
+        } else if (pathState >= 12 && pathState <= 17) {
+            if (pathState == 13 || pathState == 14) {
+                telemetry.addData("Sequence", "First Line - Second Hop");
+            } else {
+                telemetry.addData("Sequence", "First Line Pickup");
+            }
         }
+
         if (pathState == -1) {
             telemetry.addData("Auto Status", "Complete");
             return;
@@ -172,7 +197,6 @@ public class closered12 extends OpMode {
         telemetry.update();
     }
 
-    // ========== APRILTAG VISION METHODS ==========
     private void initAprilTag() {
         aprilTag = new AprilTagProcessor.Builder()
                 .setTagLibrary(AprilTagGameDatabase.getDecodeTagLibrary())
@@ -193,23 +217,22 @@ public class closered12 extends OpMode {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
                 double yaw = detection.ftcPose.yaw;
 
+                // Using blue side logic
                 if (yaw > 40 && yaw < 90) {
-                    if (detection.id == 21) motif = "pgp";
-                    if (detection.id == 22) motif = "ppg";
-                    if (detection.id == 23) motif = "gpp";
-                } else if (yaw > -80 && yaw < -40) {
+                    if (detection.id == 21) motif = "gpp";
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
-                    if (detection.id == 21) motif = "gpp";
+                } else if (yaw > -90 && yaw < -40) {
+                    if (detection.id == 21) motif = "ppg";
+                    if (detection.id == 22) motif = "gpp";
+                    if (detection.id == 23) motif = "pgp";
                 }
             }
         }
     }
 
-    // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
-            // ===== PRELOAD SHOT =====
             case 0:
                 LL.set_angle_close();
                 depo.setTargetVelocity(depo.closeVelo_New_auto);
@@ -220,7 +243,15 @@ public class closered12 extends OpMode {
 
             case 1:
                 depo.updatePID();
-                if (depo.reachedTargetHighTolerance()) {
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(101);
+                }
+                break;
+
+            case 101:
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(2);
                 }
@@ -228,12 +259,11 @@ public class closered12 extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-13);
+                    turret.setDegreesTarget(7);
                     setPathState(3);
                 }
                 break;
 
-            // ===== SECOND LINE PICKUP + SHOT =====
             case 3:
                 buildBezierPaths();
                 intake.setPower(-1);
@@ -259,8 +289,8 @@ public class closered12 extends OpMode {
                 break;
 
             case 105:
-                depo.updatePID();
                 intake.setPower(1);
+                depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
                     setPathState(6);
@@ -269,14 +299,83 @@ public class closered12 extends OpMode {
 
             case 6:
                 intake.setPower(0);
-                if (actionState == 31) {
-                    setPathState(12);
+                if (actionState == 0) {
+                    gateHitCount = 0;
+                    setPathState(7);
                 }
                 break;
 
-            // ===== FIRST LINE PICKUP + SHOT =====
+            case 7:
+                double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                buildGatePaths(waitTime);
+                intake.setPower(-1);
+                follower.followPath(gateFirstPath, true);
+                setPathState(8);
+                break;
+
+            case 8:
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(99);
+                }
+                break;
+            case 99: // Gate - go to back_lever
+                double waitTime1 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+
+                intake.setPower(-1);
+                follower.followPath(gatebackPath, true);
+                setPathState(102);
+                break;
+            case 102: // Gate - wait at back_lever position
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(9);
+                }
+                break;
+
+            case 9:
+                double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    buildGatePathsBack();
+                    follower.followPath(gateSecondPath, true);
+                    setPathState(10);
+                }
+                break;
+
+            case 10:
+                intake.setPower(1);
+                depo.updatePID();
+                if (!follower.isBusy()) {
+                    actionTimer.resetTimer();
+                    setPathState(110);
+                }
+                break;
+
+            case 110:
+                intake.setPower(0);
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    setActionState(1);
+                    setPathState(11);
+                }
+                break;
+
+            case 11:
+                if (actionState == 0) {
+                    gateHitCount++;
+                    if (gateHitCount < TOTAL_GATE_CYCLES) {
+                        setPathState(7);
+                    } else {
+                        setPathState(12);
+                    }
+                }
+                break;
+
             case 12:
                 LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
@@ -287,12 +386,13 @@ public class closered12 extends OpMode {
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     setPathState(14);
+                    manageSecondHopIntake();
                 }
                 break;
 
             case 14:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 20);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(15);
@@ -310,83 +410,33 @@ public class closered12 extends OpMode {
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
+                    intake.setPower(1);
                     setPathState(16);
                 }
+
                 break;
 
-            case 16:
-                if (actionState == 31) {
+            case 16: // Final shooting sequence
+                if (actionState == 0) {
+
                     intake.setPower(1);
-                    setPathState(20);
-                }
-                break;
-
-            // ===== THIRD LINE PICKUP + SHOT =====
-            case 20:
-                intake.setPower(-1);
-                LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto - 120);
-                buildThirdLinePickupPath();
-                follower.followPath(thirdLinePickupPath, true);
-                setPathState(21);
-                break;
-
-            case 21:
-                depo.updatePID();
-                if (!follower.isBusy()) {
-                    setPathState(22);
-                }
-                break;
-
-            case 22:
-                LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto - 120);
-                buildReturnToShootingLast();
-                turret.setDegreesTarget(65);
-                follower.followPath(goBackPath1, true);
-                setPathState(23);
-                break;
-
-            case 23:
-                depo.updatePID();
-                if (!follower.isBusy()) {
-                    actionTimer.resetTimer();
-                    setPathState(123);
-                }
-                break;
-
-            case 123:
-                depo.updatePID();
-                intake.setPower(1);
-                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1);
-                    setPathState(24);
-                }
-                break;
-
-            case 24:
-                intake.setPower(0);
-                if (actionState == 31) {
                     buildGetOutPath();
                     setPathState(17);
                 }
                 break;
-
-            // ===== GET OUT =====
             case 17:
                 intake.setPower(0);
+                follower.followPath(getOut, true);
                 setPathState(18);
                 break;
-
             case 18:
                 if (!follower.isBusy()) {
-                    setPathState(-1);
+                    setPathState(-1); // Auto complete
                 }
                 break;
         }
     }
 
-    // ========== ACTION STATE MACHINE (SHOOTING) ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
             case 0:
@@ -394,6 +444,7 @@ public class closered12 extends OpMode {
 
             case 1:
                 LL.set_angle_close();
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -422,14 +473,7 @@ public class closered12 extends OpMode {
                     executeShootingSequence();
                 }
 
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 2) {
-                    setActionState(31);
-                }
-                break;
-
-            case 31:
-                depo.updatePID();
-                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.25) {
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
                     stopShooter();
@@ -440,7 +484,6 @@ public class closered12 extends OpMode {
         }
     }
 
-    // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
         if (motif.equals("gpp")) {
             if (greenInSlot == 0) shootLRB();
@@ -525,12 +568,11 @@ public class closered12 extends OpMode {
         return 2;
     }
 
-    // ========== PATH BUILDING METHODS ==========
     private void buildGoBackPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.22)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading())
                 .setTimeoutConstraint(0.2)
                 .build();
     }
@@ -539,12 +581,35 @@ public class closered12 extends OpMode {
         Pose cur = follower.getPose();
         bezierFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint1, secondpickuppose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), secondpickuppose.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), secondpickuppose.getHeading(), 0.5)
                 .build();
 
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
-                .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.5)
+                .build();
+    }
+
+    private void buildGatePaths(double waitTime) {
+        Pose cur = follower.getPose();
+        gateFirstPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, infront_of_lever_new)))
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
+                .setTimeoutConstraint(1.2)
+                .build();
+
+        gatebackPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(infront_of_lever_new, back_lever)))
+                .setLinearHeadingInterpolation(back_lever.getHeading(), back_lever.getHeading(), 0.5)
+                .setTimeoutConstraint(0.5)
+                .build();
+    }
+
+    private void buildGatePathsBack() {
+        Pose cur = follower.getPose();
+        gateSecondPath = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, outfromgate, nearshotpose2)))
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
                 .build();
     }
 
@@ -556,28 +621,11 @@ public class closered12 extends OpMode {
                 .build();
     }
 
-    private void buildThirdLinePickupPath() {
-        Pose cur = follower.getPose();
-        thirdLinePickupPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, midpointToThird, thirdLinePickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), thirdLinePickupPose.getHeading(), 0.2)
-                .setTimeoutConstraint(0.3)
-                .build();
-    }
-
     private void buildReturnToShootingPath() {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose2)))
                 .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading())
-                .build();
-    }
-
-    private void buildReturnToShootingLast() {
-        Pose cur = follower.getPose();
-        goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
-                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .build();
     }
 
@@ -590,7 +638,30 @@ public class closered12 extends OpMode {
                 .build();
     }
 
-    // ========== UTILITY METHODS ==========
+    private void manageSecondHopIntake() {
+        if (intake == null || LL == null || sensors == null) return;
+
+        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
+
+        if (intakeRunning) {
+            if (allFull) {
+                actionTimer.resetTimer();
+                intakeRunning = false;
+            }
+        } else {
+            if (!allFull) {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
+        }
+
+        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
+            intake.setPower(1);
+        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
+            intake.setPower(0);
+        }
+    }
+
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
         if (d2 != null) d2.setPower(0.0);

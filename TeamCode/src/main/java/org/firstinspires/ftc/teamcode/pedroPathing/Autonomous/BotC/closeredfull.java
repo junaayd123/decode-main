@@ -81,7 +81,7 @@ public class closeredfull extends OpMode {
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 0.93;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
-    private static final double SETTLE_TIME = 0.075;
+    private static final double SETTLE_TIME = 0.09;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -117,8 +117,9 @@ public class closeredfull extends OpMode {
     private PathChain thirdLinePickupPath;
     private PathChain gatebackPath;
     private PathChain getOut;
-    private final Pose thirdLinePickupPose = new Pose(54, 33.5, Math.toRadians(0));
+    private final Pose thirdLinePickupPose = new Pose(52, 33.5, Math.toRadians(0));
     private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
+    private PathChain goBackPath2;
 
     @Override
     public void init() {
@@ -194,7 +195,7 @@ public class closeredfull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-48);
+        turret.setDegreesTarget(-50);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -276,7 +277,8 @@ public class closeredfull extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_auto
+                );
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -478,7 +480,7 @@ public class closeredfull extends OpMode {
             case 20:
                 intake.setPower(-1);
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -494,10 +496,10 @@ public class closeredfull extends OpMode {
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildReturnToShootingLast();
                 turret.setDegreesTarget(65);
-                follower.followPath(goBackPath1, true);
+                follower.followPath(goBackPath2, true);
                 setPathState(23);
                 break;
 
@@ -548,7 +550,12 @@ public class closeredfull extends OpMode {
                 break;
 
             case 1: // starting shooting
-                LL.set_angle_close();
+                if (shotCycleCount == 0) {
+                    LL.set_angle_min();
+                } else {
+                    LL.set_angle_close();
+                }
+
 //                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -595,6 +602,7 @@ public class closeredfull extends OpMode {
                 break;
         }
     }
+
 
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
@@ -686,7 +694,7 @@ public class closeredfull extends OpMode {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.22)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.1)
                 .setTimeoutConstraint(0.2)
                 .build();
     }
@@ -760,8 +768,8 @@ public class closeredfull extends OpMode {
 
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
-        goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
+        goBackPath2 = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midpointToThird, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();

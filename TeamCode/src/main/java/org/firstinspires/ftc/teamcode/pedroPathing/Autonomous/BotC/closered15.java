@@ -62,14 +62,14 @@ public class closered15 extends OpMode {
     private boolean hasThreeBalls = false;
 
     // ========== SETTINGS ==========
-    private static final double SHOOT_INTERVAL = 0.35;
+    private static double SHOOT_INTERVAL = 0.24;
     private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 0.93;
-    private static final double GATE_WAIT_TIME_LATER = 0.675;
-    private static final double SETTLE_TIME = 0.075;
+    private static final double GATE_WAIT_TIME_LATER = 0.7;
+    private static final double SETTLE_TIME = 0.2;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -79,14 +79,14 @@ public class closered15 extends OpMode {
     private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
 
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 51, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 54, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
-    private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
+    private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -104,6 +104,9 @@ public class closered15 extends OpMode {
     private PathChain firstLineSecondHopPath;
     private PathChain gatebackPath;
     private PathChain getOut;
+    private final Pose thirdLinePickupPose = new Pose(52, 33.5, Math.toRadians(0));
+    private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
+    private PathChain goBackPath2;
 
     @Override
     public void init() {
@@ -157,7 +160,7 @@ public class closered15 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-48);
+        turret.setDegreesTarget(-50);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -232,7 +235,7 @@ public class closered15 extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_auto+25);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -248,7 +251,7 @@ public class closered15 extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-13);
+                    turret.setDegreesTarget(-18);
                     setPathState(3);
                 }
                 break;
@@ -256,6 +259,7 @@ public class closered15 extends OpMode {
             case 3:
                 buildBezierPaths();
                 intake.setPower(-1);
+                SHOOT_INTERVAL = 0.35;
                 follower.followPath(bezierFirstPath, true);
                 setPathState(4);
                 break;
@@ -318,7 +322,7 @@ public class closered15 extends OpMode {
 
             case 102: // does the 2nd path of moving back
 //                hasThreeBalls = checkThreeBalls();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
+                depo.setTargetVelocity(depo.closeVelo_New_auto + 20);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -388,10 +392,10 @@ public class closered15 extends OpMode {
 
             case 14:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
-                turret.setDegreesTarget(65);
-                buildReturnToShootingLastGate();
-                follower.followPath(goBackPath1, true);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-20);
+                turret.setDegreesTarget(62);
+                buildReturnToShootingLast();
+                follower.followPath(goBackPath2, true);
                 setPathState(15);
                 break;
 
@@ -442,7 +446,11 @@ public class closered15 extends OpMode {
                 break;
 
             case 1: // starting shooting
-                LL.set_angle_close();
+                if (shotCycleCount == 0) {
+                    LL.set_angle_mid();
+                } else {
+                    LL.set_angle_close();
+                }
 //                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -619,6 +627,15 @@ public class closered15 extends OpMode {
                 .addPath(new Path(new BezierLine(cur, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .addParametricCallback(0.5, () -> intake.setPower(1))
+                .build();
+    }
+
+    private void buildReturnToShootingLast() {
+        Pose cur = follower.getPose();
+        goBackPath2 = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
+                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
+                .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();
     }
 

@@ -119,6 +119,7 @@ public class lifters {
     public void set_angle_farblueoptimized(){launchAngleServo.setPosition(0.23);}
 
     public void set_angle_close(){launchAngleServo.setPosition(0.2);}
+    public void set_angle_mid(){launchAngleServo.setPosition(0.1);}
     public void set_angle_close2(){launchAngleServo.setPosition(0.11);}
     public void set_camera_tag_pos(){camera.setPosition(0.36);}
     public void set_camera_ramp_pos(){camera.setPosition(0.24);}
