@@ -81,7 +81,7 @@ public class closeredfull extends OpMode {
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 0.93;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
-    private static final double SETTLE_TIME = 0.09;
+    private static final double SETTLE_TIME = 0.075;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
@@ -195,7 +195,7 @@ public class closeredfull extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-50);
+        turret.setDegreesTarget(-52);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -277,8 +277,7 @@ public class closeredfull extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto
-                );
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -294,7 +293,7 @@ public class closeredfull extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-13);
+                    turret.setDegreesTarget(-15);
                     setPathState(3);
                 }
                 break;
@@ -334,7 +333,7 @@ public class closeredfull extends OpMode {
 
             case 6:
                 intake.setPower(0);
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     gateHitCount = 0;
                     setPathState(7);
                 }
@@ -465,7 +464,7 @@ public class closeredfull extends OpMode {
                 break;
 
             case 16:
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     intake.setPower(0);
                     if (gateMode) {
                         buildGetOutPath();

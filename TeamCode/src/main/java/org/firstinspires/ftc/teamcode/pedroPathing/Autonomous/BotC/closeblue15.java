@@ -28,8 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Close Red 15", group = "Pedro")
-public class closered15 extends OpMode {
+@Autonomous(name = "Close Blue 15", group = "Pedro")
+public class closeblue15 extends OpMode {
 
     // ========== SUBSYSTEMS ==========
     private Follower follower;
@@ -74,26 +74,26 @@ public class closered15 extends OpMode {
     private static final double SETTLE_TIME = 0.12;
 
     // ========== POSES ==========
-    private final Pose startPose = new Pose(44, 128, Math.toRadians(35));
-    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
+    private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
+    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
+    private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
 
-    private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
+    private final Pose shotPoseInside = new Pose(13, -112, Math.toRadians(-12.5));
 
-    private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 54, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
-    private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
-    private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
-    private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
-    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
-    private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
+    private final Pose firstPickupPose = new Pose(53, -81, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
+    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
+    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(57.7, -55.6, Math.toRadians(-34));
+    private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-36.5));
+    private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
+    private final Pose outfromgate1 = new Pose(50, -43, Math.toRadians(-42));
+    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
+    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
+    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
+    private final Pose outPose = new Pose(30, -81.5, Math.toRadians(-34));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -106,8 +106,8 @@ public class closered15 extends OpMode {
     private PathChain firstLineSecondHopPath;
     private PathChain gatebackPath;
     private PathChain getOut;
-    private final Pose thirdLinePickupPose = new Pose(52, 33.5, Math.toRadians(0));
-    private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
+    private final Pose thirdLinePickupPose = new Pose(56, -33.5, Math.toRadians(0));
+    private final Pose midpointToThird = new Pose(2, -30, Math.toRadians(0));
     private PathChain goBackPath2;
 
     @Override
@@ -121,7 +121,7 @@ public class closered15 extends OpMode {
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
-        turret.setRedAlliance();
+        turret.setBlueAlliance();
 
         intake = hardwareMap.get(DcMotor.class, "intake");
         d1 = hardwareMap.get(DcMotor.class, "depo");
@@ -139,11 +139,11 @@ public class closered15 extends OpMode {
         stopShooter();
 
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-105);
+        turret.setDegreesTarget(110);
 
         initAprilTag();
 
-        telemetry.addLine("Close Red 15 initialized (2 gate cycles)");
+        telemetry.addLine("Close Blue 15 initialized (2 gate cycles)");
         telemetry.update();
     }
 
@@ -162,7 +162,7 @@ public class closered15 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-52);
+        turret.setDegreesTarget(39);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -220,13 +220,13 @@ public class closered15 extends OpMode {
                 double yaw = detection.ftcPose.yaw;
 
                 if (yaw > 40 && yaw < 90) {
-                    if (detection.id == 21) motif = "pgp";
-                    if (detection.id == 22) motif = "ppg";
-                    if (detection.id == 23) motif = "gpp";
-                } else if (yaw > -80 && yaw < -40) {
+                    if (detection.id == 21) motif = "gpp";
                     if (detection.id == 22) motif = "pgp";
                     if (detection.id == 23) motif = "ppg";
-                    if (detection.id == 21) motif = "gpp";
+                } else if (yaw > -90 && yaw < -40) {
+                    if (detection.id == 21) motif = "ppg";
+                    if (detection.id == 22) motif = "gpp";
+                    if (detection.id == 23) motif = "pgp";
                 }
             }
         }
@@ -237,7 +237,7 @@ public class closered15 extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -253,7 +253,7 @@ public class closered15 extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-16);
+                    turret.setDegreesTarget(5);
                     setPathState(3);
                 }
                 break;
@@ -269,7 +269,7 @@ public class closered15 extends OpMode {
             case 4:
                 if (!follower.isBusy()) {
                     LL.set_angle_close();
-                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -339,7 +339,7 @@ public class closered15 extends OpMode {
                     LL.set_angle_close();
                     buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
-                    depo.setTargetVelocity(depo.closeVelo_New_auto + 20);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue + 20);
                     setPathState(10);
                 }
                 break;
@@ -394,7 +394,7 @@ public class closered15 extends OpMode {
 
             case 14:
                 LL.set_angle_close();
-                turret.setDegreesTarget(62);
+                turret.setDegreesTarget(-5);
                 buildReturnToShootingLast();
                 follower.followPath(goBackPath2, true);
                 setPathState(15);
@@ -404,7 +404,7 @@ public class closered15 extends OpMode {
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
-                    depo.setTargetVelocity(depo.closeVelo_New_auto-20);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue - 20);
                     setPathState(115);
                 }
                 break;
@@ -591,10 +591,10 @@ public class closered15 extends OpMode {
     }
 
     private void buildGatePaths(double waitTime) {
-        double yOffset = (gateHitCount == 2) ? 1.5 : gateHitCount * 0.5;
+        double yOffset = (gateHitCount == 2) ? -1.5 : -gateHitCount * 0.5;
         Pose adjustedLever = new Pose(infront_of_lever_new.getX(), infront_of_lever_new.getY() + yOffset, infront_of_lever_new.getHeading());
         Pose adjustedBackLever = new Pose(back_lever.getX(), back_lever.getY() + yOffset, back_lever.getHeading());
-        
+
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, adjustedLever)))
