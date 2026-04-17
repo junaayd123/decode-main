@@ -79,7 +79,7 @@ public class closeredfull extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.93;
+    private static final double GATE_WAIT_TIME_FIRST = 1.0;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
     private static final double SETTLE_TIME = 0.075;
 
@@ -93,7 +93,7 @@ public class closeredfull extends OpMode {
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13.4, 54, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(51.5, 52.75, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
