@@ -17,7 +17,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
@@ -38,7 +37,6 @@ public class closeredfull_spit extends OpMode {
     private TurretLimelight turret;
     private lifters LL;
     private ColorSensors sensors;
-    private ColorSensors_Intensity intensitySensors; // used exclusively for the spit function
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
@@ -63,15 +61,6 @@ public class closeredfull_spit extends OpMode {
     private boolean intakeRunning = false;
     private boolean hasThreeBalls = false;
 
-    // ========== SPIT FUNCTION STATE ==========
-    // The spit triggers when all 3 slots are already full (raw) and a 4th ball enters.
-    // It pulses outtake briefly to eject just the extra ball, then resumes intake.
-    private boolean spitActive = false;
-    private double spitStartSec = -1.0;
-    private double lastSpitEndSec = -100.0;
-    private static final double SPIT_DURATION_SEC  = 0.18;  // short pulse — ejects 1 ball only
-    private static final double SPIT_COOLDOWN_SEC  = 0.45;  // prevents immediate re-trigger after spit
-
     // ========== MODE TOGGLE ==========
     private boolean gateMode = false;
     private boolean prevTriangle = false;
@@ -90,7 +79,7 @@ public class closeredfull_spit extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.93;
+    private static final double GATE_WAIT_TIME_FIRST = 1.0;
     private static final double GATE_WAIT_TIME_LATER = 0.675;
     private static final double SETTLE_TIME = 0.075;
 
@@ -102,14 +91,14 @@ public class closeredfull_spit extends OpMode {
     private final Pose shotPoseInside = new Pose(13, 112, Math.toRadians(90));
 
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, 51, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13.4, 54, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(51.5, 52.75, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(54.3, 56.3, Math.toRadians(34));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
-    private final Pose outfromgate = new Pose(50, 55, Math.toRadians(42));
+    private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -128,8 +117,9 @@ public class closeredfull_spit extends OpMode {
     private PathChain thirdLinePickupPath;
     private PathChain gatebackPath;
     private PathChain getOut;
-    private final Pose thirdLinePickupPose = new Pose(54, 33.5, Math.toRadians(0));
+    private final Pose thirdLinePickupPose = new Pose(52, 33.5, Math.toRadians(0));
     private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
+    private PathChain goBackPath2;
 
     @Override
     public void init() {
@@ -141,7 +131,6 @@ public class closeredfull_spit extends OpMode {
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
         sensors = new ColorSensors(hardwareMap);
-        intensitySensors = new ColorSensors_Intensity(hardwareMap); // init intensity subsystem
         turret = new TurretLimelight(hardwareMap);
         turret.setRedAlliance();
 
@@ -206,24 +195,17 @@ public class closeredfull_spit extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-48);
+        turret.setDegreesTarget(-52);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
         setActionState(0);
-
-        // Calibrate intensity sensors at match start so ambient floor is accurate
-        intensitySensors.calibrateAmbientFloor();
-        resetSpitState();
     }
 
     @Override
     public void loop() {
         follower.update();
         turret.toTargetInDegrees();
-
-        // Always keep the intensity sensor state fresh each loop
-        intensitySensors.update();
 
         autonomousPathUpdate();
         autonomousActionUpdate();
@@ -232,8 +214,6 @@ public class closeredfull_spit extends OpMode {
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
-        telemetry.addData("Spit Active", spitActive);
-        telemetry.addData("INT Full RAW", intensitySensors.isFullRaw());
 
         if (pathState >= 7 && pathState <= 11) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
@@ -256,59 +236,6 @@ public class closeredfull_spit extends OpMode {
         telemetry.addData("Heading", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("Motif", motif);
         telemetry.update();
-    }
-
-    // ========== SPIT FUNCTION ==========
-
-    /**
-     * Call this every loop during any gate-cycle case where intake is actively running (-1 power).
-     *
-     * Logic:
-     *  - The robot is intaking. All 3 slots should fill with balls (Right, Back, Left).
-     *  - If ALL 3 slots are already raw-full, a 4th ball is about to enter → spit it out immediately.
-     *  - The spit is a short pulse (SPIT_DURATION_SEC) of outtake (+1), then intake resumes.
-     *  - A cooldown prevents the spit from re-triggering immediately after ejecting the extra ball.
-     *
-     * @return true if spit is actively running this frame (caller should not override intake power)
-     */
-    private boolean handleSpitFunction() {
-        double nowSec = opmodeTimer.getElapsedTimeSeconds();
-
-        if (spitActive) {
-            // Spit pulse is running — keep outtaking
-            intake.setPower(1.0);
-            if (nowSec - spitStartSec >= SPIT_DURATION_SEC) {
-                // Pulse done — resume intake
-                spitActive     = false;
-                lastSpitEndSec = nowSec;
-                intake.setPower(-1.0);
-            }
-            return true;
-        }
-
-        // Only trigger if cooldown has elapsed (prevents re-triggering right after a spit)
-        if (nowSec - lastSpitEndSec < SPIT_COOLDOWN_SEC) {
-            return false;
-        }
-
-        // Trigger: all 3 slots raw-full → 4th ball is entering, spit it
-        if (intensitySensors.rightHasBallRaw()
-                && intensitySensors.backHasBallRaw()
-                && intensitySensors.leftHasBallRaw()) {
-            spitActive    = true;
-            spitStartSec  = nowSec;
-            intake.setPower(1.0);
-            return true;
-        }
-
-        return false;
-    }
-
-    /** Reset spit state at the start of each gate cycle so it's clean. */
-    private void resetSpitState() {
-        spitActive     = false;
-        spitStartSec   = -1.0;
-        lastSpitEndSec = -100.0;
     }
 
     // ========== APRILTAG VISION METHODS ==========
@@ -366,7 +293,7 @@ public class closeredfull_spit extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-13);
+                    turret.setDegreesTarget(-15);
                     setPathState(3);
                 }
                 break;
@@ -406,15 +333,14 @@ public class closeredfull_spit extends OpMode {
 
             case 6:
                 intake.setPower(0);
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     gateHitCount = 0;
                     setPathState(7);
                 }
                 break;
 
             // ===== GATE CYCLE LOOP =====
-            case 7: // inits gate cycle — reset spit state for a clean cycle
-                resetSpitState();
+            case 7: // inits path
                 double waitTime = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePaths(waitTime);
                 intake.setPower(-1);
@@ -422,26 +348,21 @@ public class closeredfull_spit extends OpMode {
                 setPathState(8);
                 break;
 
-            case 8: // moves forward to bump the gate — spit active
-                // handleSpitFunction manages intake power if a 4th ball is detected
-                handleSpitFunction();
+            case 8: // does the first part of gate cycle to bump the gate
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 2.8) {
                     actionTimer.resetTimer();
                     setPathState(99);
                 }
                 break;
 
-            case 99: // inits second path back from gate
-                // Only set intake if spit is not currently mid-pulse
-                if (!spitActive) {
-                    intake.setPower(-1);
-                }
+            case 99: // inits second path
+                intake.setPower(-1);
                 follower.followPath(gatebackPath, true);
                 setPathState(102);
                 break;
 
-            case 102: // moving back from gate — spit still active
-                handleSpitFunction();
+            case 102: // does the 2nd path of moving back
+//                hasThreeBalls = checkThreeBalls();
                 depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
@@ -450,9 +371,9 @@ public class closeredfull_spit extends OpMode {
                 }
                 break;
 
-            case 9: // waiting at gate — spit still active
-                handleSpitFunction();
+            case 9: // waits at gate
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+//                hasThreeBalls = checkThreeBalls();
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     LL.set_angle_close();
@@ -462,8 +383,9 @@ public class closeredfull_spit extends OpMode {
                 }
                 break;
 
-            case 10: // returning to shooting — normal outtake takes over, spit no longer needed
+            case 10:
                 intake.setPower(1);
+//                hasThreeBalls=false;
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -494,6 +416,7 @@ public class closeredfull_spit extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12:
                 LL.set_angle_close();
+//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
@@ -503,6 +426,7 @@ public class closeredfull_spit extends OpMode {
             case 13:
                 depo.updatePID();
                 if (!follower.isBusy()) {
+//                    manageSecondHopIntake();
                     setPathState(14);
                 }
                 break;
@@ -540,7 +464,7 @@ public class closeredfull_spit extends OpMode {
                 break;
 
             case 16:
-                if (actionState == 31) {
+                if (actionState == 31 && shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
                     intake.setPower(0);
                     if (gateMode) {
                         buildGetOutPath();
@@ -555,7 +479,7 @@ public class closeredfull_spit extends OpMode {
             case 20:
                 intake.setPower(-1);
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -564,16 +488,17 @@ public class closeredfull_spit extends OpMode {
             case 21:
                 depo.updatePID();
                 if (!follower.isBusy()) {
+//                    manageSecondHopIntake();
                     setPathState(22);
                 }
                 break;
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 30);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 buildReturnToShootingLast();
                 turret.setDegreesTarget(65);
-                follower.followPath(goBackPath1, true);
+                follower.followPath(goBackPath2, true);
                 setPathState(23);
                 break;
 
@@ -605,6 +530,7 @@ public class closeredfull_spit extends OpMode {
             // ===== GET OUT =====
             case 17:
                 intake.setPower(0);
+//                follower.followPath(getOut, true);
                 setPathState(18);
                 break;
 
@@ -623,7 +549,13 @@ public class closeredfull_spit extends OpMode {
                 break;
 
             case 1: // starting shooting
-                LL.set_angle_close();
+                if (shotCycleCount == 0) {
+                    LL.set_angle_min();
+                } else {
+                    LL.set_angle_close();
+                }
+
+//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -669,6 +601,7 @@ public class closeredfull_spit extends OpMode {
                 break;
         }
     }
+
 
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
@@ -760,7 +693,7 @@ public class closeredfull_spit extends OpMode {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.22)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.1)
                 .setTimeoutConstraint(0.2)
                 .build();
     }
@@ -834,8 +767,8 @@ public class closeredfull_spit extends OpMode {
 
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
-        goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
+        goBackPath2 = follower.pathBuilder()
+                .addPath(new Path(new BezierCurve(cur, midpointToThird, shotPoseInside)))
                 .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
                 .addParametricCallback(0.4, () -> intake.setPower(1))
                 .build();
@@ -860,6 +793,7 @@ public class closeredfull_spit extends OpMode {
     }
 
     private boolean checkThreeBalls() {
+//        if (intake == null || LL == null || sensors == null) return false;
         boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
         return allFull;
     }
