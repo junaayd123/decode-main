@@ -120,13 +120,17 @@ public class RegressionCalibration extends OpMode {
     }
 
     private void handleTurretMode(Pose cur) {
-        Pose target = (distanceToGoal > 125) ? redGoalfar : redGoal;
+        Pose target =redGoal;
         double headingToTarget = calculateHeadingTo(cur, target);
         double robHeading = normalizeAngle(follower.getTotalHeading() - totalHedOffset);
 
         switch (mode) {
             case faceGoal:
-                turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
+                if (distanceToGoal > 125) {
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getRedTurretFar(cur.getX(),cur.getY()));
+                } else {
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
+                }
                 break;
             case findTag:
                 turret.toTargetInDegrees();
@@ -208,10 +212,10 @@ public class RegressionCalibration extends OpMode {
 
     private void handleCalibration() {
         // Adjust redGoal for Turret Alignment (Gamepad 2 Dpad)
-        if (gamepad2.dpad_up) redGoal = new Pose(redGoal.getX(), redGoal.getY() + 0.1, 0);
-        if (gamepad2.dpad_down) redGoal = new Pose(redGoal.getX(), redGoal.getY() - 0.1, 0);
-        if (gamepad2.dpad_left) redGoal = new Pose(redGoal.getX() - 0.1, redGoal.getY(), 0);
-        if (gamepad2.dpad_right) redGoal = new Pose(redGoal.getX() + 0.1, redGoal.getY(), 0);
+        if (gamepad2.dpadUpWasPressed()) redGoal = new Pose(redGoal.getX(), redGoal.getY() + 1, 0);
+        if (gamepad2.dpadDownWasPressed()) redGoal = new Pose(redGoal.getX(), redGoal.getY() - 1, 0);
+        if (gamepad2.dpadLeftWasPressed()) redGoal = new Pose(redGoal.getX() - 1, redGoal.getY(), 0);
+        if (gamepad2.dpadRightWasPressed()) redGoal = new Pose(redGoal.getX() + 1, redGoal.getY(), 0);
 
         // Save Data Point (Gamepad 2 Square)
         if (gamepad2.squareWasPressed()) {

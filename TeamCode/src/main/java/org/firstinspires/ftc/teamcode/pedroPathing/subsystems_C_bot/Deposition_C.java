@@ -89,6 +89,8 @@ public class Deposition_C {
     }
     public boolean reachedTargetHighTolerance(){
         return targetVelocity != 0 && getVelocity() >= targetVelocity-40;
+    }public boolean reachedTargetTeleOP(){
+        return targetVelocity != 0 && getVelocity() >= targetVelocity;
     }
     //
 

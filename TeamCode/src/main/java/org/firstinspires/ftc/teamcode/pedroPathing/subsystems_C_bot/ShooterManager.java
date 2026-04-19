@@ -28,10 +28,11 @@ public class ShooterManager {
     
     public void updateTarget(double distance, boolean shootingTest, double manualVelo) {
         if (distance > 125) {
-            shootInterval = 0.2;
+            shootInterval = 0.25;
         } else {
-            shootInterval = 0.17;
+            shootInterval = 0.2;
         }
+//        shootInterval = 0.2;
 
         if (shootingTest) {
             depo.setTargetVelocity(manualVelo);
@@ -65,7 +66,7 @@ public class ShooterManager {
     
     public void update() {
         depo.updatePID();
-        if (shooting && depo.reachedTargetHighTolerance()) {
+        if (shooting && depo.reachedTargetTeleOP()) {
             timer.startTimer();
             shooting = false;
         }
