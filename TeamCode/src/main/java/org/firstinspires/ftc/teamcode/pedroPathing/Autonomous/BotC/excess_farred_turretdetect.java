@@ -17,7 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
@@ -61,7 +61,7 @@ public class excess_farred_turretdetect extends OpMode {
     private Deposition_C depo;
     private TurretLimelight turret;
     private lifters LL;
-    private ColorSensors sensors;
+    private ColorSensors_Intensity intensitySensors;
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
@@ -98,6 +98,7 @@ public class excess_farred_turretdetect extends OpMode {
     // ========== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.3;
     private static final double SETTLE_TIME = 0.15;
+    private static final double SPIT_DURATION_SEC = 0.25;
     private static final double EXCESS_WAIT_FIRST_POSITION = 1;
     private static final double EXCESS_WAIT_SECOND_POSITION = 1;
     private static final double HP_WAIT_FIRST_POSITION = 0.5;
@@ -142,7 +143,7 @@ public class excess_farred_turretdetect extends OpMode {
 
         depo    = new Deposition_C(hardwareMap);
         LL      = new lifters(hardwareMap);
-        sensors = new ColorSensors(hardwareMap);
+        intensitySensors = new ColorSensors_Intensity(hardwareMap);
         turret  = new TurretLimelight(hardwareMap);
 
         intake  = hardwareMap.get(DcMotor.class, "intake");
@@ -192,6 +193,7 @@ public class excess_farred_turretdetect extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
+        intensitySensors.calibrateAmbientFloor();
         motifLocked = true;
 
         if (detectedMotif.isEmpty()) {
@@ -202,7 +204,7 @@ public class excess_farred_turretdetect extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(-70);
+        turret.setDegreesTarget(-65);
         turret.setPid();
 
         shotCycleCount    = 0;
@@ -345,7 +347,7 @@ public class excess_farred_turretdetect extends OpMode {
             case 20: // Drive to third line
                 intake.setPower(-1);
                 buildThirdLinePickupPath();
-                turret.setDegreesTarget(-67.6);
+                turret.setDegreesTarget(-62);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(21);
                 break;
@@ -361,7 +363,9 @@ public class excess_farred_turretdetect extends OpMode {
 
             case 211: // Settle at third line before returning
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw() || actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
+                    if (intensitySensors.isFullRaw()) intake.setPower(1);
                     setPathState(22);
                 }
                 break;
@@ -419,9 +423,24 @@ public class excess_farred_turretdetect extends OpMode {
                 }
                 break;
 
-            case 311: // Wait at first position
+            case 311: // Wait at first position — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(312);
+                } else if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
+                    buildExcessStrafePath();
+                    follower.followPath(excessPathStrafe, true);
+                    excessPathTimeoutTimer.resetTimer();
+                    setPathState(32);
+                }
+                break;
+
+            case 312: // spit briefly after detecting full at first excess position
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
                     buildExcessStrafePath();
                     follower.followPath(excessPathStrafe, true);
                     excessPathTimeoutTimer.resetTimer();
@@ -438,9 +457,22 @@ public class excess_farred_turretdetect extends OpMode {
                 }
                 break;
 
-            case 321: // Wait at second position
+            case 321: // Wait at second position — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(322);
+                } else if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
+                    follower.setMaxPower(1.0);
+                    setPathState(33);
+                }
+                break;
+
+            case 322: // spit briefly after detecting full at second excess position
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
                     follower.setMaxPower(1.0);
                     setPathState(33);
                 }
@@ -536,9 +568,21 @@ public class excess_farred_turretdetect extends OpMode {
                 }
                 break;
 
-            case 522: // Hold at collection point for GATE_COLLECT_WAIT
+            case 522: // Hold at collection point — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() >= GATE_COLLECT_WAIT) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(523);
+                } else if (actionTimer.getElapsedTimeSeconds() >= GATE_COLLECT_WAIT) {
+                    setPathState(53);
+                }
+                break;
+
+            case 523: // spit briefly after detecting full at gate collect
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
                     setPathState(53);
                 }
                 break;
@@ -546,7 +590,7 @@ public class excess_farred_turretdetect extends OpMode {
             case 53: // Drive back to far shooting pose from gate
                 if (ballCount >= 3) intake.setPower(1);
                 else                intake.setPower(0);
-                turret.setDegreesTarget(-68.6);
+                turret.setDegreesTarget(-63);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(54);
@@ -622,9 +666,22 @@ public class excess_farred_turretdetect extends OpMode {
                 }
                 break;
 
-            case 621: // Wait at second HP position
+            case 621: // Wait at second HP position — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(622);
+                } else if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_SECOND_POSITION) {
+                    follower.setMaxPower(1.0);
+                    setPathState(63);
+                }
+                break;
+
+            case 622: // spit briefly after detecting full at HP second position
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
                     follower.setMaxPower(1.0);
                     setPathState(63);
                 }
@@ -633,7 +690,7 @@ public class excess_farred_turretdetect extends OpMode {
             case 63: // Drive back to far shooting pose from HP
                 if (ballCount >= 3) intake.setPower(1);
                 else                intake.setPower(0);
-                turret.setDegreesTarget(-68.6);
+                turret.setDegreesTarget(-63);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(64);

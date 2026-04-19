@@ -69,7 +69,7 @@ public class closered15 extends OpMode {
     // ========== SETTINGS ==========
     private double SHOOT_INTERVAL = 0.35;
     private static final double SHOOT_INTERVAL_FIRST = 0.24;
-    private static final double SHOOT_INTERVAL_DEFAULT = 0.6;
+    private static final double SHOOT_INTERVAL_DEFAULT = 0.45;
     private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
@@ -100,7 +100,7 @@ public class closered15 extends OpMode {
     private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
     private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
     private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
-    private final Pose rampScanMidpoint = new Pose(22, 79, Math.toRadians(0));
+    private final Pose rampScanMidpoint = new Pose(10, 85, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -482,7 +482,7 @@ public class closered15 extends OpMode {
 
             case 14:
                 LL.set_angle_close();
-                turret.setDegreesTarget(63);
+                turret.setDegreesTarget(61);
                 buildReturnToShootingLast();
                 follower.followPath(goBackPath2, true);
                 setPathState(15);
