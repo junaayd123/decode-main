@@ -82,7 +82,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
     private double  speed           = 1.0;
     private boolean tagInitializing = false;
 
-    private final Pose redGoal      = new Pose(62, 137, 0);
+    private final Pose redGoal      = new Pose(60, 137, 0);
     private final Pose redGoalFixed = new Pose(72, 144, 0);
     private final Pose redGoalfar   = new Pose(62, 140, 0);
     private final Pose rampPose     = new Pose(72, 80, 0);
@@ -140,7 +140,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
         loopTimer.reset();
 
         lift.allDown();
-        lift.set_angle_min();
+        lift.launchAngleServo.setPosition(0.04);
         lift.set_camera_tag_pos();
     }
 
@@ -328,7 +328,11 @@ public class BotCTeleop_HeadingLock extends OpMode {
 
         switch (mode) {
             case faceGoal:
-                turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
+                if (distanceToGoal > 125) {
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getRedTurretFar(cur.getX(),cur.getY()));
+                } else {
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
+                }
                 break;
             case findTag:
                 turret.toTargetInDegrees();
@@ -355,7 +359,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
     // -----------------------------------------------------------------------
     private void handleTagLocalization() {
         if (gamepad1.triangleWasPressed()) {
-            if (tagInitializing) {
+            if (tagInitializing || mode == Mode.findTag) {
                 tagInitializing = false;
                 mode = Mode.nothing;
                 vision.setAprilTagEnabled(false);
@@ -393,12 +397,14 @@ public class BotCTeleop_HeadingLock extends OpMode {
             if (intake.isCollecting()) intake.stop();
             else intake.startCollecting();
         }
-
+        
         if (shooter.isShooting()) intake.stop();
-
-        if (gamepad2.left_bumper) intake.manualReverse();
-        else if (!gamepad2.left_bumper && !intake.isCollecting() && !intake.isReversing())
+        
+        if (gamepad2.left_bumper) {
+            intake.manualReverse();
+        } else if (gamepad2.leftBumperWasReleased()) {
             intake.manualStop();
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -411,7 +417,10 @@ public class BotCTeleop_HeadingLock extends OpMode {
             else                          motif = "gpp";
         }
 
-        if (gamepad2.dpadLeftWasPressed()) shooter.stop();
+        if (gamepad2.dpadLeftWasPressed()) {
+            shooter.stop();
+            intake.stop();
+        }
 
         if (gamepad2.crossWasPressed()) {
             lift.allDown();
@@ -463,19 +472,19 @@ public class BotCTeleop_HeadingLock extends OpMode {
     // -----------------------------------------------------------------------
     private void updateLEDs() {
         if (intake.isCollecting()) {
-            led.setPosition(0.28);
+            led.setPosition(0.28); // RED
             led2.setPosition(0.28);
         } else if (intake.getBallCount() >= 3) {
-            led.setPosition(0.5);
+            led.setPosition(0.5);  // GREEN
             led2.setPosition(0.5);
         } else if (mode == Mode.findTag) {
-            led.setPosition(0.34);
-            led2.setPosition(0.34);
-        } else if (mode == Mode.faceGoal && !tagInitializing) {
-            led.setPosition(0.6);
-            led2.setPosition(0.6);
+            led.setPosition(0.388); // YELLOW
+            led2.setPosition(0.388);
+        } else if (mode == Mode.faceGoal) {
+            led.setPosition(0.611); // BLUE
+            led2.setPosition(0.611);
         } else {
-            led.setPosition(0);
+            led.setPosition(0);     // BLACK/OFF
             led2.setPosition(0);
         }
     }

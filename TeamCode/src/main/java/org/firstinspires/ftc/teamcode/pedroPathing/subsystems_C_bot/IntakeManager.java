@@ -96,7 +96,7 @@ public class IntakeManager {
                 break;
 
             case REVERSING:
-                if (reverseTimer.checkAtSeconds(REVERSE_DURATION)) {
+                if (reverseTimer.checkAtSecondsOpenEnd(REVERSE_DURATION)) {
                     stopReverse();
                 }
                 break;
@@ -180,25 +180,25 @@ public class IntakeManager {
     }
 
     public void stop() {
-        if (currentState == IntakeState.COLLECTING) {
-            intake.setPower(0);
-            currentState = IntakeState.IDLE;
-            jamCheckTimer.stopTimer();
-            startupIgnoreTimer.stopTimer();
-            consecutiveHighCurrentReadings = 0;
-            motorOverloaded = false;
+        intake.setPower(0);
+        currentState = IntakeState.IDLE;
+        jamCheckTimer.stopTimer();
+        startupIgnoreTimer.stopTimer();
+        reverseTimer.stopTimer();
+        consecutiveHighCurrentReadings = 0;
+        motorOverloaded = false;
 
-            if (highCurrentTimerActive) {
-                highCurrentTimer.stopTimer();
-                highCurrentTimerActive = false;
-            }
+        if (highCurrentTimerActive) {
+            highCurrentTimer.stopTimer();
+            highCurrentTimerActive = false;
         }
     }
 
     public void manualReverse() {
         intake.setPower(1);
-        currentState = IntakeState.IDLE;
+        currentState = IntakeState.REVERSING; // Set to REVERSING to avoid IDLE conflicts
         startupIgnoreTimer.stopTimer();
+        reverseTimer.stopTimer(); // Ensure it doesn't auto-stop if we are holding it manually
 
         if (highCurrentTimerActive) {
             highCurrentTimer.stopTimer();
