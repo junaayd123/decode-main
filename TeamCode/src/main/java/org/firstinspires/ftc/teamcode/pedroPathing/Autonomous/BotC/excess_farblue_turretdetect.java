@@ -100,6 +100,7 @@ public class excess_farblue_turretdetect extends OpMode {
     private static final double SETTLE_TIME = 0.15;
     private static final double EXCESS_WAIT_FIRST_POSITION = 1;
     private static final double EXCESS_WAIT_SECOND_POSITION = 1;
+    private static final double HP_WAIT_FIRST_POSITION = 0;
     private static final double EXCESS_PATH_SPEED = 0.8;
     private static final double GATE_COLLECT_WAIT = 0.5;
     private static final double DETECTION_WAIT = 0.5;
@@ -115,7 +116,11 @@ public class excess_farblue_turretdetect extends OpMode {
     // Excess area poses from scenariofarblue
     private final Pose excessBallArea          = new Pose(66,  -35,  Math.toRadians(90));
     private final Pose excessBallAreaStrafeEnd = new Pose(66,  -9.8, Math.toRadians(90));
-    private final Pose gateCollectDeepPose     = new Pose(66,  -44,  Math.toRadians(-63));  // actual collect position
+    private final Pose gateCollectDeepPose     = new Pose(68,  -44,  Math.toRadians(-63));  // actual collect position
+
+    // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
+    private final Pose hpBallArea          = new Pose(66,  -17,  Math.toRadians(60));
+    private final Pose hpBallAreaStrafeEnd = new Pose(67,  -9.8, Math.toRadians(12));
 
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -123,6 +128,8 @@ public class excess_farblue_turretdetect extends OpMode {
     private PathChain excessPath;
     private PathChain excessPathStrafe;
     private PathChain gateDeepCollectPath;
+    private PathChain hpPath;
+    private PathChain hpPathStrafe;
 
     // ========== INIT ==========
     @Override
@@ -581,9 +588,9 @@ public class excess_farblue_turretdetect extends OpMode {
             // ===== HP PATH → RETURN → SHOOT =====
             case 60: // Drive to HP area from current position
                 intake.setPower(-1);
-                buildExcessPath();
+                buildHpPath();
                 follower.setMaxPower(EXCESS_PATH_SPEED);
-                follower.followPath(excessPath, true);
+                follower.followPath(hpPath, true);
                 excessPathTimeoutTimer.resetTimer();
                 setPathState(61);
                 break;
@@ -598,9 +605,9 @@ public class excess_farblue_turretdetect extends OpMode {
 
             case 611: // Wait at first HP position
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() >= EXCESS_WAIT_FIRST_POSITION) {
-                    buildExcessStrafePath();
-                    follower.followPath(excessPathStrafe, true);
+                if (actionTimer.getElapsedTimeSeconds() >= HP_WAIT_FIRST_POSITION) {
+                    buildHpStrafePath();
+                    follower.followPath(hpPathStrafe, true);
                     excessPathTimeoutTimer.resetTimer();
                     setPathState(62);
                 }
@@ -821,6 +828,24 @@ public class excess_farblue_turretdetect extends OpMode {
 //                .addPath(new Path(new BezierLine(midpoint, gateCollectDeepPose)))
 //                .setConstantHeadingInterpolation(gateCollectDeepPose.getHeading())
 //                .setTimeoutConstraint(1.5)
+                .build();
+    }
+
+    private void buildHpPath() {
+        Pose cur = follower.getPose();
+        hpPath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, hpBallArea)))
+                .setLinearHeadingInterpolation(cur.getHeading(), hpBallArea.getHeading())
+                .setTimeoutConstraint(0.2)
+                .build();
+    }
+
+    private void buildHpStrafePath() {
+        Pose cur = follower.getPose();
+        hpPathStrafe = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, hpBallAreaStrafeEnd)))
+                .setLinearHeadingInterpolation(cur.getHeading(), hpBallAreaStrafeEnd.getHeading())
+                .setTimeoutConstraint(1.2)
                 .build();
     }
 
