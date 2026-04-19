@@ -107,7 +107,7 @@ public class lifters {
     public void backDown(){liftBack.setPosition(0.01);}
     public void backUp(){liftBack.setPosition(0.35);}
 
-    public void set_angle_min(){launchAngleServo.setPosition(0.03);}
+    public void set_angle_min(){launchAngleServo.setPosition(0.06);}
     public void set_angle_custom(double ang){launchAngleServo.setPosition(ang);}
     //public void set_angle_far(){launchAngleServo.setPosition(0.18);}
     public void set_angle_far(){launchAngleServo.setPosition(0.21);}

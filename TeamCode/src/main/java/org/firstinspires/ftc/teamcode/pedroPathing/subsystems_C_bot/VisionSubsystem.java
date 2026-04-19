@@ -123,6 +123,18 @@ public class VisionSubsystem {
         return rampBallVerdict;
     }
 
+    public int getCurrentBallCount() {
+        return ballProcessor.getTotalBalls();
+    }
+
+    public int getRampVoteCount() {
+        return rampVotes.size();
+    }
+
+    public List<BallDetection> getBallDetections() {
+        return ballProcessor.getDetections();
+    }
+
     public void setBallProcessorEnabled(boolean enabled) {
         visionPortal.setProcessorEnabled(ballProcessor, enabled);
     }

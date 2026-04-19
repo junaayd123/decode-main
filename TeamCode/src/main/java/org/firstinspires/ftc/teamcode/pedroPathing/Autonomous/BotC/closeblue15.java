@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -36,7 +36,7 @@ public class closeblue15 extends OpMode {
     private Deposition_C depo;
     private TurretLimelight turret;
     private lifters LL;
-    private ColorSensors sensors;
+    private ColorSensors_Intensity intensitySensors;
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
@@ -71,7 +71,8 @@ public class closeblue15 extends OpMode {
     private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1;
     private static final double GATE_WAIT_TIME_LATER = 0.9;
-    private static final double SETTLE_TIME = 0.12;
+    private static final double SETTLE_TIME = 0.015;
+    private static final double SPIT_DURATION_SEC = 0.25;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
@@ -119,7 +120,7 @@ public class closeblue15 extends OpMode {
 
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
-        sensors = new ColorSensors(hardwareMap);
+        intensitySensors = new ColorSensors_Intensity(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
         turret.setBlueAlliance();
 
@@ -162,6 +163,7 @@ public class closeblue15 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
+        intensitySensors.calibrateAmbientFloor();
         turret.setDegreesTarget(39);
         turret.setPid();
         shotCycleCount = 0;
@@ -181,8 +183,9 @@ public class closeblue15 extends OpMode {
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
 
-        if (pathState >= 7 && pathState <= 11) {
+        if ((pathState >= 7 && pathState <= 11) || pathState == 91) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
+            if (pathState == 91) telemetry.addData("Spit", "ACTIVE");
         } else if (pathState >= 12 && pathState <= 16) {
             telemetry.addData("Sequence", "First Line Pickup");
         }
@@ -237,7 +240,7 @@ public class closeblue15 extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue-30);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -323,7 +326,7 @@ public class closeblue15 extends OpMode {
                 break;
 
             case 102: // does the 2nd path of moving back
-//                hasThreeBalls = checkThreeBalls();
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue + 50);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -331,22 +334,35 @@ public class closeblue15 extends OpMode {
                 }
                 break;
 
-            case 9: // waits at gate
+            case 9: // waits at gate — sensor-based early exit when full
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-//                hasThreeBalls = checkThreeBalls();
                 depo.updatePID();
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(91);
+                } else if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     LL.set_angle_close();
                     buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
-                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue + 20);
+                    setPathState(10);
+                }
+                break;
+
+            case 91: // spit briefly after detecting full at gate
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
+                    LL.set_angle_close();
+                    buildGatePathsBack();
+                    follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
                 break;
 
             case 10:
                 intake.setPower(1);
-//                hasThreeBalls=false;
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -387,7 +403,10 @@ public class closeblue15 extends OpMode {
             case 13:
                 depo.updatePID();
                 if (!follower.isBusy()) {
-//                    manageSecondHopIntake();
+                    intensitySensors.update();
+                    if (intensitySensors.isFullRaw()) {
+                        intake.setPower(1);
+                    }
                     setPathState(14);
                 }
                 break;
@@ -598,7 +617,7 @@ public class closeblue15 extends OpMode {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, adjustedLever)))
-                .setLinearHeadingInterpolation(cur.getHeading(), adjustedLever.getHeading(), 0.5)
+                .setLinearHeadingInterpolation(cur.getHeading(), adjustedLever.getHeading(), 0.92)
                 .setTimeoutConstraint(1)
                 .build();
 
@@ -653,16 +672,16 @@ public class closeblue15 extends OpMode {
     }
 
     private boolean checkThreeBalls() {
-//        if (intake == null || LL == null || sensors == null) return false;
-        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-        return allFull;
+        intensitySensors.update();
+        return intensitySensors.isFullRaw();
     }
 
     // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
+        if (intake == null || LL == null || intensitySensors == null) return;
 
-        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
+        intensitySensors.update();
+        boolean allFull = intensitySensors.isFullRaw();
 
         if (intakeRunning) {
             if (allFull) {
