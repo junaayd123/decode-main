@@ -79,7 +79,7 @@ public class farredoptimized extends OpMode {
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(59, 59, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(65, 62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
@@ -159,7 +159,7 @@ public class farredoptimized extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-67.2);
+        turret.setDegreesTarget(-72);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -236,7 +236,7 @@ public class farredoptimized extends OpMode {
         switch (pathState) {
             case 0: // Spin up flywheel for preload
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRedPreload -20 );
+                depo.setTargetVelocity(depo.ExcessRedPreload -60 ); // it was -20 before and then -40
                 SHOOT_INTERVAL = 0.335;
                 setPathState(1);
                 break;
@@ -277,7 +277,7 @@ public class farredoptimized extends OpMode {
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed -20);
+                    depo.setTargetVelocity(depo.ExcessRed -60);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -354,7 +354,7 @@ public class farredoptimized extends OpMode {
             case 10: // Gate - return to shooting position
                 intake.setPower(0);
                 intake.setPower(1);
-                depo.setTargetVelocity(depo.ExcessRed -20 );
+                depo.setTargetVelocity(depo.ExcessRed -40 );
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -387,7 +387,7 @@ public class farredoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed -20);
+                depo.setTargetVelocity(depo.ExcessRed -40);
 
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -406,7 +406,7 @@ public class farredoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed -20);
+                depo.setTargetVelocity(depo.ExcessRed -40);
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
