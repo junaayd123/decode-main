@@ -144,6 +144,7 @@ public class closered15 extends OpMode {
 
         LL.allDown();
         LL.set_angle_min();
+
         LL.set_camera_ramp_pos();
         stopShooter();
 

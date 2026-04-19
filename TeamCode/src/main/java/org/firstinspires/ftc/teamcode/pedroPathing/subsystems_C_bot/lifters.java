@@ -100,6 +100,7 @@ public class lifters {
         if(sensors.getBack()+sensors.getLeft()+sensors.getRight()==0) return true;
         else return false;
     }
+
     public void leftDown(){liftLeft.setPosition(0.07);}
     public void leftUp(){liftLeft.setPosition(0.39);}
     public void rightDown(){liftRight.setPosition(0.01);}

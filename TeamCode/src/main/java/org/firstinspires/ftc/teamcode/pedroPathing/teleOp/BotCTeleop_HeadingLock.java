@@ -300,6 +300,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
             rampScanDelayTimer.startTimer();
         }
 
+
         if (vision.isRampScanning()) {
             if (rampScanDelayTimer.checkAtSeconds(1.0)) {
                 lift.allDown();
