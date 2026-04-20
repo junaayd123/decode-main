@@ -942,12 +942,12 @@ public class excess_farred_turretdetect extends OpMode {
 
         // ROI1 (left region) fractional bounds
         private static final double ROI1_X_START = 0.10;
-        private static final double ROI1_X_END   = 0.55;
+        private static final double ROI1_X_END   = 0.50;
         private static final double ROI1_Y_START = 0.35;
         private static final double ROI1_Y_END   = 0.65;
 
         // ROI2 (right region / HP) fractional bounds
-        private static final double ROI2_X_START = 0.55;
+        private static final double ROI2_X_START = 0.50;
         private static final double ROI2_X_END   = 1.00;
         private static final double ROI2_Y_START = 0.35;
         private static final double ROI2_Y_END   = 0.70;
