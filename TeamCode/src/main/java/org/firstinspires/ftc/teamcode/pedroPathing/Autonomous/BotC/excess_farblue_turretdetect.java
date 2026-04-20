@@ -120,8 +120,8 @@ public class excess_farblue_turretdetect extends OpMode {
     private final Pose gateCollectDeepPose     = new Pose(68,  -44,  Math.toRadians(-63));  // actual collect position
 
     // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
-    private final Pose hpBallArea          = new Pose(66,  -17,  Math.toRadians(60));
-    private final Pose hpBallAreaStrafeEnd = new Pose(67,  -9.8, Math.toRadians(12));
+    private final Pose hpBallArea          = new Pose(66,  -18,  Math.toRadians(60));
+    private final Pose hpBallAreaStrafeEnd = new Pose(67,  -9.8, Math.toRadians(10));
 
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -944,15 +944,15 @@ public class excess_farblue_turretdetect extends OpMode {
         // Rotation angle (positive = CCW, mirrored from red's -5°)
         private static final double ROTATE_DEGREES = -4.0;
 
-        // ROI1 (left region) fractional bounds
+        // ROI1 (left region / HP) fractional bounds
         private static final double ROI1_X_START = 0.0;
-        private static final double ROI1_X_END   = 0.35;
+        private static final double ROI1_X_END   = 0.45;
         private static final double ROI1_Y_START = 0.35;
         private static final double ROI1_Y_END   = 0.65;
 
         // ROI2 (right region) fractional bounds
-        private static final double ROI2_X_START = 0.35;
-        private static final double ROI2_X_END   = 1.00;
+        private static final double ROI2_X_START = 0.45;
+        private static final double ROI2_X_END   = 0.90;
         private static final double ROI2_Y_START = 0.35;
         private static final double ROI2_Y_END   = 0.70;
 
@@ -1041,26 +1041,27 @@ public class excess_farblue_turretdetect extends OpMode {
             // 6. Combined mask
             Core.bitwise_or(greenMask, purpleMask, combinedMat);
 
-            // 7. ROI1 coverage
+            // 7. ROI1 coverage (percentage of whole image)
+            double totalPixels = frameWidth * frameHeight;
             double roi1Total = Core.countNonZero(roi1Mask);
             if (roi1Total > 0) {
                 Core.bitwise_and(greenMask,   roi1Mask, tempMask);
-                roi1GreenPercent    = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1GreenPercent    = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(purpleMask,  roi1Mask, tempMask);
-                roi1PurplePercent   = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1PurplePercent   = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(combinedMat, roi1Mask, tempMask);
-                roi1CombinedPercent = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1CombinedPercent = Core.countNonZero(tempMask) / totalPixels * 100.0;
             }
 
-            // 8. ROI2 coverage
+            // 8. ROI2 coverage (percentage of whole image)
             double roi2Total = Core.countNonZero(roi2Mask);
             if (roi2Total > 0) {
                 Core.bitwise_and(greenMask,   roi2Mask, tempMask);
-                roi2GreenPercent    = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2GreenPercent    = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(purpleMask,  roi2Mask, tempMask);
-                roi2PurplePercent   = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2PurplePercent   = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(combinedMat, roi2Mask, tempMask);
-                roi2CombinedPercent = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2CombinedPercent = Core.countNonZero(tempMask) / totalPixels * 100.0;
             }
 
             // 9. Visualization: rotated frame + highlighted detections + ROI rectangles

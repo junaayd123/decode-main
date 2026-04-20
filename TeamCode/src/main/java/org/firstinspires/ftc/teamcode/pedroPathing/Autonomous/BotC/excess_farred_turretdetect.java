@@ -120,8 +120,8 @@ public class excess_farred_turretdetect extends OpMode {
     private final Pose gateCollectDeepPose     = new Pose(74,  49,  Math.toRadians(85));  // actual collect position
 
     // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
-    private final Pose hpBallArea          = new Pose(66,  17,  Math.toRadians(-45));
-    private final Pose hpBallAreaStrafeEnd = new Pose(67,  9.8, Math.toRadians(-12));
+    private final Pose hpBallArea          = new Pose(66,  18,  Math.toRadians(-45));
+    private final Pose hpBallAreaStrafeEnd = new Pose(67,  9.8, Math.toRadians(-10));
 
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -204,7 +204,7 @@ public class excess_farred_turretdetect extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(-65);
+        turret.setDegreesTarget(-70);
         turret.setPid();
 
         shotCycleCount    = 0;
@@ -945,13 +945,13 @@ public class excess_farred_turretdetect extends OpMode {
         private static final double ROTATE_DEGREES = 4.0;
 
         // ROI1 (left region) fractional bounds
-        private static final double ROI1_X_START = 0.00;
-        private static final double ROI1_X_END   = 0.65;
+        private static final double ROI1_X_START = 0.10;
+        private static final double ROI1_X_END   = 0.55;
         private static final double ROI1_Y_START = 0.35;
         private static final double ROI1_Y_END   = 0.65;
 
-        // ROI2 (right region) fractional bounds
-        private static final double ROI2_X_START = 0.65;
+        // ROI2 (right region / HP) fractional bounds
+        private static final double ROI2_X_START = 0.55;
         private static final double ROI2_X_END   = 1.00;
         private static final double ROI2_Y_START = 0.35;
         private static final double ROI2_Y_END   = 0.70;
@@ -1041,26 +1041,27 @@ public class excess_farred_turretdetect extends OpMode {
             // 6. Combined mask
             Core.bitwise_or(greenMask, purpleMask, combinedMat);
 
-            // 7. ROI1 coverage
+            // 7. ROI1 coverage (percentage of whole image)
+            double totalPixels = frameWidth * frameHeight;
             double roi1Total = Core.countNonZero(roi1Mask);
             if (roi1Total > 0) {
                 Core.bitwise_and(greenMask,   roi1Mask, tempMask);
-                roi1GreenPercent    = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1GreenPercent    = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(purpleMask,  roi1Mask, tempMask);
-                roi1PurplePercent   = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1PurplePercent   = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(combinedMat, roi1Mask, tempMask);
-                roi1CombinedPercent = Core.countNonZero(tempMask) / roi1Total * 100.0;
+                roi1CombinedPercent = Core.countNonZero(tempMask) / totalPixels * 100.0;
             }
 
-            // 8. ROI2 coverage
+            // 8. ROI2 coverage (percentage of whole image)
             double roi2Total = Core.countNonZero(roi2Mask);
             if (roi2Total > 0) {
                 Core.bitwise_and(greenMask,   roi2Mask, tempMask);
-                roi2GreenPercent    = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2GreenPercent    = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(purpleMask,  roi2Mask, tempMask);
-                roi2PurplePercent   = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2PurplePercent   = Core.countNonZero(tempMask) / totalPixels * 100.0;
                 Core.bitwise_and(combinedMat, roi2Mask, tempMask);
-                roi2CombinedPercent = Core.countNonZero(tempMask) / roi2Total * 100.0;
+                roi2CombinedPercent = Core.countNonZero(tempMask) / totalPixels * 100.0;
             }
 
             // 9. Visualization: rotated frame + highlighted detections + ROI rectangles
