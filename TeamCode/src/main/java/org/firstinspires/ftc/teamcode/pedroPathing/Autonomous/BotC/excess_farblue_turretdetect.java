@@ -143,8 +143,8 @@ public class excess_farblue_turretdetect extends OpMode {
 
         depo    = new Deposition_C(hardwareMap);
         LL      = new lifters(hardwareMap);
-    intensitySensors = new ColorSensors_Intensity(hardwareMap);
-    turret  = new TurretLimelight(hardwareMap);
+        intensitySensors = new ColorSensors_Intensity(hardwareMap);
+        turret  = new TurretLimelight(hardwareMap);
 
         intake  = hardwareMap.get(DcMotor.class, "intake");
         d1      = hardwareMap.get(DcMotor.class, "depo");
@@ -371,15 +371,14 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 22: // Drive back to far shooting pose
-                if (ballCount >= 3) intake.setPower(1);
-                else                intake.setPower(0);
+                intake.setPower(1);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(23);
                 break;
 
             case 23: // Arrived at shooting pose — spin up flywheel
-                if (ballCount >= 3) intake.setPower(1);
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
@@ -479,15 +478,14 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 33: // Drive back to far shooting pose from excess
-                if (ballCount >= 3) intake.setPower(1);
-                else                intake.setPower(0);
+                intake.setPower(1);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(34);
                 break;
 
             case 34: // Arrived at shooting pose from excess — spin up flywheel
-                if (ballCount >= 3) intake.setPower(1);
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
@@ -588,8 +586,7 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 53: // Drive back to far shooting pose from gate
-                if (ballCount >= 3) intake.setPower(1);
-                else                intake.setPower(0);
+                intake.setPower(1);
                 turret.setDegreesTarget(68);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -597,7 +594,7 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 54: // Arrived at far shooting pose — spin up flywheel
-                if (ballCount >= 3) intake.setPower(1);
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
@@ -688,8 +685,7 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 63: // Drive back to far shooting pose from HP
-                if (ballCount >= 3) intake.setPower(1);
-                else                intake.setPower(0);
+                intake.setPower(1);
                 turret.setDegreesTarget(68);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
@@ -697,7 +693,7 @@ public class excess_farblue_turretdetect extends OpMode {
                 break;
 
             case 64: // Arrived at shooting pose from HP — spin up flywheel
-                if (ballCount >= 3) intake.setPower(1);
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_far_auto2();
