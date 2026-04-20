@@ -293,7 +293,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
     // RAMP SCAN
     // -----------------------------------------------------------------------
     private void handleRampScan() {
-        if (gamepad1.bWasPressed() && !vision.isRampScanning()) {
+        if (gamepad2.circleWasPressed() && !vision.isRampScanning()) {
             modeBeforeRampScan = mode;
             mode = Mode.faceRamp;
             vision.startRampScan();
@@ -302,16 +302,16 @@ public class BotCTeleop_HeadingLock extends OpMode {
 
 
         if (vision.isRampScanning()) {
-            if (rampScanDelayTimer.checkAtSeconds(1.0)) {
+            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
                 lift.allDown();
             }
         } else if (rampScanDelayTimer.timerIsOn()) {
-            if (rampScanDelayTimer.checkAtSeconds(1.0)) {
+            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
                 mode        = modeBeforeRampScan;
                 ballOnRamp  = vision.getRampBallVerdict() % 3;
                 greenInSlot = getGreenPos();
             }
-            if (rampScanDelayTimer.checkAtSeconds(1.3)) {
+            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.3)) {
                 rampScanDelayTimer.stopTimer();
                 shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
                 shooter.startShooting(motif, ballOnRamp, greenInSlot);
@@ -372,7 +372,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
             }
         }
 
-        if (turretTimer.checkAtSeconds(1)) {
+        if (turretTimer.checkAtSecondsOpenEnd(0.5)) {
             tagInitializing = true;
             turretTimer.stopTimer();
         }
@@ -398,9 +398,9 @@ public class BotCTeleop_HeadingLock extends OpMode {
             if (intake.isCollecting()) intake.stop();
             else intake.startCollecting();
         }
-        
+
         if (shooter.isShooting()) intake.stop();
-        
+
         if (gamepad2.left_bumper) {
             intake.manualReverse();
         } else if (gamepad2.leftBumperWasReleased()) {
@@ -433,31 +433,31 @@ public class BotCTeleop_HeadingLock extends OpMode {
             }
         }
         if (gamepad2.squareWasPressed()) {
-            lift.allDown();
-            if (!lift.checkNoBalls()) {
-                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-                ballOnRamp  = 0;
-                greenInSlot = getGreenPos();
-                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-            }
+//            lift.allDown();
+//            if (!lift.checkNoBalls()) {
+//                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+//                ballOnRamp  = 0;
+//                greenInSlot = getGreenPos();
+//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+//            }
         }
         if (gamepad2.triangleWasPressed()) {
-            lift.allDown();
-            if (!lift.checkNoBalls()) {
-                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-                ballOnRamp  = 1;
-                greenInSlot = getGreenPos();
-                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-            }
+//            lift.allDown();
+//            if (!lift.checkNoBalls()) {
+//                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+//                ballOnRamp  = 1;
+//                greenInSlot = getGreenPos();
+//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+//            }
         }
         if (gamepad2.circleWasPressed()) {
-            lift.allDown();
-            if (!lift.checkNoBalls()) {
-                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-                ballOnRamp  = 2;
-                greenInSlot = getGreenPos();
-                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-            }
+//            lift.allDown();
+//            if (!lift.checkNoBalls()) {
+//                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+//                ballOnRamp  = 2;
+//                greenInSlot = getGreenPos();
+//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+//            }
         }
 
         if (!shootingTest && !shooter.isShooting()) {

@@ -21,6 +21,10 @@ public class Timer {
         if(timer.seconds()>=curtime+sec && timer.seconds()<curtime+sec+0.05) return true;
         else return false;
     }
+    public boolean checkAtSecondsBigWindow(double sec){//for less precise stuff
+        if(timer.seconds()>=curtime+sec && timer.seconds()<curtime+sec+0.2) return true;
+        else return false;
+    }
     public boolean checkAtSecondsOpenEnd(double sec){//only checks that timer reached, not in a particular window
         if(timer.seconds()>=curtime+sec && curtime!=10000) return true;
         else return false;
