@@ -359,7 +359,6 @@ public class closered15 extends OpMode {
                 break;
 
             case 102: // does the 2nd path of moving back
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -385,6 +384,7 @@ public class closered15 extends OpMode {
 
             case 91: // spit briefly after detecting full at gate
                 depo.updatePID();
+                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
                 if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
                     intake.setPower(0);
                     LL.set_angle_close();
