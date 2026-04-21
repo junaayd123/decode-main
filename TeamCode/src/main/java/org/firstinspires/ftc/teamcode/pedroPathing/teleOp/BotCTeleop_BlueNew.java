@@ -28,8 +28,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 
 @Config
-@TeleOp(name = "RED TELEOP", group = "A_TeleOp")
-public class BotCTeleop_HeadingLock extends OpMode {
+@TeleOp(name = "BLUE TELEOP", group = "A_TeleOp")
+public class BotCTeleop_BlueNew extends OpMode {
 
     // --- HEADING LOCK PARAMETERS ---
     public static double HEADING_P               = -2.0;
@@ -87,8 +87,8 @@ public class BotCTeleop_HeadingLock extends OpMode {
     private Pose    savedGatePose   = null;
     private boolean goingToGate     = false;
 
-    private final Pose redGoal      = new Pose(60, 137, 0);
-    private final Pose redGoalFixed = new Pose(72, 144, 0);
+    private final Pose redGoal      = new Pose(-60, 137, 0);
+    private final Pose redGoalFixed = new Pose(-72, 144, 0);
     private final Pose rampPose     = new Pose(72, 80, 0);
     private final Pose startPose    = new Pose(53, 70, 0);
 
@@ -315,14 +315,14 @@ public class BotCTeleop_HeadingLock extends OpMode {
             // Check for manual override
             double stickMag = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
             boolean override = stickMag > 0.15 || Math.abs(gamepad1.right_stick_x) > 0.15 ||
-                               gamepad1.right_trigger > 0.15 || gamepad1.left_trigger > 0.15;
+                    gamepad1.right_trigger > 0.15 || gamepad1.left_trigger > 0.15;
 
             if (override || !follower.isBusy()) {
-                follower.breakFollowing(); 
-                // We do NOT call startTeleopDrive() here because we want the follower 
+                follower.breakFollowing();
+                // We do NOT call startTeleopDrive() here because we want the follower
                 // to stay in IDLE mode and not fight our manual motor writes.
                 goingToGate = false;
-                
+
                 pinpoint.update();
                 lockedHeading = pinpoint.getHeading(AngleUnit.RADIANS);
                 firstLockLoop = true; // Prevents derivative spike on resumption
@@ -372,8 +372,8 @@ public class BotCTeleop_HeadingLock extends OpMode {
 
         switch (mode) {
             case faceGoal:
-                if (distanceToGoal > 125) {
-                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getRedTurretFar(cur.getX(),cur.getY()));
+                if (cur.getY() < 55) {
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getBlueTurretFar(cur.getX(),cur.getY()));
                 } else {
                     turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
                 }

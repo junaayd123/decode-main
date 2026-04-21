@@ -113,14 +113,19 @@ public class TurretLimelight {
         setServoPosition(targetTicks);
     }
 
-    /** Moves turret to an explicit degree value (with clamping). */
+    /** Moves turret to an explicit degree value (with clamping and wrapping). */
     public void toTargetInDegrees2(double targetDegrees2) {
+        while (targetDegrees2 > 180) targetDegrees2 -= 360;
+        while (targetDegrees2 < -180) targetDegrees2 += 360;
+
         double targetTicks = targetDegrees2 * COEFFICIENT;
         setServoPosition(targetTicks); // clamping handled inside setServoPosition
     }
 
-    /** Sets the degree target used by toTargetInDegrees(). */
+    /** Sets the degree target used by toTargetInDegrees() (with wrapping). */
     public void setDegreesTarget(double deg) {
+        while (deg > 180) deg -= 360;
+        while (deg < -180) deg += 360;
         targetDegrees = deg;
     }
 
