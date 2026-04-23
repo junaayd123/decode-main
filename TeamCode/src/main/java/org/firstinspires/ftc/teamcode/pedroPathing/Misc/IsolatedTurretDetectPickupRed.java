@@ -66,10 +66,11 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
     private static final double COLLECT_TIMEOUT_SEC  = 2.0;
     private static final double RETURN_TIMEOUT_SEC   = 2.0;
 
-    // Linear regression from field calibration data: fieldY = SLOPE * pixelX + INTERCEPT
-    // Data: (405,15), (430.5,14.4), (137,38.04), (230,30.5), (270,26), (320,21)
-    private static final double REGRESSION_SLOPE     = -0.0832;
-    private static final double REGRESSION_INTERCEPT =  49.01;
+    // Sinusoidal regression: fieldY = A * sin(B * pixelX + C) + D
+    private static final double REG_A = 25.0;
+    private static final double REG_B = 0.00388657;
+    private static final double REG_C = 2.20682;
+    private static final double REG_D = 29.5;
 
     @Override
     public void init() {
@@ -133,7 +134,7 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
                 if (bPressed) {
                     // compute target Y from current hough reading
                     if (ballCoverage.houghCircleCount > 0 && ballCoverage.houghRawX >= 0) {
-                        dynamicGateY = Math.max(7.0, REGRESSION_SLOPE * ballCoverage.houghRawX + REGRESSION_INTERCEPT);
+                        dynamicGateY = Math.max(7.0, REG_A * Math.sin(REG_B * ballCoverage.houghRawX + REG_C) + REG_D);
                     }
                     Pose cur = follower.getPose();
                     Pose collectTarget = new Pose(GATE_COLLECT_X, dynamicGateY, cur.getHeading());
@@ -211,7 +212,7 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
         private static final Scalar PURPLE_LOWER = new Scalar(32, 135, 135);
         private static final Scalar PURPLE_UPPER = new Scalar(255, 155, 169);
 
-        private static final double ROTATE_DEGREES = 2.0; // net CCW
+        private static final double ROTATE_DEGREES = -1.0; // net CCW
 
         // Single wide ROI spanning full frame, same height band
         private static final double ROI1_X_START = 0.0;
@@ -301,7 +302,7 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
                     1.5, 30, 50, 20, 10, 80);
 
             if (circlesMat.cols() > 0) {
-                double sumX = 0;
+                double maxX = -1;
                 double[][] allCircles = new double[circlesMat.cols()][3];
 
                 for (int i = 0; i < circlesMat.cols(); i++) {
@@ -312,7 +313,7 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
                     allCircles[i][0] = c[0];
                     allCircles[i][1] = c[1];
                     allCircles[i][2] = c[2];
-                    sumX += c[0];
+                    if (c[0] > maxX) maxX = c[0];
 
                     Imgproc.circle(vizMat, ctr, r, new Scalar(0, 255, 255, 255), 2);
                     Imgproc.circle(vizMat, ctr, 3, new Scalar(255, 0, 0, 255), -1);
@@ -324,7 +325,7 @@ public class IsolatedTurretDetectPickupRed extends OpMode {
                 }
 
                 detectedCircles = allCircles;
-                houghRawX = sumX / circlesMat.cols();
+                houghRawX = maxX;
                 houghCircleCount = circlesMat.cols();
             } else {
                 detectedCircles = null;
