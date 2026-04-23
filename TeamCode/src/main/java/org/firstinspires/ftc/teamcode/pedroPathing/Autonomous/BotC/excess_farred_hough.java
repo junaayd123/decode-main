@@ -5,7 +5,6 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.Path;
-import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -91,7 +90,7 @@ public class excess_farred_hough extends OpMode {
     private long scanLastFrameSequence = -1;
     private int scanSamples = 0;
     private int scanHoughSamples = 0;
-    private double scanHoughXSum = 0;
+    private double scanHoughXBest = -1;
 
     // ========== MOTIF ==========
     private String motif = "ppg";
@@ -104,27 +103,30 @@ public class excess_farred_hough extends OpMode {
     private static double SHOOT_INTERVAL = 0.3;
     private static final double SETTLE_TIME = 0.15;
     private static final double SPIT_DURATION_SEC = 0.25;
-    private static final double EXCESS_WAIT_FIRST_POSITION = 0;
+    private static final double EXCESS_WAIT_FIRST_POSITION = 0.3;
     private static final double EXCESS_WAIT_SECOND_POSITION = 0.8;
     private static final double HP_WAIT_FIRST_POSITION = 0.5;
     private static final double EXCESS_PATH_SPEED = 1;
     private static final double GATE_COLLECT_WAIT = 0.5;
-    private static final double DETECTION_WAIT = 0.5;
-    private static final double SCAN_VOTE_WINDOW_SEC = 0.20;
+    private static final double TURRET_DETECT_SETTLE_SEC = 0.25;
+    private static final double DETECTION_WAIT = 1; // collect one detection window, then build/run immediately
     private static final int SCAN_MIN_SAMPLES = 3;
     private static final int SCAN_MIN_HOUGH_SAMPLES = 2;
+    private static final double TURRET_OFFSET       = -3; // global offset applied to every turret angle
     private static final double TURRET_DETECT_DEGREES = -8;
     private static final double GATE_COLLECT_X = 74.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(85);
 
-    // Regression from field calibration data: fieldY = SLOPE * pixelX + INTERCEPT
-    // Data: (405,15), (430.5,14.4), (137,38.04), (230,30.5), (270,26), (320,21)
-    private static final double REGRESSION_SLOPE     = -0.0832;
-    private static final double REGRESSION_INTERCEPT =  49.01;
+    // Sinusoidal regression: fieldY = A * sin(B * pixelX + C) + D
+    private static final double REG_A = 26.0;
+    private static final double REG_B = 0.00388657;
+    private static final double REG_C = 2.20682;
+    private static final double REG_D = 29.8;
 
     // ========== POSES (far shot family from state_farredoptimized) ==========
     private final Pose startPose           = new Pose(7 + 6.5, 7,    Math.toRadians(0));
     private final Pose farshotpose         = new Pose(12,      17,   Math.toRadians(0));
+    private final Pose leavePose           = new Pose(18,      20,   Math.toRadians(0));
     private final Pose ThirdPickupPose     = new Pose(60,      35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      38,   Math.toRadians(0));
 
@@ -140,9 +142,10 @@ public class excess_farred_hough extends OpMode {
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
     private PathChain goBackPath;
+    private PathChain leavePath;
     private PathChain excessPath;
     private PathChain excessPathStrafe;
-    private Path gateDeepCollectPath;
+    private PathChain gateDeepCollectPath;
     private PathChain hpPath;
     private PathChain hpPathStrafe;
 
@@ -176,7 +179,7 @@ public class excess_farred_hough extends OpMode {
         stopShooter();
 
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-98);
+        turret.setDegreesTarget(-98 + TURRET_OFFSET);
 
         if (camTilt != null) camTilt.setPosition(0.24);
 
@@ -218,7 +221,7 @@ public class excess_farred_hough extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(-70);
+        turret.setDegreesTarget(-70 + TURRET_OFFSET);
         turret.setPid();
 
         shotCycleCount    = 0;
@@ -363,7 +366,7 @@ public class excess_farred_hough extends OpMode {
             case 20: // Drive to third line
                 intake.setPower(-1);
                 buildThirdLinePickupPath();
-                turret.setDegreesTarget(-62);
+                turret.setDegreesTarget(-62 + TURRET_OFFSET);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(21);
                 break;
@@ -530,9 +533,17 @@ public class excess_farred_hough extends OpMode {
             // ===== TURRET DETECT IN PLACE (no driving — scan from current position) =====
             case 40: // Turn turret to detection angle and tilt camera
                 intake.setPower(-1);
-                turret.setDegreesTarget(TURRET_DETECT_DEGREES);
+                turret.setDegreesTarget(TURRET_DETECT_DEGREES + TURRET_OFFSET);
                 if (camTilt != null) camTilt.setPosition(0.1667);
-                setPathState(50);
+                actionTimer.resetTimer();
+                setPathState(41);
+                break;
+
+            case 41: // Let turret/camera settle before starting detection window
+                intake.setPower(-1);
+                if (actionTimer.getElapsedTimeSeconds() >= TURRET_DETECT_SETTLE_SEC) {
+                    setPathState(50);
+                }
                 break;
 
             // ===== BLOB DETECTION & DECISION =====
@@ -542,22 +553,21 @@ public class excess_farred_hough extends OpMode {
                 scanLastFrameSequence = -1;
                 scanSamples = 0;
                 scanHoughSamples = 0;
-                scanHoughXSum = 0;
+                scanHoughXBest = -1;
                 actionTimer.resetTimer();
                 setPathState(51);
                 break;
 
-            case 51: // Vote window — branch on Hough circles, fallback to HP
+            case 51: // Single detection window — then build/run collect path immediately or fallback to HP
                 sampleRedScanFrame();
-                boolean voteWindowReady = actionTimer.getElapsedTimeSeconds() >= SCAN_VOTE_WINDOW_SEC
-                        && scanSamples >= SCAN_MIN_SAMPLES;
-                boolean hardTimeout = actionTimer.getElapsedTimeSeconds() >= DETECTION_WAIT;
-                if (voteWindowReady || hardTimeout) {
+                if (actionTimer.getElapsedTimeSeconds() >= DETECTION_WAIT) {
                     if (scanHoughSamples >= SCAN_MIN_HOUGH_SAMPLES) {
-                        dynamicGateY = computeGateYFromRawX(scanHoughXSum / scanHoughSamples);
+                        dynamicGateY = computeGateYFromRawX(scanHoughXBest);
                         intake.setPower(-1);
-                        actionTimer.resetTimer();
-                        setPathState(52);
+                        buildGateDeepCollectPath();
+                        follower.followPath(gateDeepCollectPath, true);
+                        excessPathTimeoutTimer.resetTimer();
+                        setPathState(521);
                     } else {
                         setPathState(60); // No circles detected — conservative fallback to HP
                     }
@@ -565,14 +575,6 @@ public class excess_farred_hough extends OpMode {
                 break;
 
             // ===== GATE COLLECT → RETURN → SHOOT =====
-            case 52: // Drive deeper into gate to actually collect
-                intake.setPower(-1);
-                buildGateDeepCollectPath();
-                follower.followPath(gateDeepCollectPath, true);
-                excessPathTimeoutTimer.resetTimer();
-                setPathState(521);
-                break;
-
             case 521: // Wait at deep collection position
                 intake.setPower(-1);
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 2.0) {
@@ -603,7 +605,7 @@ public class excess_farred_hough extends OpMode {
 
             case 53: // Drive back to far shooting pose from gate
                 intake.setPower(1);
-                turret.setDegreesTarget(-63);
+                turret.setDegreesTarget(-63 + TURRET_OFFSET);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(54);
@@ -637,7 +639,9 @@ public class excess_farred_hough extends OpMode {
                     } else {
                         depo.setTargetVelocity(0);
                         stopShooter();
-                        setPathState(-1);
+                        buildLeavePositionPath();
+                        follower.followPath(leavePath, false);
+                        setPathState(99);
                     }
                 }
                 break;
@@ -702,7 +706,7 @@ public class excess_farred_hough extends OpMode {
 
             case 63: // Drive back to far shooting pose from HP
                 intake.setPower(1);
-                turret.setDegreesTarget(-63);
+                turret.setDegreesTarget(-63 + TURRET_OFFSET);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(64);
@@ -736,8 +740,16 @@ public class excess_farred_hough extends OpMode {
                     } else {
                         depo.setTargetVelocity(0);
                         stopShooter();
-                        setPathState(-1);
+                        buildLeavePositionPath();
+                        follower.followPath(leavePath, false);
+                        setPathState(99);
                     }
+                }
+                break;
+
+            case 99: // Drive to leave position at end of auto
+                if (!follower.isBusy()) {
+                    setPathState(-1);
                 }
                 break;
         }
@@ -868,6 +880,15 @@ public class excess_farred_hough extends OpMode {
                 .build();
     }
 
+    private void buildLeavePositionPath() {
+        Pose cur = follower.getPose();
+        leavePath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, leavePose)))
+                .setLinearHeadingInterpolation(cur.getHeading(), leavePose.getHeading())
+                .setTimeoutConstraint(0.1)
+                .build();
+    }
+
     private void buildExcessPath() {
         Pose cur = follower.getPose();
         excessPath = follower.pathBuilder()
@@ -894,42 +915,21 @@ public class excess_farred_hough extends OpMode {
 
         if (ballCoverage.houghCircleCount > 0 && ballCoverage.houghRawX >= 0) {
             scanHoughSamples++;
-            scanHoughXSum += ballCoverage.houghRawX;
+            scanHoughXBest = Math.max(scanHoughXBest, ballCoverage.houghRawX);
         }
     }
 
     private void buildGateDeepCollectPath() {
         Pose cur    = follower.getPose();
-        Pose target = new Pose(GATE_COLLECT_X, dynamicGateY, GATE_COLLECT_HEADING);
-
-        double travelHeading = Math.atan2(
-                target.getY() - cur.getY(),
-                target.getX() - cur.getX());
-        double returnHeading = Math.atan2(
-                farshotpose.getY() - target.getY(),
-                farshotpose.getX() - target.getX());
-
-        gateDeepCollectPath = new Path(new BezierLine(cur, target));
-        gateDeepCollectPath.setHeadingInterpolation(
-                HeadingInterpolator.piecewise(
-                        new HeadingInterpolator.PiecewiseNode(
-                                0, 0.2,
-                                HeadingInterpolator.linear(cur.getHeading(), travelHeading)
-                        ),
-                        new HeadingInterpolator.PiecewiseNode(
-                                0.2, 0.8,
-                                HeadingInterpolator.linear(travelHeading, travelHeading)
-                        ),
-                        new HeadingInterpolator.PiecewiseNode(
-                                0.8, 1.0,
-                                HeadingInterpolator.linear(travelHeading, returnHeading)
-                        )
-                )
-        );
+        Pose target = new Pose(GATE_COLLECT_X, dynamicGateY, cur.getHeading());
+        gateDeepCollectPath = follower.pathBuilder()
+                .addPath(new Path(new BezierLine(cur, target)))
+                .setConstantHeadingInterpolation(cur.getHeading())
+                .build();
     }
 
     private double computeGateYFromRawX(double rawX) {
-        return Math.max(7.0, REGRESSION_SLOPE * rawX + REGRESSION_INTERCEPT);
+        return Math.max(7.0, REG_A * Math.sin(REG_B * rawX + REG_C) + REG_D);
     }
 
     private void buildHpPath() {
@@ -985,7 +985,7 @@ public class excess_farred_hough extends OpMode {
         private static final Scalar PURPLE_LOWER = new Scalar(32,  135, 135);
         private static final Scalar PURPLE_UPPER = new Scalar(255, 155, 169);
 
-        private static final double ROTATE_DEGREES = 2.0; // net CCW
+        private static final double ROTATE_DEGREES = -1.0; // net CCW
 
         // Single full-width ROI
         private static final double ROI1_X_START = 0.0;
@@ -1087,12 +1087,12 @@ public class excess_farred_hough extends OpMode {
             Imgproc.HoughCircles(grayRoi, circlesMat, Imgproc.HOUGH_GRADIENT,
                     1.5, 30, 50, 20, 10, 80);
             if (circlesMat.cols() > 0) {
-                double sumX = 0;
+                double maxX = -1;
                 for (int i = 0; i < circlesMat.cols(); i++) {
                     double[] c = circlesMat.get(0, i);
                     Point ctr = new Point(c[0], c[1]);
                     int r = (int) Math.round(c[2]);
-                    sumX += c[0];
+                    if (c[0] > maxX) maxX = c[0];
                     Imgproc.circle(vizMat, ctr, r, new Scalar(0, 255, 255, 255), 2);
                     Imgproc.circle(vizMat, ctr, 3, new Scalar(255, 0, 0, 255), -1);
                     Imgproc.putText(vizMat,
@@ -1101,7 +1101,7 @@ public class excess_farred_hough extends OpMode {
                             Imgproc.FONT_HERSHEY_SIMPLEX, 0.4,
                             new Scalar(255, 255, 255, 255), 1);
                 }
-                houghRawX        = sumX / circlesMat.cols();
+                houghRawX        = maxX;
                 houghCircleCount = circlesMat.cols();
             } else {
                 houghRawX        = -1;
