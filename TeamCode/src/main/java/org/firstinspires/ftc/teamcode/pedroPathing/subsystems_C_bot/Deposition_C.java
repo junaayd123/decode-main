@@ -37,9 +37,9 @@ public class Deposition_C {
     //
     //
     public double ExcessBlue = 2180.0;
-    public double ExcessRed = 2180.0;
+    public double ExcessRed = 2140.0;
     public double ExcessBluePreload = 2235.0;
-    public double ExcessRedPreload = 2250.0;
+    public double ExcessRedPreload = 2210.0;
     public double farVeloblueauto2 = 2170.0;
 
     // Target velocity in ticks per second

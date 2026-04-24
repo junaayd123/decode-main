@@ -19,7 +19,7 @@ public class regressions {
             if (RobY > 55) { //close
                 return (int) (7.3355 * dist + 1038.2);
             } else {
-                return (int) (9.36897 * dist + 771.99703);
+                return (int) (9.36897 * dist + 771.99703+20);
             }
         }
     }
