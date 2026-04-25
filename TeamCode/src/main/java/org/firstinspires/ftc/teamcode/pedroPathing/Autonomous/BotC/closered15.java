@@ -69,7 +69,7 @@ public class closered15 extends OpMode {
     // ========== SETTINGS ==========
     private double SHOOT_INTERVAL = 0.35;
     private static final double SHOOT_INTERVAL_FIRST = 0.24;
-    private static final double SHOOT_INTERVAL_DEFAULT = 0.45;
+    private static final double SHOOT_INTERVAL_DEFAULT = 0.4;
     private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
@@ -359,6 +359,7 @@ public class closered15 extends OpMode {
                 break;
 
             case 102: // does the 2nd path of moving back
+                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -408,27 +409,27 @@ public class closered15 extends OpMode {
             case 150: // ramp scan in progress (~1s)
                 depo.updatePID();
                 // snapshot live detections each loop so we keep the last frame before scan ends
-                {
-                    StringBuilder sb = new StringBuilder();
-                    java.util.List<VisionSubsystem.BallDetection> dets = vision.getBallDetections();
-                    for (int i = 0; i < dets.size(); i++) {
-                        VisionSubsystem.BallDetection d = dets.get(i);
-                        if (i > 0) sb.append(" | ");
-                        sb.append(d.color).append(" x").append(d.estimatedCount);
-                    }
-                    if (dets.size() > 0) lastScanDetails = sb.toString();
+            {
+                StringBuilder sb = new StringBuilder();
+                java.util.List<VisionSubsystem.BallDetection> dets = vision.getBallDetections();
+                for (int i = 0; i < dets.size(); i++) {
+                    VisionSubsystem.BallDetection d = dets.get(i);
+                    if (i > 0) sb.append(" | ");
+                    sb.append(d.color).append(" x").append(d.estimatedCount);
                 }
-                if (!vision.isRampScanning()) {
-                    int verdict = vision.getRampBallVerdict();
-                    lastScanVerdict = verdict;
-                    ballOnRamp = (verdict >= 0) ? verdict % 3 : 0;
-                    LL.set_angle_close();
-                    turret.setDegreesTarget(-16);
-                    buildGateReturnSecondHalf();
-                    follower.followPath(gateReturnSecondHalf, true);
-                    setPathState(151);
-                }
-                break;
+                if (dets.size() > 0) lastScanDetails = sb.toString();
+            }
+            if (!vision.isRampScanning()) {
+                int verdict = vision.getRampBallVerdict();
+                lastScanVerdict = verdict;
+                ballOnRamp = (verdict >= 0) ? verdict % 3 : 0;
+                LL.set_angle_close();
+                turret.setDegreesTarget(-16);
+                buildGateReturnSecondHalf();
+                follower.followPath(gateReturnSecondHalf, true);
+                setPathState(151);
+            }
+            break;
 
             case 151: // follow second half to shot pose
                 intake.setPower(1);
@@ -690,7 +691,7 @@ public class closered15 extends OpMode {
         double yOffset = (gateHitCount == 2) ? 1.5 : gateHitCount * 0.5;
         Pose adjustedLever = new Pose(infront_of_lever_new.getX(), infront_of_lever_new.getY() + yOffset, infront_of_lever_new.getHeading());
         Pose adjustedBackLever = new Pose(back_lever.getX(), back_lever.getY() + yOffset, back_lever.getHeading());
-        
+
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, outfromgate, adjustedLever)))

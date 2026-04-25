@@ -705,6 +705,10 @@ public class closeblueF extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
+                .addParametricCallback(0.5, () -> {
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
+                })
                 .addParametricCallback(0.65, () -> intake.setPower(1))
                 .build();
     }

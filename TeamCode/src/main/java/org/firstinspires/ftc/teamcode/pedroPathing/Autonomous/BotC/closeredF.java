@@ -79,9 +79,9 @@ public class closeredF extends OpMode {
 
     // ========== CONSTANTS ==========
     private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 1.0;
-    private static final double GATE_WAIT_TIME_LATER = 0.675;
-    private static final double SETTLE_TIME = 0.015;
+    private static final double GATE_WAIT_TIME_FIRST = 1.25;
+    private static final double GATE_WAIT_TIME_LATER = 0.575;
+    private static final double SETTLE_TIME = 0.05;
     private static final double SPIT_DURATION_SEC = 0.25;
 
     // ========== POSES ==========
@@ -94,11 +94,11 @@ public class closeredF extends OpMode {
     private final Pose firstPickupPose = new Pose(46, 81, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(9, 48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
-    private final Pose secondpickuppose = new Pose(51.5, 52.75, Math.toRadians(0));
+    private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(53.3, 56.75, Math.toRadians(34.5));
-    private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
+    private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(37.5));
     private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
@@ -197,7 +197,7 @@ public class closeredF extends OpMode {
     public void start() {
         opmodeTimer.resetTimer();
         intensitySensors.calibrateAmbientFloor();
-        turret.setDegreesTarget(-53.5);
+        turret.setDegreesTarget(-54.5);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -280,7 +280,7 @@ public class closeredF extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-45);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-65);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -733,6 +733,10 @@ public class closeredF extends OpMode {
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondpickuppose, midpoint2, nearshotpose2)))
                 .setLinearHeadingInterpolation(secondpickuppose.getHeading(), nearshotpose2.getHeading(), 0.8)
+                .addParametricCallback(0.5, () -> {
+                    LL.set_angle_close();
+                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                })
                 .addParametricCallback(0.65, () -> intake.setPower(1))
                 .build();
     }
