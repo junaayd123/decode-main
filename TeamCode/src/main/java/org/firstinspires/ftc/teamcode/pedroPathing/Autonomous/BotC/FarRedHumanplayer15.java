@@ -471,9 +471,29 @@ public class FarRedHumanplayer15 extends OpMode {
                 }
                 break;
 
+//            case 129: // Arrived at human player - build return path then wait for loading
+//                if (!follower.isBusy()) {
+//                    buildGoToShootFromHP();
+//                    setPathState(130);
+//                }
+//                break;
+//
+//            case 130: {
+//                intake.setPower(-1);
+//                boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
+//                boolean timedOut = !follower.isBusy() && actionTimer.getElapsedTimeSeconds() > 3.0;
+//                if (allFull || timedOut) {
+//                    intake.setPower(1);
+//                    actionTimer.resetTimer();
+//                    setPathState(132);
+//                }
+//                break;
+//            }
+
             case 129: // Arrived at human player - build return path then wait for loading
                 if (!follower.isBusy()) {
                     buildGoToShootFromHP();
+                    pathTimer.resetTimer(); // ← ADD THIS to start a clean timer for state 130
                     setPathState(130);
                 }
                 break;
@@ -481,7 +501,7 @@ public class FarRedHumanplayer15 extends OpMode {
             case 130: {
                 intake.setPower(-1);
                 boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-                boolean timedOut = !follower.isBusy() && actionTimer.getElapsedTimeSeconds() > 3.0;
+                boolean timedOut = pathTimer.getElapsedTimeSeconds() > 3.0; // ← Remove follower.isBusy() check, use pathTimer
                 if (allFull || timedOut) {
                     intake.setPower(1);
                     actionTimer.resetTimer();
