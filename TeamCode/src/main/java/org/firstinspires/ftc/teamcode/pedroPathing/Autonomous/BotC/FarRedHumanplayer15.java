@@ -61,12 +61,12 @@ public class FarRedHumanplayer15 extends OpMode {
     private boolean intakeRunning = false;
 
     // ======== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.335;
-    private static final double SECOND_HOP_IN = 8;
+    private static double SHOOT_INTERVAL = 0.25;
+    private static final double SECOND_HOP_IN = 7;
     private static final double GATE_WAIT_TIME_FIRST = 1.0;
     private static final double GATE_WAIT_TIME_LATER = 0.8;
     private static final int TOTAL_GATE_CYCLES = 1;
-    private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
+    private static final double SETTLE_TIME = 0.2;  // ✅ NEW - time to settle before shooting
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, 7, Math.toRadians(0));
@@ -74,7 +74,7 @@ public class FarRedHumanplayer15 extends OpMode {
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
     private final Pose ThirdPickupPose = new Pose(59, 35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
-    private final Pose farshotpose = new Pose(12, 17, Math.toRadians(-72));
+    private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
 
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
@@ -86,12 +86,12 @@ public class FarRedHumanplayer15 extends OpMode {
     private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
     private final Pose back_lever = new Pose(63, 54, Math.toRadians(38));
     private final Pose infront_of_lever_adj = new Pose(60.5, 61, Math.toRadians(34));
-    private final Pose humanPlayerPose = new Pose(68,  9.8, Math.toRadians(-90));
-    private final Pose humanPlayerMidpoint = new Pose(66, 30, Math.toRadians(0));
-    private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
-    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
+    private final Pose humanPlayerPose = new Pose(70, 7.3, Math.toRadians(-90));
+    private final Pose humanPlayerMidpoint = new Pose(72, 30, Math.toRadians(-90));
+   // private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
+  //  private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
+//    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
+ //   private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -138,6 +138,7 @@ public class FarRedHumanplayer15 extends OpMode {
 
         // Initialize turret
         turret.resetTurretEncoder();
+
         turret.setDegreesTarget(-98);
         //
 
@@ -163,7 +164,7 @@ public class FarRedHumanplayer15 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-65);
+        turret.setDegreesTarget(-78);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -237,13 +238,25 @@ public class FarRedHumanplayer15 extends OpMode {
     private void buildHumanPlayerPaths() {
         Pose cur = follower.getPose();
         toHumanPlayerPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, humanPlayerMidpoint, humanPlayerPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), humanPlayerPose.getHeading(), 0.7)
+                .addPath(new Path(new BezierLine(cur, humanPlayerMidpoint)))
+                .setLinearHeadingInterpolation(cur.getHeading(), humanPlayerPose.getHeading(), 0.5)
                 .setTimeoutConstraint(0.3)
                 .build();
 
+    }
+    private void buildHumanPlayerStrafePath() {
+        Pose cur = follower.getPose();
+        toHumanPlayerPath = follower.pathBuilder()
+                .addPath(new Path (new BezierLine(cur, humanPlayerPose)))
+                .setConstantHeadingInterpolation(humanPlayerPose.getHeading())
+                .setTimeoutConstraint(0.3)
+                .build();
+    }
+    private void buildGoToShootFromHP() {
+        Pose cur = follower.getPose();
+
         fromHumanPlayerPath = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(humanPlayerPose, farshotpose)))
+                .addPath(new Path(new BezierLine(cur, farshotpose)))
                 .setLinearHeadingInterpolation(humanPlayerPose.getHeading(), farshotpose.getHeading())
                 .setTimeoutConstraint(0.2)
                 .build();
@@ -440,25 +453,45 @@ public class FarRedHumanplayer15 extends OpMode {
                 }
                 break;
 
-            case 15: // Wait for third-line shot to finish, then drive to human player
+            case 15: // Shot done - drive to human player midpoint
                 if (actionState == 0) {
                     buildHumanPlayerPaths();
                     intake.setPower(-1);
                     follower.followPath(toHumanPlayerPath, true);
+                    setPathState(128);
+                }
+                break;
+
+            case 128: // Arrived at midpoint - strafe to human player
+                if (!follower.isBusy()) {
+                    buildHumanPlayerStrafePath();
+                    intake.setPower(-1);
+                    follower.followPath(toHumanPlayerPath, true);
+                    setPathState(129);
+                }
+                break;
+
+            case 129: // Arrived at human player - build return path then wait for loading
+                if (!follower.isBusy()) {
+                    buildGoToShootFromHP();
                     setPathState(130);
                 }
                 break;
 
-// ===== HUMAN PLAYER PICKUP (original working version) =====
-            case 130: // Poll sensors immediately on arrival - no timer waste
+            case 130: {
                 intake.setPower(-1);
                 boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-                if (!follower.isBusy() && allFull) {
+                boolean timedOut = !follower.isBusy() && actionTimer.getElapsedTimeSeconds() > 3.0;
+                if (allFull || timedOut) {
                     intake.setPower(1);
                     actionTimer.resetTimer();
                     setPathState(132);
                 }
                 break;
+            }
+
+// ===== HUMAN PLAYER PICKUP (original working version) =====
+
 
             case 132: // Brief reverse then drive back to farshotpose
                 intake.setPower(1);

@@ -112,7 +112,7 @@ public class excess_farblue_hough extends OpMode {
     private static final double DETECTION_WAIT = 1;
     private static final int SCAN_MIN_SAMPLES = 3;
     private static final int SCAN_MIN_HOUGH_SAMPLES = 1;
-    private static final double TURRET_OFFSET = 3;
+    private static final double TURRET_OFFSET = -8;
     private static final double TURRET_DETECT_DEGREES = 8;
     private static final double GATE_COLLECT_X = 74.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(-85);
