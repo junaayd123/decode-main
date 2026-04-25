@@ -1,3 +1,4 @@
+
 package org.firstinspires.ftc.teamcode.pedroPathing.Autonomous.BotC;
 
 import com.pedropathing.follower.Follower;
@@ -28,8 +29,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Farredhuman 15", group = "Pedro")
-public class FarRedHumanplayer15 extends OpMode {
+@Autonomous(name = "FarBluehuman 15", group = "Pedro")
+public class FarBlueHumanplayer15 extends OpMode {
 
     // =========== SUBSYSTEMS ===========
     private Follower follower;
@@ -63,8 +64,8 @@ public class FarRedHumanplayer15 extends OpMode {
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.23;
     private static final double SECOND_HOP_IN = 6.5;
-    private static final double GATE_WAIT_TIME_FIRST = 1.4;
-    private static final double GATE_WAIT_TIME_LATER = 0.9;
+    private static final double GATE_WAIT_TIME_FIRST = 1.0;
+    private static final double GATE_WAIT_TIME_LATER = 0.8;
     private static final int TOTAL_GATE_CYCLES = 1;
     private static final double SETTLE_TIME = 0.17;  // ✅ NEW - time to settle before shooting
 
@@ -72,14 +73,14 @@ public class FarRedHumanplayer15 extends OpMode {
     private final Pose startPose = new Pose(7+6.5, 7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose ThirdPickupPose = new Pose(60, 35, Math.toRadians(0));
+    private final Pose ThirdPickupPose = new Pose(59, 35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
 
     private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(62, 62, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(65, 62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
@@ -88,10 +89,10 @@ public class FarRedHumanplayer15 extends OpMode {
     private final Pose infront_of_lever_adj = new Pose(60.5, 61, Math.toRadians(34));
     private final Pose excessBallArea = new Pose (72, 30, Math.toRadians(-90));
     private final Pose excessBallAreaStrafeEnd = new Pose(70, 7.3, Math.toRadians(-90));
-   // private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
-  //  private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
+    // private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
+    //  private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
 //    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
- //   private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
+    //   private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -362,7 +363,7 @@ public class FarRedHumanplayer15 extends OpMode {
             case 10: // Gate - return to shooting position
                 intake.setPower(0);
                 intake.setPower(1);
-                depo.setTargetVelocity(depo.ExcessRed -70 );
+                depo.setTargetVelocity(depo.ExcessRed -40 );
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -394,7 +395,7 @@ public class FarRedHumanplayer15 extends OpMode {
 // ===== THIRD LINE PICKUP =====
             case 12: // Drive to third line pickup
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed - 70);
+                depo.setTargetVelocity(depo.ExcessRed - 50);
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
@@ -405,7 +406,7 @@ public class FarRedHumanplayer15 extends OpMode {
                 if (!follower.isBusy()) {
                     buildReturnToShootingPath();
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 70);
+                    depo.setTargetVelocity(depo.ExcessRed - 50);
                     follower.followPath(goBackPath, true);
                     setPathState(14);
                 }
@@ -474,7 +475,7 @@ public class FarRedHumanplayer15 extends OpMode {
 
             case 151:
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() > 0.8) {
+                if (actionTimer.getElapsedTimeSeconds() > 0.3) {
                     buildExcessStrafePath();
                     follower.followPath(excessPathStrafe, true);
                     excessPathTimeoutTimer.resetTimer();
@@ -504,7 +505,7 @@ public class FarRedHumanplayer15 extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 70);
+                    depo.setTargetVelocity(depo.ExcessRed - 50);
                     actionTimer.resetTimer();
                     setPathState(155);
                 }
@@ -542,7 +543,7 @@ public class FarRedHumanplayer15 extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 70);
+                    depo.setTargetVelocity(depo.ExcessRed - 50);
                     actionTimer.resetTimer();
                     setPathState(21);
                 }
