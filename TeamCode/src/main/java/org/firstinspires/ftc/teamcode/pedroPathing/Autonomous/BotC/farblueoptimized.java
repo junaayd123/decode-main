@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -36,7 +36,7 @@ public class farblueoptimized extends OpMode {
     private Deposition_C depo;
     private TurretLimelight turret;
     private lifters LL;
-    private ColorSensors sensors;
+    private ColorSensors_Intensity sensors;
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
@@ -55,27 +55,28 @@ public class farblueoptimized extends OpMode {
     private int actionState;
     private int shooterSequence;
     private int greenInSlot;
-    private String motif = "ppg"; // ✅ DEFAULT to "ppg" if no detection  // empty in farred optimized
-    private String detectedMotif = ""; // ✅ Track what was actually detected // doesnt exsit is farred optimized
+    private String motif = "ppg"; // ✅ DEFAULT to "ppg" if no detection
+    private String detectedMotif = ""; // ✅ Track what was actually detected
     private int gateHitCount = 0;
     private int shotCycleCount = 0;
     private boolean intakeRunning = false;
     private int ballCount = 3;
 
     // ======== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.335;
-    private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.6;  //
-    private static final double GATE_WAIT_TIME_LATER = 0.6;  //
+    private static double SHOOT_INTERVAL = 0.25;
+    private static final double SECOND_HOP_IN = 6.5;
+    private static final double GATE_WAIT_TIME_FIRST = 0.7;
+    private static final double GATE_WAIT_TIME_LATER = 0.6;
     private static final int TOTAL_GATE_CYCLES = 2;
-    private static final double SETTLE_TIME = 0.3;
+    private static final double SETTLE_TIME = 0.15;
+    private static final double SPIT_DURATION_SEC = 0.25;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
     private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
     private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(-34));
     private final Pose ThirdPickupPose = new Pose(56, -35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(19, -61, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(19, -67, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(22, -36, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(19, -47, Math.toRadians(0));
@@ -83,7 +84,7 @@ public class farblueoptimized extends OpMode {
     private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(60, -61, Math.toRadians(-32));
+    private final Pose infront_of_lever_new = new Pose(60, -61, Math.toRadians(-34));
     private final Pose back_lever = new Pose(60, -56, Math.toRadians(-36.5));
     private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
 
@@ -96,20 +97,18 @@ public class farblueoptimized extends OpMode {
     private PathChain ThirdLinePickupPath;
     private PathChain firstLineSecondHopPath;
     private PathChain gatebackPath;
-    private PathChain getOut; // after goback in farredoptimized
+    private PathChain getOut;
 
     @Override
     public void init() {
-        // Initialize timers
         pathTimer = new Timer();
         actionTimer = new Timer();
         opmodeTimer = new Timer();
         shootTimer = new Timer();
 
-        // Initialize subsystems
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
-        sensors = new ColorSensors(hardwareMap);
+        sensors = new ColorSensors_Intensity(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
 
         intake = hardwareMap.get(DcMotor.class, "intake");
@@ -119,23 +118,19 @@ public class farblueoptimized extends OpMode {
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        // Initialize launcher
         LL.allDown();
         LL.set_angle_min();
         stopShooter();
 
-        // Initialize turret
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(100); // -98 in farredoptimized
+        turret.setDegreesTarget(91);
 
-        // Initialize AprilTag vision
         initAprilTag();
 
-        ballCount = 3; // doesnt exist in farredoptimized
+        ballCount = 3;
 
         telemetry.addLine("State-based Auto initialized (Webcam) - MOTIF FIXED");
         telemetry.update();
@@ -146,28 +141,26 @@ public class farblueoptimized extends OpMode {
         turret.setPid();
         turret.toTargetInDegrees();
 
-        // ✅ Continuously detect motif during init_loop
         detectMotifFromAprilTags();
 
         telemetry.addData("Detected Motif", detectedMotif.isEmpty() ? "NONE YET" : detectedMotif);
-        telemetry.addData("Will Use", motif); // not in in farredoptimized
-        telemetry.addData("Status", detectedMotif.isEmpty() ? "⚠ Waiting for AprilTag..." : "✓ Ready!"); // not in in farredoptimized
+        telemetry.addData("Will Use", motif);
+        telemetry.addData("Status", detectedMotif.isEmpty() ? "⚠ Waiting for AprilTag..." : "✓ Ready!");
         telemetry.update();
     }
 
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(66.50); // -67.2 in farredoptimized
+        turret.setDegreesTarget(57);
         turret.setPid();
         shotCycleCount = 0;
-        ballCount = 3; //  not in farredoptimized
+        ballCount = 3;
 
-        // ✅ Lock in the final motif (or keep default if nothing detected) // in farredoptimized
         if (detectedMotif.isEmpty()) {
-            telemetry.addLine("⚠ WARNING: No AprilTag detected! Using default motif: " + motif); // in farredoptimized
+            telemetry.addLine("⚠ WARNING: No AprilTag detected! Using default motif: " + motif);
         } else {
-            telemetry.addLine("✓ Locked motif: " + motif); // in farredoptimized
+            telemetry.addLine("✓ Locked motif: " + motif);
         }
         telemetry.update();
 
@@ -177,22 +170,18 @@ public class farblueoptimized extends OpMode {
 
     @Override
     public void loop() {
-        // Update follower and subsystems
         follower.update();
         turret.toTargetInDegrees();
 
-        // Run state machines
         autonomousPathUpdate();
         autonomousActionUpdate();
 
-        // Telemetry
         telemetry.addData("Path State", pathState);
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
         telemetry.addData("Ball Count", ballCount);
-        telemetry.addData("Active Motif", motif); // ✅ Show active motif
+        telemetry.addData("Active Motif", motif);
 
-        // Show current cycle based on state
         if (pathState >= 7 && pathState <= 11) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
         } else if (pathState >= 12 && pathState <= 17) {
@@ -233,7 +222,6 @@ public class farblueoptimized extends OpMode {
 
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
-                // ✅ Update both detected and active motif
                 if (detection.id == 21) {
                     motif = "gpp";
                     detectedMotif = "gpp";
@@ -246,15 +234,16 @@ public class farblueoptimized extends OpMode {
                 }
             }
         }
-    }  //check far red for lines 234-248
+    }
 
     // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
+
             case 0: // Start - spin up flywheel
                 LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue - 10 ); // starting with red excess preload - 20 in farredoptimized
-                SHOOT_INTERVAL = 0.375; // 0.335 in farredoptimized
+                depo.setTargetVelocity(depo.ExcessBlue - 10);
+                SHOOT_INTERVAL = 0.355;
                 setPathState(1);
                 break;
 
@@ -269,15 +258,14 @@ public class farblueoptimized extends OpMode {
             case 101: // Settle before first shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1); // Start shooting
+                    setActionState(1);
                     setPathState(2);
                 }
                 break;
 
             case 2: // Wait for shooting to complete
-                if (actionState == 0) { // Shooting done
-                    ballCount = 0; // not in farredoptimized
-                   // intake.setPower(-1); // Start intake  not in in farredoptimized
+                if (actionState == 0) {
+                    ballCount = 0;
                     SHOOT_INTERVAL = 0.335;
                     setPathState(3);
                 }
@@ -291,32 +279,14 @@ public class farblueoptimized extends OpMode {
                 setPathState(4);
                 break;
 
-
             case 4: // Wait for first bezier path (picking up balls)
-//                intake.setPower(-1); // not in farredoptimized
-//                if (!follower.isBusy()) {
-//                    ballCount = 3; // not in farredoptimized
-//                    LL.set_angle_farblueoptimized();
-//                    depo.setTargetVelocity(depo.ExcessBlue - 10 );
-//
-//                    if (ballCount >= 3) {
-//                        intake.setPower(1); // Out-take
-//                    } else {
-//                        intake.setPower(-1);
-//                    }
-//
-//                    follower.followPath(bezierSecondPath, true);
-//                    setPathState(5);
-//                }
-//                break;
-
-            if (!follower.isBusy()) {
-                LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue -10);
-                follower.followPath(bezierSecondPath, true);
-                setPathState(5);
-            }
-            break;
+                if (!follower.isBusy()) {
+                    LL.set_angle_farblueoptimized();
+                    depo.setTargetVelocity(depo.ExcessBlue - 10);
+                    follower.followPath(bezierSecondPath, true);
+                    setPathState(5);
+                }
+                break;
 
             case 5: // Wait for second bezier path
                 depo.updatePID();
@@ -377,15 +347,32 @@ public class farblueoptimized extends OpMode {
                 }
                 break;
 
-            case 9: // Gate - pause to collect artifacts
+            case 9: // Gate - pause to collect, sensor-based early exit
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 buildGatePathBack(waitTime2);
                 intake.setPower(-1);
+                sensors.update();
 
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                if (sensors.isFullRaw()) {
+                    // Detected full — spit briefly then leave
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(901);
+                } else if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
                     ballCount = 3;
                     LL.set_angle_farblueoptimized();
-                    depo.setTargetVelocity(depo.ExcessBlue -10 );
+                    depo.setTargetVelocity(depo.ExcessBlue - 10);
+                    follower.followPath(gateSecondPath, true);
+                    setPathState(10);
+                }
+                break;
+
+            case 901: // Spit briefly after detecting full at gate, then return to shoot
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
+                    ballCount = 3;
+                    LL.set_angle_farblueoptimized();
+                    depo.setTargetVelocity(depo.ExcessBlue - 10);
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
@@ -406,16 +393,6 @@ public class farblueoptimized extends OpMode {
                     setPathState(110);
                 }
                 break;
-
-//            intake.setPower(0);
-//            intake.setPower(1);
-//            depo.setTargetVelocity(depo.ExcessBlue -10 );
-//            depo.updatePID();  // ✅ Keep updating PID during drive
-//            if (!follower.isBusy()) {
-//                actionTimer.resetTimer();  // ✅ Start settle timer
-//                setPathState(110);  // ✅ Go to settling state
-//            }
-//            break;
 
             case 110: // Settle before gate shot
                 depo.updatePID();
@@ -441,7 +418,7 @@ public class farblueoptimized extends OpMode {
             // ===== THIRD LINE PICKUP =====
             case 12: // Drive straight to third line pickup
                 LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue -10);
+                depo.setTargetVelocity(depo.ExcessBlue - 10);
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
@@ -449,17 +426,15 @@ public class farblueoptimized extends OpMode {
 
             case 13: // Wait until pickup reached
                 depo.updatePID();
-                //intake.setPower(-1);
                 if (!follower.isBusy()) {
                     buildReturnToShootingPath();
-                    //ballCount = 3;
                     setPathState(14);
                 }
                 break;
 
             case 14: // Drive straight back to shooting pose
                 LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue -10 );
+                depo.setTargetVelocity(depo.ExcessBlue - 10);
 
                 if (ballCount >= 3) {
                     intake.setPower(1);
@@ -471,13 +446,6 @@ public class farblueoptimized extends OpMode {
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
-
-//            // ✅ Start spinning flywheel BEFORE return path
-//            LL.set_angle_farblueoptimized();
-//            depo.setTargetVelocity(depo.ExcessBlue -10);
-//            follower.followPath(goBackPath, true);
-//            setPathState(15);
-//            break;
 
             case 15: // Wait until back at shooting pose
                 depo.updatePID();
@@ -530,7 +498,7 @@ public class farblueoptimized extends OpMode {
 
             case 1: // Initialize shooting
                 LL.set_angle_farblueoptimized();
-                depo.setTargetVelocity(depo.ExcessBlue-10);
+                depo.setTargetVelocity(depo.ExcessBlue - 10);
 
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -552,8 +520,6 @@ public class farblueoptimized extends OpMode {
 
             case 3: // Execute shooting sequence
                 depo.updatePID();
-
-                // ✅ ALWAYS use motif-based shooting from the start
                 executeShootingSequence();
 
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
@@ -569,22 +535,18 @@ public class farblueoptimized extends OpMode {
 
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
-        // ✅ Use motif from the very first shot
         if (motif.equals("gpp")) {
-            // Green-Purple-Purple → shoot green first
-            if (greenInSlot == 0) shootLRB(); // Green is left
-            else if (greenInSlot == 1) shootRBL(); // Green is right
-            else shootBLR(); // Green is back
+            if (greenInSlot == 0) shootLRB();
+            else if (greenInSlot == 1) shootRBL();
+            else shootBLR();
         } else if (motif.equals("pgp")) {
-            // Purple-Green-Purple → shoot purple first
-            if (greenInSlot == 0) shootBLR(); // Green is left, so skip it first
-            else if (greenInSlot == 1) shootLRB(); // Green is right, so skip it first
-            else shootRBL(); // Green is back, so skip it first
+            if (greenInSlot == 0) shootBLR();
+            else if (greenInSlot == 1) shootLRB();
+            else shootRBL();
         } else { // ppg or default
-            // Purple-Purple-Green → shoot purples first
-            if (greenInSlot == 0) shootRBL(); // Green is left, shoot right then back
-            else if (greenInSlot == 1) shootBLR(); // Green is right, shoot back then left
-            else shootLRB(); // Green is back, shoot left then right
+            if (greenInSlot == 0) shootRBL();
+            else if (greenInSlot == 1) shootBLR();
+            else shootLRB();
         }
     }
 
@@ -655,12 +617,12 @@ public class farblueoptimized extends OpMode {
         Pose cur = follower.getPose();
         bezierFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint1, secondLinePickupPose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), secondLinePickupPose.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(cur.getHeading(), secondLinePickupPose.getHeading(), 0.5)
                 .build();
 
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondLinePickupPose, midpoint1, farshotpose)))
-                .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.8)
+                .setLinearHeadingInterpolation(secondLinePickupPose.getHeading(), farshotpose.getHeading(), 0.5)
                 .setTimeoutConstraint(0.1)
                 .build();
 
@@ -674,7 +636,7 @@ public class farblueoptimized extends OpMode {
         Pose cur = follower.getPose();
         gateFirstPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(cur, midpoint3, infront_of_lever_new)))
-                .setLinearHeadingInterpolation(cur.getHeading(),infront_of_lever_new.getHeading(),0.65)
+                .setLinearHeadingInterpolation(cur.getHeading(), infront_of_lever_new.getHeading(), 0.5)
                 .setTimeoutConstraint(1.6)
                 .build();
 
@@ -713,7 +675,6 @@ public class farblueoptimized extends OpMode {
     }
 
     // ========== UTILITY METHODS ==========
-
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
         if (d2 != null) d2.setPower(0.0);

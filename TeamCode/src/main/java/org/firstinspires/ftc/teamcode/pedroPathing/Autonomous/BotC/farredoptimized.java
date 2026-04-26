@@ -61,12 +61,12 @@ public class farredoptimized extends OpMode {
     private boolean intakeRunning = false;
 
     // ======== CONSTANTS ==========
-    private static double SHOOT_INTERVAL = 0.335;
-    private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 1.0;
-    private static final double GATE_WAIT_TIME_LATER = 0.8;
+    private static double SHOOT_INTERVAL = 0.25;
+    private static final double SECOND_HOP_IN = 6.5;
+    private static final double GATE_WAIT_TIME_FIRST = 1.5;
+    private static final double GATE_WAIT_TIME_LATER = 0.9;
     private static final int TOTAL_GATE_CYCLES = 2;
-    private static final double SETTLE_TIME = 0.3;  // ✅ NEW - time to settle before shooting
+    private static final double SETTLE_TIME = 0.15;  // ✅ NEW - time to settle before shooting
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(7+6.5, 7, Math.toRadians(0));
@@ -75,15 +75,14 @@ public class farredoptimized extends OpMode {
     private final Pose ThirdPickupPose = new Pose(59, 35, Math.toRadians(0));
     private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
     private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
-
-    private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
+    private final Pose outPose = new Pose(34, 17, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
     private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(65, 62, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(62, 62, Math.toRadians(0));
     private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
     private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
     private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
+    private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(30));
     private final Pose back_lever = new Pose(63, 54, Math.toRadians(38));
     private final Pose infront_of_lever_adj = new Pose(60.5, 61, Math.toRadians(34));
     private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
@@ -236,7 +235,7 @@ public class farredoptimized extends OpMode {
         switch (pathState) {
             case 0: // Spin up flywheel for preload
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRedPreload -60 ); // it was -20 before and then -40
+                depo.setTargetVelocity(depo.ExcessRedPreload -95 ); // it was -20 before and then -40
                 SHOOT_INTERVAL = 0.335;
                 setPathState(1);
                 break;
@@ -277,7 +276,7 @@ public class farredoptimized extends OpMode {
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed -60);
+                    depo.setTargetVelocity(depo.ExcessRed -95);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -338,13 +337,24 @@ public class farredoptimized extends OpMode {
                 }
                 break;
 
-            case 9: // Gate - pause to collect artifacts.
-                double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+//            case 9: // Gate - pause to collect artifacts.
+//                double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
+//
+//                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+//                    // ✅ Start spinning flywheel BEFORE return path
+//                    LL.set_angle_farredoptimized();
+//                 depo.setTargetVelocity(depo.ExcessRed -20 );
+//
+//                    follower.followPath(gateSecondPath, true);
+//                    setPathState(10);
+//                }
+//                break;
 
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+            case 9: // Gate - pause to collect artifacts.
+                if (actionTimer.getElapsedTimeSeconds() > GATE_WAIT_TIME_LATER) {
                     // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_farredoptimized();
-//                    depo.setTargetVelocity(depo.ExcessRed -20 );
+                    // depo.setTargetVelocity(depo.ExcessRed -20);
 
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
@@ -354,7 +364,7 @@ public class farredoptimized extends OpMode {
             case 10: // Gate - return to shooting position
                 intake.setPower(0);
                 intake.setPower(1);
-                depo.setTargetVelocity(depo.ExcessRed -40 );
+                depo.setTargetVelocity(depo.ExcessRed -70 );
                 depo.updatePID();  // ✅ Keep updating PID during drive
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();  // ✅ Start settle timer
@@ -387,7 +397,7 @@ public class farredoptimized extends OpMode {
             case 12: // Drive straight to third line pickup
                 // ✅ Start spinning flywheel BEFORE going to pickup
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed -40);
+                depo.setTargetVelocity(depo.ExcessRed -70);
 
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
@@ -406,7 +416,7 @@ public class farredoptimized extends OpMode {
             case 14: // Drive straight back to shooting pose
                 // ✅ Start spinning flywheel BEFORE return path
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed -40);
+                depo.setTargetVelocity(depo.ExcessRed -70);
                 follower.followPath(goBackPath, true);
                 setPathState(15);
                 break;
