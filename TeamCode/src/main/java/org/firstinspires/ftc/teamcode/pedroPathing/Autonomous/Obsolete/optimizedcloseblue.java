@@ -10,6 +10,7 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
@@ -21,6 +22,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors
 
 import java.util.List;
 //
+@Disabled
 @Autonomous(name = "C-Bot Close Blue (State)", group = "Pedro")
 public class optimizedcloseblue extends OpMode {
 

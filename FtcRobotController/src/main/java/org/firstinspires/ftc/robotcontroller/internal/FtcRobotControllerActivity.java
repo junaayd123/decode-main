@@ -180,6 +180,7 @@ public class FtcRobotControllerActivity extends Activity
   protected MotionDetection motionDetection;
 
   private static boolean permissionsValidated = false;
+  private static boolean classesProcessed = false;
 
   private WifiDirectChannelChanger wifiDirectChannelChanger;
 
@@ -352,8 +353,11 @@ public class FtcRobotControllerActivity extends Activity
      */
     if (permissionsValidated) {
       ClassManager.getInstance().setOnBotJavaClassHelper(onBotJavaHelper);
-      ClassManagerFactory.registerFilters();
-      ClassManagerFactory.processAllClasses();
+      if (!classesProcessed) {
+        ClassManagerFactory.registerFilters();
+        ClassManagerFactory.processAllClasses();
+        classesProcessed = true;
+      }
     }
 
     cfgFileMgr = new RobotConfigFileManager(this);
