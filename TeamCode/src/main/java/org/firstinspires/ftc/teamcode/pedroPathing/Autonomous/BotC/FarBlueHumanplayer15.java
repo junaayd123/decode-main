@@ -68,27 +68,28 @@ public class FarBlueHumanplayer15 extends OpMode {
     private static final double GATE_WAIT_TIME_LATER = 0.8;
     private static final int TOTAL_GATE_CYCLES = 1;
     private static final double SETTLE_TIME = 0.17;  // ✅ NEW - time to settle before shooting
+    private static final double SPIT_DURATION_SEC = 0.5; // max spit timeout — exits early if sensors clear
 
     // ========== POSES ==========
-    private final Pose startPose = new Pose(7+6.5, 7, Math.toRadians(0));
-    private final Pose nearshotpose = new Pose(12, 81.5, Math.toRadians(0));
-    private final Pose nearshotpose2 = new Pose(12, 81.5, Math.toRadians(34));
-    private final Pose ThirdPickupPose = new Pose(59, 35, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13, 60, Math.toRadians(0));
-    private final Pose farshotpose = new Pose(12, 17, Math.toRadians(0));
+    private final Pose startPose = new Pose(7+6.5, -7, Math.toRadians(0));
+    private final Pose nearshotpose = new Pose(12, -81.5, Math.toRadians(0));
+    private final Pose nearshotpose2 = new Pose(12, -81.5, Math.toRadians(34));
+    private final Pose ThirdPickupPose = new Pose(59, -35, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(13, -60, Math.toRadians(0));
+    private final Pose farshotpose = new Pose(12, -17, Math.toRadians(0));
 
-    private final Pose outPose = new Pose(30, 17, Math.toRadians(0));
-    private final Pose midpoint2 = new Pose(23, 35, Math.toRadians(0));
-    private final Pose midpoint3 = new Pose(21, 61, Math.toRadians(0));
-    private final Pose secondLinePickupPose = new Pose(65, 62, Math.toRadians(0));
-    private final Pose secondpickupPose = new Pose(56, 38, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(62, 62, Math.toRadians(34));
-    private final Pose back_lever = new Pose(63, 54, Math.toRadians(38));
-    private final Pose infront_of_lever_adj = new Pose(60.5, 61, Math.toRadians(34));
-    private final Pose excessBallArea = new Pose (72, 30, Math.toRadians(-90));
-    private final Pose excessBallAreaStrafeEnd = new Pose(70, 7.3, Math.toRadians(-90));
+    private final Pose outPose = new Pose(30, -17, Math.toRadians(0));
+    private final Pose midpoint2 = new Pose(23, -35, Math.toRadians(0));
+    private final Pose midpoint3 = new Pose(21, -61, Math.toRadians(0));
+    private final Pose secondLinePickupPose = new Pose(65, -62, Math.toRadians(0));
+    private final Pose secondpickupPose = new Pose(56, -38, Math.toRadians(0));
+    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
+    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
+    private final Pose infront_of_lever_new = new Pose(62, -62, Math.toRadians(-34));
+    private final Pose back_lever = new Pose(63, -54, Math.toRadians(-38));
+    private final Pose infront_of_lever_adj = new Pose(60.5, -61, Math.toRadians(-34));
+    private final Pose excessBallArea = new Pose (72, -30, Math.toRadians(90));
+    private final Pose excessBallAreaStrafeEnd = new Pose(70, -7.3, Math.toRadians(90));
     // private final Pose outfromgate = new Pose(50, 50, Math.toRadians(42));
     //  private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
 //    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
@@ -141,7 +142,7 @@ public class FarBlueHumanplayer15 extends OpMode {
         // Initialize turret
         turret.resetTurretEncoder();
 
-        turret.setDegreesTarget(-98);
+        turret.setDegreesTarget(98);
         //
 
         // Initialize AprilTag vision
@@ -167,7 +168,7 @@ public class FarBlueHumanplayer15 extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(-73.4);
+        turret.setDegreesTarget(73.4);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -240,67 +241,66 @@ public class FarBlueHumanplayer15 extends OpMode {
     }
 
 
+
     // ========== PATH STATE MACHINE ==========
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0: // Spin up flywheel for preload
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRedPreload -70 ); // it was -20 before and then -40
+                depo.setTargetVelocity(depo.ExcessRedPreload - 80);
                 SHOOT_INTERVAL = 0.335;
                 setPathState(1);
                 break;
 
-            case 1: // Wait for flywheel to spin up
-                depo.updatePID();  // ✅ Keep updating PID
-                if (depo.reachedTargetHighTolerance()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(101);  // ✅ Go to settling state
+            case 1: // Wait for flywheel to spin up — timeout at 1.2s
+                depo.updatePID();
+                intake.setPower(-1); // start intake early during spinup
+                if (depo.reachedTargetHighTolerance() || pathTimer.getElapsedTimeSeconds() > 1.2) {
+                    actionTimer.resetTimer();
+                    setPathState(101);
                 }
                 break;
 
-            case 101: // ✅ NEW STATE - Settle before first shot
+            case 101: // Settle before first shot
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
-                    setActionState(1); // Start shooting
+                    setActionState(1);
                     setPathState(2);
                 }
                 break;
 
-            case 2: // Wait for shooting to complete
-//                intake.setPower(-1);
-                if (actionState == 0) { // Shooting done
-
+            case 2: // Start driving immediately when shot is done
+                if (actionState == 0) {
                     SHOOT_INTERVAL = 0.335;
-                    setPathState(3);
+                    buildBezierPaths();
+                    intake.setPower(-1);
+                    follower.followPath(bezierFirstPath, true);
+                    setPathState(4); // skip case 3, jump straight to waiting on the path
                 }
                 break;
 
-            case 3: // Bezier curve pickup - first path
-                buildBezierPaths();
-                intake.setPower(-1);
-                LL.set_angle_farredoptimized();
-                follower.followPath(bezierFirstPath, true);
+            case 3: // (unused — kept to avoid gaps)
                 setPathState(4);
                 break;
 
             case 4: // Wait for first bezier path
                 if (!follower.isBusy()) {
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed -70);
+                    depo.setTargetVelocity(depo.ExcessRed - 80);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
                 break;
 
             case 5: // Wait for second bezier path
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(105);  // ✅ Go to settling state
+                    actionTimer.resetTimer();
+                    setPathState(105);
                 }
                 break;
 
-            case 105: // ✅ NEW STATE - Settle before second shot
+            case 105: // Settle before second shot
                 intake.setPower(1);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
@@ -312,8 +312,8 @@ public class FarBlueHumanplayer15 extends OpMode {
             case 6: // Wait for shooting cycle 2
                 intake.setPower(0);
                 if (actionState == 0) {
-                    gateHitCount = 0; // Reset counter
-                    setPathState(7); // Start gate cycles
+                    gateHitCount = 0;
+                    setPathState(7);
                 }
                 break;
 
@@ -332,13 +332,13 @@ public class FarBlueHumanplayer15 extends OpMode {
                     setPathState(99);
                 }
                 break;
-            case 99: // Gate - go to back_lever
-                double waitTime1 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
 
+            case 99: // Gate - go to back_lever
                 intake.setPower(-1);
                 follower.followPath(gatebackPath, true);
                 setPathState(102);
                 break;
+
             case 102: // Gate - wait at back_lever position
                 if (!follower.isBusy()) {
                     buildGatePathBack(GATE_WAIT_TIME_FIRST);
@@ -347,14 +347,10 @@ public class FarBlueHumanplayer15 extends OpMode {
                 }
                 break;
 
-            case 9: // Gate - pause to collect artifacts.
+            case 9: // Gate - pause to collect
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
-
                 if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
-                    // ✅ Start spinning flywheel BEFORE return path
                     LL.set_angle_farredoptimized();
-//                    depo.setTargetVelocity(depo.ExcessRed -20 );
-
                     follower.followPath(gateSecondPath, true);
                     setPathState(10);
                 }
@@ -363,15 +359,15 @@ public class FarBlueHumanplayer15 extends OpMode {
             case 10: // Gate - return to shooting position
                 intake.setPower(0);
                 intake.setPower(1);
-                depo.setTargetVelocity(depo.ExcessRed -40 );
-                depo.updatePID();  // ✅ Keep updating PID during drive
+                depo.setTargetVelocity(depo.ExcessRed - 80);
+                depo.updatePID();
                 if (!follower.isBusy()) {
-                    actionTimer.resetTimer();  // ✅ Start settle timer
-                    setPathState(110);  // ✅ Go to settling state
+                    actionTimer.resetTimer();
+                    setPathState(110);
                 }
                 break;
 
-            case 110: // ✅ NEW STATE - Settle before gate shot
+            case 110: // Settle before gate shot
                 intake.setPower(0);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
@@ -383,38 +379,37 @@ public class FarBlueHumanplayer15 extends OpMode {
             case 11: // Wait for shooting to complete
                 if (actionState == 0) {
                     gateHitCount++;
-
                     if (gateHitCount < TOTAL_GATE_CYCLES) {
-                        setPathState(7); // Loop back to gate cycle
+                        setPathState(7);
                     } else {
-                        setPathState(12); // Move to first line pickup
+                        setPathState(12);
                     }
                 }
                 break;
 
-// ===== THIRD LINE PICKUP =====
-            case 12: // Drive to third line pickup
+            // ===== THIRD LINE PICKUP =====
+            case 12:
                 LL.set_angle_farredoptimized();
-                depo.setTargetVelocity(depo.ExcessRed - 50);
+                depo.setTargetVelocity(depo.ExcessRed - 80);
                 intake.setPower(-1);
                 follower.followPath(ThirdLinePickupPath, true);
                 setPathState(13);
                 break;
 
-            case 13: // Arrived at third line - return to shooting pose
+            case 13:
                 depo.updatePID();
                 if (!follower.isBusy()) {
                     buildReturnToShootingPath();
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 50);
+                    depo.setTargetVelocity(depo.ExcessRed - 80);
                     follower.followPath(goBackPath, true);
                     setPathState(14);
                 }
                 break;
 
-            case 14: // Wait until at farshotpose
+            case 14:
                 depo.updatePID();
-                intake.setPower(1); // Push balls up while driving
+                intake.setPower(1);
                 if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(115);
@@ -431,51 +426,30 @@ public class FarBlueHumanplayer15 extends OpMode {
                 }
                 break;
 
-//            case 129: // Arrived at human player - build return path then wait for loading
-//                if (!follower.isBusy()) {
-//                    buildGoToShootFromHP();
-//                    setPathState(130);
-//                }
-//                break;
-//
-//            case 130: {
-//                intake.setPower(-1);
-//                boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-//                boolean timedOut = !follower.isBusy() && actionTimer.getElapsedTimeSeconds() > 3.0;
-//                if (allFull || timedOut) {
-//                    intake.setPower(1);
-//                    actionTimer.resetTimer();
-//                    setPathState(132);
-//                }
-//                break;
-//            }
-            case 15: // WAIT for third-line shot to finish
-                if (actionState == 0) {
+            case 15: // Start driving to excess area as last ball is fired
+                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 2) {
                     buildExcessPath();
                     follower.followPath(excessPath, true);
-
-                    setPathState(149); // NEW STEP BEFORE 150
-                }
-                break;
-            case 149:
-                if (!follower.isBusy()) {
                     intake.setPower(-1);
-                    actionTimer.resetTimer();
-                    setPathState(150);
+                    setPathState(149);
                 }
                 break;
 
-            case 150:
+            case 149: // Wait until arrived at excess area (merged 149+150)
                 intake.setPower(-1);
-                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
+                if (!follower.isBusy()) {
                     actionTimer.resetTimer();
                     setPathState(151);
                 }
                 break;
 
-            case 151:
+            case 151: // Wait at first excess position — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() > 0.3) {
+                if (isRobotFull()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(1511);
+                } else if (actionTimer.getElapsedTimeSeconds() > 0.2) { // reduced from 0.6s
                     buildExcessStrafePath();
                     follower.followPath(excessPathStrafe, true);
                     excessPathTimeoutTimer.resetTimer();
@@ -483,7 +457,16 @@ public class FarBlueHumanplayer15 extends OpMode {
                 }
                 break;
 
-            case 152:
+            case 1511: // Full at first position — spit then skip strafe, go straight back
+                if (!isRobotFull() || actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
+                    buildReturnToShootingPath(); // skip strafe entirely
+                    follower.followPath(goBackPath, true);
+                    setPathState(154);
+                }
+                break;
+
+            case 152: // Wait until strafe done
                 intake.setPower(-1);
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.0) {
                     actionTimer.resetTimer();
@@ -491,11 +474,24 @@ public class FarBlueHumanplayer15 extends OpMode {
                 }
                 break;
 
-            case 153:
+            case 153: // Wait at second excess position — sensor-based early exit
                 intake.setPower(-1);
-                if (actionTimer.getElapsedTimeSeconds() > 0.2) {
+                if (isRobotFull()) {
+                    intake.setPower(1); // ✅ spit
+                    actionTimer.resetTimer();
+                    setPathState(1531); // ✅ go to spit state
+                } else if (actionTimer.getElapsedTimeSeconds() > 0.2) {
                     buildReturnToShootingPath();
                     intake.setPower(1);
+                    follower.followPath(goBackPath, true);
+                    setPathState(154);
+                }
+                break;
+
+            case 1531: // Spit until sensors clear or timeout
+                if (!isRobotFull() || actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
+                    buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                     setPathState(154);
                 }
@@ -505,7 +501,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 50);
+                    depo.setTargetVelocity(depo.ExcessRed - 80);
                     actionTimer.resetTimer();
                     setPathState(155);
                 }
@@ -525,7 +521,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                     depo.setTargetVelocity(0);
                     stopShooter();
                     buildGetOutPath();
-                    setPathState(17); // your existing end path
+                    setPathState(17);
                 }
                 break;
 
@@ -543,7 +539,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                 if (!follower.isBusy()) {
                     intake.setPower(0);
                     LL.set_angle_farredoptimized();
-                    depo.setTargetVelocity(depo.ExcessRed - 50);
+                    depo.setTargetVelocity(depo.ExcessRed - 80);
                     actionTimer.resetTimer();
                     setPathState(21);
                 }
@@ -574,14 +570,16 @@ public class FarBlueHumanplayer15 extends OpMode {
                     buildGetOutPath();
                 }
                 break;
+
             case 17:
                 buildGetOutPath();
                 follower.followPath(getOut, true);
                 setPathState(18);
                 break;
+
             case 18:
                 if (!follower.isBusy()) {
-                    setPathState(-1); // Auto complete
+                    setPathState(-1);
                 }
                 break;
         }
@@ -590,38 +588,34 @@ public class FarBlueHumanplayer15 extends OpMode {
     // ========== ACTION STATE MACHINE (SHOOTING) ==========
     public void autonomousActionUpdate() {
         switch (actionState) {
-            case 0: // Idle
+            case 0:
                 break;
 
-            case 1: // Initialize shooting
+            case 1:
                 LL.set_angle_farredoptimized();
                 depo.setTargetVelocity(depo.ExcessRedPreload);
-
-                // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
-                    setActionState(3);  // Skip wait, go straight to shooting!
+                    setActionState(3);
                 } else {
-                    setActionState(2);  // Still need to wait
+                    setActionState(2);
                 }
                 break;
 
-            case 101: // Initialize shooting for subsequent shots
+            case 101:
                 LL.set_angle_farredoptimized();
                 depo.setTargetVelocity(depo.ExcessRed);
-
-                // ✅ Check if already at speed (from pre-spinning)
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
-                    setActionState(3);  // Skip wait, go straight to shooting!
+                    setActionState(3);
                 } else {
-                    setActionState(2);  // Still need to wait
+                    setActionState(2);
                 }
                 break;
 
-            case 2: // Wait for shooter to spin up
+            case 2:
                 depo.updatePID();
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
@@ -630,33 +624,9 @@ public class FarBlueHumanplayer15 extends OpMode {
                 }
                 break;
 
-//            case 3: // Execute shooting sequence
-//                depo.updatePID();
-//
-//                // Use random shooting for first 2 cycles (6 balls), then motif
-//                boolean useRandomShooting = (shotCycleCount < 2);
-//
-//                if (useRandomShooting) {
-//                    shootThreeRandom();
-//                } else {
-//                    executeShootingSequence();
-//                }
-//
-//                if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3) {
-//                    LL.allDown();
-//                    depo.setTargetVelocity(0);
-//                    stopShooter();
-//                    shotCycleCount++;
-//                    setActionState(0);
-//                }
-//                break;
-//        }
-//     }
-
-            case 3: // Execute shooting sequence
+            case 3:
                 depo.updatePID();
                 executeShootingSequence();
-
                 if (shootTimer.getElapsedTimeSeconds() > SHOOT_INTERVAL * 3 + 0.15) {
                     LL.allDown();
                     depo.setTargetVelocity(0);
@@ -667,6 +637,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                 break;
         }
     }
+
     // ========== SHOOTING HELPER METHODS ==========
     private void executeShootingSequence() {
         if (motif.equals("gpp")) {
@@ -686,62 +657,38 @@ public class FarBlueHumanplayer15 extends OpMode {
 
     private void shootLRB() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05)              LL.leftUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.rightUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.backUp();
     }
 
     private void shootBLR() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.backUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.rightUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05)              LL.backUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.leftUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.rightUp();
     }
 
     private void shootRBL() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.backUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.leftUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05)              LL.rightUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.backUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.leftUp();
     }
 
     private void shootThreeRandom() {
         double t = shootTimer.getElapsedTimeSeconds();
-        if (t >= 0 && t < SHOOT_INTERVAL - 0.05) {
-            LL.leftUp();
-        } else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) {
-            LL.rightUp();
-        } else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) {
-            LL.allDown();  // 50ms to retract before next ball
-        } else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) {
-            LL.backUp();
-        }
+        if (t >= 0 && t < SHOOT_INTERVAL - 0.05)              LL.leftUp();
+        else if (t >= SHOOT_INTERVAL - 0.05 && t < SHOOT_INTERVAL) LL.allDown();
+        else if (t >= SHOOT_INTERVAL && t < SHOOT_INTERVAL * 2 - 0.05) LL.rightUp();
+        else if (t >= SHOOT_INTERVAL * 2 - 0.05 && t < SHOOT_INTERVAL * 2) LL.allDown();
+        else if (t >= SHOOT_INTERVAL * 2 && t < SHOOT_INTERVAL * 3) LL.backUp();
     }
 
     private int getGreenPos() {
@@ -752,10 +699,13 @@ public class FarBlueHumanplayer15 extends OpMode {
         return 2;
     }
 
+    // ✅ NEW — helper to check if all sensor slots are full
+    private boolean isRobotFull() {
+        return sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0;
+    }
+
     // ========== PATH BUILDING METHODS ==========
-
-
-    private void buildGetOutPath(){
+    private void buildGetOutPath() {
         Pose cur = follower.getPose();
         getOut = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, outPose)))
@@ -770,7 +720,6 @@ public class FarBlueHumanplayer15 extends OpMode {
                 .addPath(new Path(new BezierCurve(cur, midpoint1, secondLinePickupPose)))
                 .setLinearHeadingInterpolation(cur.getHeading(), secondLinePickupPose.getHeading(), 0.5)
                 .build();
-
 
         bezierSecondPath = follower.pathBuilder()
                 .addPath(new Path(new BezierCurve(secondLinePickupPose, midpoint1, farshotpose)))
@@ -798,6 +747,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                 .setTimeoutConstraint(0.3)
                 .build();
     }
+
     private void buildGatePathBack(double waitTime) {
         Pose cur = follower.getPose();
         gateSecondPath = follower.pathBuilder()
@@ -815,6 +765,7 @@ public class FarBlueHumanplayer15 extends OpMode {
                 .setTimeoutConstraint(0.1)
                 .build();
     }
+
     private void buildExcessPath() {
         Pose cur = follower.getPose();
         excessPath = follower.pathBuilder()
@@ -836,33 +787,26 @@ public class FarBlueHumanplayer15 extends OpMode {
     // ========== UTILITY METHODS ==========
     private void manageSecondHopIntake() {
         if (intake == null || LL == null || sensors == null) return;
-        // ❌ REMOVE: intake.setPower(-1);
-
-        // Check if all slots are full
-        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
+        boolean allFull = isRobotFull();
 
         if (intakeRunning) {
             if (allFull) {
-                // All slots full - trigger reverse sequence
                 actionTimer.resetTimer();
                 intakeRunning = false;
             }
         } else {
-            // Not currently intaking - check if we should start
             if (!allFull) {
                 intake.setPower(-1);
                 intakeRunning = true;
             }
         }
 
-        // Handle reverse sequence when full (like reverseIntake() in teleop)
         if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
-            intake.setPower(1); // Reverse for 0.5 seconds
+            intake.setPower(1);
         } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
-            intake.setPower(0); // Stop after reverse
+            intake.setPower(0);
         }
     }
-
 
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
