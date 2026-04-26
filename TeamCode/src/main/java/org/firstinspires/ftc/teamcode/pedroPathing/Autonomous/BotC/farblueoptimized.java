@@ -28,7 +28,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Farblue 15", group = "Pedro")
+@Autonomous(name = "Farblue 15!", group = "Pedro")
 public class farblueoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
@@ -62,6 +62,7 @@ public class farblueoptimized extends OpMode {
     private boolean intakeRunning = false;
     private int ballCount = 3;
 
+    //hi
     // ======== CONSTANTS ==========
     private static double SHOOT_INTERVAL = 0.25;
     private static final double SECOND_HOP_IN = 6.5;

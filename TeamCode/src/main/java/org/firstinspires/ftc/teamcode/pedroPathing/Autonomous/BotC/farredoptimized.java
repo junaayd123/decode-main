@@ -28,7 +28,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
-@Autonomous(name = "Farred 15", group = "Pedro")
+//hi
+@Autonomous(name = "Farred 15!", group = "Pedro")
 public class farredoptimized extends OpMode {
 
     // =========== SUBSYSTEMS ===========
