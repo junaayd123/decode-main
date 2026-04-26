@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -36,7 +36,7 @@ public class closeblueF extends OpMode {
     private Deposition_C depo;
     private TurretLimelight turret;
     private lifters LL;
-    private ColorSensors sensors;
+    private ColorSensors_Intensity intensitySensors;
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
@@ -53,13 +53,10 @@ public class closeblueF extends OpMode {
     // ========== STATE VARIABLES ==========
     private int pathState;
     private int actionState;
-    private int shooterSequence;
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
     private int shotCycleCount = 0;
-    private boolean intakeRunning = false;
-    private boolean hasThreeBalls = false;
 
     // ========== MODE TOGGLE ==========
     private boolean gateMode = false;
@@ -76,10 +73,10 @@ public class closeblueF extends OpMode {
     private static final int TOTAL_GATE_CYCLES_GATE = 3;
 
     // ========== CONSTANTS ==========
-    private static final double SECOND_HOP_IN = 8;
-    private static final double GATE_WAIT_TIME_FIRST = 0.93;
-    private static final double GATE_WAIT_TIME_LATER = 0.675;
+    private static final double GATE_WAIT_TIME_FIRST = 0.9;
+    private static final double GATE_WAIT_TIME_LATER = 0.5;
     private static final double SETTLE_TIME = 0.05;
+    private static final double SPIT_DURATION_SEC = 0.25;
 
     // ========== POSES ==========
     private final Pose startPose = new Pose(44, -128, Math.toRadians(-35));
@@ -89,20 +86,15 @@ public class closeblueF extends OpMode {
     private final Pose shotPoseInside = new Pose(13, -112, Math.toRadians(-12.5));
 
     private final Pose firstPickupPose = new Pose(53, -81, Math.toRadians(0));
-    private final Pose midpoint1 = new Pose(13.4, -58, Math.toRadians(0));
+    private final Pose midpoint1 = new Pose(9, -48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, -68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(56, -55, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, -68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, -60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(57.7, -55.6, Math.toRadians(-34));
     private final Pose back_lever = new Pose(58.3, -50.3, Math.toRadians(-36.5));
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose outfromgate1 = new Pose(50, -43, Math.toRadians(-42));
     private final Pose outPose = new Pose(30, -81.5, Math.toRadians(-34));
 
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, -58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, -53, Math.toRadians(-40));
-    private final Pose intake_from_gate_rotate = new Pose(55, -54, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
@@ -112,7 +104,6 @@ public class closeblueF extends OpMode {
     private PathChain gateFirstPath;
     private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
-    private PathChain firstLineSecondHopPath;
     private PathChain thirdLinePickupPath;
     private PathChain gatebackPath;
     private PathChain getOut;
@@ -129,7 +120,7 @@ public class closeblueF extends OpMode {
 
         depo = new Deposition_C(hardwareMap);
         LL = new lifters(hardwareMap);
-        sensors = new ColorSensors(hardwareMap);
+        intensitySensors = new ColorSensors_Intensity(hardwareMap);
         turret = new TurretLimelight(hardwareMap);
         turret.setBlueAlliance();
 
@@ -145,8 +136,7 @@ public class closeblueF extends OpMode {
 
         LL.allDown();
         LL.set_angle_min();
-        LL.set_camera_ramp_pos(); // ADDED: matches red to prevent hood/turret tweaking on init
-        LL.set_angle_min();
+        LL.set_camera_ramp_pos();
         stopShooter();
 
         turret.resetTurretEncoder();
@@ -195,7 +185,8 @@ public class closeblueF extends OpMode {
     @Override
     public void start() {
         opmodeTimer.resetTimer();
-        turret.setDegreesTarget(36);
+        intensitySensors.calibrateAmbientFloor();
+        turret.setDegreesTarget(30);
         turret.setPid();
         shotCycleCount = 0;
         setPathState(0);
@@ -215,8 +206,9 @@ public class closeblueF extends OpMode {
         telemetry.addData("Action State", actionState);
         telemetry.addData("Shot Cycle", shotCycleCount);
 
-        if (pathState >= 7 && pathState <= 11) {
+        if ((pathState >= 7 && pathState <= 11) || pathState == 91) {
             telemetry.addData("Gate Cycle", (gateHitCount + 1) + "/" + TOTAL_GATE_CYCLES);
+            if (pathState == 91) telemetry.addData("Spit", "ACTIVE");
         } else if (pathState >= 12 && pathState <= 16) {
             if (pathState == 13 || pathState == 14) {
                 telemetry.addData("Sequence", "First Line - Second Hop");
@@ -278,7 +270,7 @@ public class closeblueF extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_autoBlue-30);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue-65);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -363,7 +355,7 @@ public class closeblueF extends OpMode {
                 break;
 
             case 102:
-                depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue + 50);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -371,10 +363,26 @@ public class closeblueF extends OpMode {
                 }
                 break;
 
-            case 9:
+            case 9: // waits at gate — sensor-based early exit when full
                 double waitTime2 = (gateHitCount == 0) ? GATE_WAIT_TIME_FIRST : GATE_WAIT_TIME_LATER;
                 depo.updatePID();
-                if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(91);
+                } else if (actionTimer.getElapsedTimeSeconds() > waitTime2) {
+                    LL.set_angle_close();
+                    buildGatePathsBack();
+                    follower.followPath(gateSecondPath, true);
+                    setPathState(10);
+                }
+                break;
+
+            case 91: // spit briefly after detecting full at gate
+                depo.updatePID();
+                if (actionTimer.getElapsedTimeSeconds() > SPIT_DURATION_SEC) {
+                    intake.setPower(0);
                     LL.set_angle_close();
                     buildGatePathsBack();
                     follower.followPath(gateSecondPath, true);
@@ -414,7 +422,6 @@ public class closeblueF extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12:
                 LL.set_angle_close();
-//                depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
                 intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
@@ -424,7 +431,10 @@ public class closeblueF extends OpMode {
             case 13:
                 depo.updatePID();
                 if (!follower.isBusy()) {
-//                    manageSecondHopIntake();
+                    intensitySensors.update();
+                    if (intensitySensors.isFullRaw()) {
+                        intake.setPower(1);
+                    }
                     setPathState(14);
                 }
                 break;
@@ -486,7 +496,6 @@ public class closeblueF extends OpMode {
             case 21:
                 depo.updatePID();
                 if (!follower.isBusy()) {
-//                    manageSecondHopIntake();
                     setPathState(22);
                 }
                 break;
@@ -528,7 +537,6 @@ public class closeblueF extends OpMode {
             // ===== GET OUT =====
             case 17:
                 intake.setPower(0);
-//                follower.followPath(getOut, true);
                 setPathState(18);
                 break;
 
@@ -552,7 +560,6 @@ public class closeblueF extends OpMode {
                 } else {
                     LL.set_angle_close();
                 }
-//                depo.setTargetVelocity(depo.closeVelo_New_autoBlue);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -689,7 +696,7 @@ public class closeblueF extends OpMode {
         Pose cur = follower.getPose();
         goBackPath = follower.pathBuilder()
                 .addPath(new Path(new BezierLine(cur, nearshotpose)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.22)
+                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose.getHeading(), 0.1)
                 .addParametricCallback(0.5, () -> intake.setPower(1))
                 .setTimeoutConstraint(0.2)
                 .build();
@@ -794,30 +801,6 @@ public class closeblueF extends OpMode {
     }
 
     // ========== UTILITY METHODS ==========
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || sensors == null) return;
-
-        boolean allFull = (sensors.getRight() != 0 && sensors.getBack() != 0 && sensors.getLeft() != 0);
-
-        if (intakeRunning) {
-            if (allFull) {
-                actionTimer.resetTimer();
-                intakeRunning = false;
-            }
-        } else {
-            if (!allFull) {
-                intake.setPower(-1);
-                intakeRunning = true;
-            }
-        }
-
-        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
-            intake.setPower(1);
-        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
-            intake.setPower(0);
-        }
-    }
-
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
         if (d2 != null) d2.setPower(0.0);

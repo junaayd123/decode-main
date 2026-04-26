@@ -54,13 +54,10 @@ public class closered15 extends OpMode {
     // ========== STATE VARIABLES ==========
     private int pathState;
     private int actionState;
-    private int shooterSequence;
     private int greenInSlot;
     private String motif = "empty";
     private int gateHitCount = 0;
     private int shotCycleCount = 0;
-    private boolean intakeRunning = false;
-    private boolean hasThreeBalls = false;
     private VisionSubsystem vision;
     private int ballOnRamp = 0;
     private int lastScanVerdict = -1;
@@ -73,7 +70,6 @@ public class closered15 extends OpMode {
     private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
-    private static final double SECOND_HOP_IN = 8;
     private static final double GATE_WAIT_TIME_FIRST = 1;
     private static final double GATE_WAIT_TIME_LATER = 0.9;
     private static final double SETTLE_TIME = 0.015;
@@ -90,31 +86,21 @@ public class closered15 extends OpMode {
     private final Pose midpoint1 = new Pose(9, 48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
-    private final Pose midpointopengate = new Pose(13.4, 68, Math.toRadians(0));
-    private final Pose infront_of_lever = new Pose(54, 60, Math.toRadians(0));
     private final Pose infront_of_lever_new = new Pose(53.3, 56.75, Math.toRadians(34.5));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
-    private final Pose midpointbefore_intake_from_gate = new Pose(52, 58, Math.toRadians(0));
-    private final Pose intake_from_gate = new Pose(56, 53, Math.toRadians(40));
-    private final Pose intake_from_gate_rotate = new Pose(55, 54, Math.toRadians(0));
     private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
     private final Pose rampScanMidpoint = new Pose(10, 85, Math.toRadians(0));
 
     // ========== PATHS ==========
     private PathChain goBackPath;
-    private PathChain goBackPath1;
     private PathChain bezierFirstPath;
     private PathChain bezierSecondPath;
     private PathChain gateFirstPath;
-    private PathChain gateSecondPath;
     private PathChain firstLinePickupPath;
-    private PathChain firstLineSecondHopPath;
     private PathChain gatebackPath;
     private PathChain getOut;
-    private final Pose thirdLinePickupPose = new Pose(52, 33.5, Math.toRadians(0));
-    private final Pose midpointToThird = new Pose(2, 30, Math.toRadians(0));
     private PathChain goBackPath2;
     private PathChain gateReturnFirstHalf;
     private PathChain gateReturnSecondHalf;
@@ -463,7 +449,6 @@ public class closered15 extends OpMode {
             // ===== FIRST LINE PICKUP =====
             case 12:
                 LL.set_angle_close();
-//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 intake.setPower(-1);
                 buildLinePickupPaths();
                 follower.followPath(firstLinePickupPath, true);
@@ -519,7 +504,6 @@ public class closered15 extends OpMode {
             // ===== GET OUT =====
             case 17:
                 intake.setPower(0);
-//                follower.followPath(getOut, true);
                 setPathState(18);
                 break;
 
@@ -545,7 +529,6 @@ public class closered15 extends OpMode {
                     LL.set_angle_close();
                     SHOOT_INTERVAL = SHOOT_INTERVAL_DEFAULT;
                 }
-//                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 if (depo.reachedTargetHighTolerance()) {
                     greenInSlot = getGreenPos();
                     shootTimer.resetTimer();
@@ -706,14 +689,6 @@ public class closered15 extends OpMode {
                 .build();
     }
 
-    private void buildGatePathsBack() {
-        Pose cur = follower.getPose();
-        gateSecondPath = follower.pathBuilder()
-                .addPath(new Path(new BezierCurve(cur, outfromgate1, nearshotpose2)))
-                .setLinearHeadingInterpolation(cur.getHeading(), nearshotpose2.getHeading(), 0.3)
-                .build();
-    }
-
     private void buildGateReturnFirstHalf() {
         Pose cur = follower.getPose();
         gateReturnFirstHalf = follower.pathBuilder()
@@ -738,15 +713,6 @@ public class closered15 extends OpMode {
                 .build();
     }
 
-    private void buildReturnToShootingLastGate() {
-        Pose cur = follower.getPose();
-        goBackPath1 = follower.pathBuilder()
-                .addPath(new Path(new BezierLine(cur, shotPoseInside)))
-                .setLinearHeadingInterpolation(cur.getHeading(), shotPoseInside.getHeading())
-                .addParametricCallback(0.5, () -> intake.setPower(1))
-                .build();
-    }
-
     private void buildReturnToShootingLast() {
         Pose cur = follower.getPose();
         goBackPath2 = follower.pathBuilder()
@@ -765,37 +731,7 @@ public class closered15 extends OpMode {
                 .build();
     }
 
-    private boolean checkThreeBalls() {
-        intensitySensors.update();
-        return intensitySensors.isFullRaw();
-    }
-
     // ========== UTILITY METHODS ==========
-    private void manageSecondHopIntake() {
-        if (intake == null || LL == null || intensitySensors == null) return;
-
-        intensitySensors.update();
-        boolean allFull = intensitySensors.isFullRaw();
-
-        if (intakeRunning) {
-            if (allFull) {
-                actionTimer.resetTimer();
-                intakeRunning = false;
-            }
-        } else {
-            if (!allFull) {
-                intake.setPower(-1);
-                intakeRunning = true;
-            }
-        }
-
-        if (!intakeRunning && actionTimer.getElapsedTimeSeconds() < 0.5 && actionTimer.getElapsedTimeSeconds() > 0) {
-            intake.setPower(1);
-        } else if (!intakeRunning && actionTimer.getElapsedTimeSeconds() >= 0.5) {
-            intake.setPower(0);
-        }
-    }
-
     private void stopShooter() {
         if (d1 != null) d1.setPower(0.0);
         if (d2 != null) d2.setPower(0.0);
