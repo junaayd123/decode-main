@@ -131,13 +131,13 @@ public class excess_farblue_hough extends OpMode {
     private final Pose midpoint2           = new Pose(8,      -38,   Math.toRadians(0));
 
     // Excess area poses from scenariofarblue
-    private final Pose excessBallArea          = new Pose(66,  -30,  Math.toRadians(90));
-    private final Pose excessBallAreaStrafeEnd = new Pose(66,  -9.8, Math.toRadians(90));
-    private final Pose gateCollectDeepPose     = new Pose(74,  -49,  Math.toRadians(-85));  // actual collect position
+    private final Pose excessBallArea          = new Pose(77,  -35,  Math.toRadians(90));
+    private final Pose excessBallAreaStrafeEnd = new Pose(76,  -9, Math.toRadians(90));
+    private final Pose gateCollectDeepPose     = new Pose(75,  -49,  Math.toRadians(-85));  // actual collect position
 
     // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
-    private final Pose hpBallArea          = new Pose(66,  -18,  Math.toRadians(45));
-    private final Pose hpBallAreaStrafeEnd = new Pose(67,  -9.8, Math.toRadians(10));
+    private final Pose hpBallArea          = new Pose(68,  -18,  Math.toRadians(45));
+    private final Pose hpBallAreaStrafeEnd = new Pose(69,  -9.8, Math.toRadians(10));
 
     // ========== PATHS ==========
     private PathChain ThirdLinePickupPath;
@@ -994,7 +994,7 @@ public class excess_farblue_hough extends OpMode {
         private static final Scalar PURPLE_LOWER = new Scalar(32,  135, 135);
         private static final Scalar PURPLE_UPPER = new Scalar(255, 155, 169);
 
-        private static final double ROTATE_DEGREES = -1.0;
+        private static final double ROTATE_DEGREES = -3.0;
 
         // Single full-width ROI
         private static final double ROI1_X_START = 0.0;

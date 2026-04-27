@@ -36,9 +36,9 @@ public class Deposition_C {
     public double farVeloblue = 1600;
     //
     //
-    public double ExcessBlue = 2180.0;
+    public double ExcessBlue = 2140.0;
     public double ExcessRed = 2140.0;
-    public double ExcessBluePreload = 2235.0;
+    public double ExcessBluePreload = 2220.0;
     public double ExcessRedPreload = 2210.0;
     public double farVeloblueauto2 = 2170.0;
 
