@@ -68,6 +68,7 @@ public class closeblue15 extends OpMode {
     private static final double SHOOT_INTERVAL_FIRST = 0.24;
     private static final double SHOOT_INTERVAL_DEFAULT = 0.38;
     private static final int TOTAL_GATE_CYCLES = 2;
+    //
 
     // ========== CONSTANTS ==========
     private static final double GATE_WAIT_TIME_FIRST = 0.45;

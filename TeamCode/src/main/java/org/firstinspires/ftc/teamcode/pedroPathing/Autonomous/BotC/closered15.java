@@ -62,6 +62,7 @@ public class closered15 extends OpMode {
     private int ballOnRamp = 0;
     private int lastScanVerdict = -1;
     private String lastScanDetails = "";
+    //
 
     // ========== SETTINGS ==========
     private double SHOOT_INTERVAL = 0.35;
