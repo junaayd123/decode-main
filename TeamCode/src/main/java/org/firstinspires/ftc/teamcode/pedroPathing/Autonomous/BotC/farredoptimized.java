@@ -10,6 +10,7 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -41,6 +42,7 @@ public class farredoptimized extends OpMode {
     private DcMotor intake = null;
     private DcMotor d1 = null;
     private DcMotor d2 = null;
+    private Servo cam_tilt;
 
     // ========== VISION ==========
     private AprilTagProcessor aprilTag;
@@ -122,6 +124,9 @@ public class farredoptimized extends OpMode {
 
         if (d1 != null) d1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         if (d2 != null) d2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        cam_tilt = hardwareMap.get(Servo.class, "cam_tilt");
+        cam_tilt.setPosition(0.24);
 
         // Initialize follower
         follower = C_Bot_Constants.createFollower(hardwareMap);
