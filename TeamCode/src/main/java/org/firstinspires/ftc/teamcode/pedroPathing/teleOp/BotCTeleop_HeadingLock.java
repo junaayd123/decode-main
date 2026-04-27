@@ -140,14 +140,6 @@ public class BotCTeleop_HeadingLock extends OpMode {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        turret  = new TurretLimelight(hardwareMap);
-        lift    = new lifters(hardwareMap);
-        depo    = new Deposition_C(hardwareMap);
-        reg     = new regressions();
-        intake  = new IntakeManager(hardwareMap, lift.sensors);
-        vision  = new VisionSubsystem(hardwareMap);
-        shooter = new ShooterManager(depo, lift, reg);
-
         led  = hardwareMap.get(Servo.class, "led");
         led2 = hardwareMap.get(Servo.class, "led2");
 
@@ -159,13 +151,22 @@ public class BotCTeleop_HeadingLock extends OpMode {
     // -----------------------------------------------------------------------
     @Override
     public void start() {
+        turret  = new TurretLimelight(hardwareMap);
+        lift    = new lifters(hardwareMap);
+        depo    = new Deposition_C(hardwareMap);
+        reg     = new regressions();
+        intake  = new IntakeManager(hardwareMap, lift.sensors);
+        vision  = new VisionSubsystem(hardwareMap);
+        shooter = new ShooterManager(depo, lift, reg);
         pinpoint.update();
         lockedHeading = pinpoint.getHeading(AngleUnit.RADIANS);
         loopTimer.reset();
+        VisionSubsystem.isRed =true;
 
         lift.allDown();
         lift.launchAngleServo.setPosition(0.04);
         lift.set_camera_tag_pos();
+        motif = regressions.motif;
     }
 
     // -----------------------------------------------------------------------

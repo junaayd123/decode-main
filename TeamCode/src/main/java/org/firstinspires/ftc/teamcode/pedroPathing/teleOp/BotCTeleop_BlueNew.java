@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
+import com.arcrobotics.ftclib.controller.PIDController;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -41,6 +42,16 @@ public class BotCTeleop_BlueNew extends OpMode {
     public static double TURN_SETTLE_TIME        = 0.4;
     public static double TRANSLATION_SETTLE_TIME = 0.2;
 
+    public static double Xp=0.3;
+    public static double Xi=0.0;
+    public static double Xd=0.001;
+    public static double Yp=0.1;
+    public static double Yi=0.0;
+    public static double Yd=0.001;
+    public static double Hp=2.0;
+    public static double Hi=0.0;
+    public static double Hd=0.07;
+
     // --- SUBSYSTEMS ---
     private Follower         follower;
     private TurretLimelight  turret;
@@ -54,6 +65,10 @@ public class BotCTeleop_BlueNew extends OpMode {
     private DcMotorEx            leftFront, leftRear, rightFront, rightRear;
     private GoBildaPinpointDriver pinpoint;
 
+    private PIDController xPID = new PIDController(Xp, Xi, Xd);
+    private PIDController yPID = new PIDController(Yp, Yi, Yd);
+    private PIDController hPID = new PIDController(Hp, Hi, Hd);
+
     // --- DRIVE STATE ---
     private double  lockedHeading    = 0;
     private double  lastHeadingError = 0;
@@ -63,6 +78,7 @@ public class BotCTeleop_BlueNew extends OpMode {
     private boolean turningSettling  = false;
     private boolean transSettling    = false;
     private boolean firstLockLoop    = false; // suppresses derivative spike on lock entry
+    private boolean wasShooting      = false;
 
     private ElapsedTime loopTimer        = new ElapsedTime();
     private ElapsedTime settleTimer      = new ElapsedTime();
@@ -84,12 +100,16 @@ public class BotCTeleop_BlueNew extends OpMode {
     private double  speed           = 1.0;
     private boolean tagInitializing = false;
 
+    private boolean frozen          = false;
+    private Pose    holdPose        = null;
+
     private Pose    savedGatePose   = null;
     private boolean goingToGate     = false;
+    private int rampFlag=0;
 
-    private final Pose redGoal      = new Pose(-60, 137, 0);
+    private final Pose redGoal      = new Pose(-64, 128, 0);
     private final Pose redGoalFixed = new Pose(-72, 144, 0);
-    private final Pose rampPose     = new Pose(72, 80, 0);
+    private final Pose rampPose     = new Pose(-72, 83, 0);
     private final Pose startPose    = new Pose(53, 70, 0);
 
     private Timer  turretTimer        = new Timer();
@@ -120,14 +140,6 @@ public class BotCTeleop_BlueNew extends OpMode {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
 
-        turret  = new TurretLimelight(hardwareMap);
-        lift    = new lifters(hardwareMap);
-        depo    = new Deposition_C(hardwareMap);
-        reg     = new regressions();
-        intake  = new IntakeManager(hardwareMap, lift.sensors);
-        vision  = new VisionSubsystem(hardwareMap);
-        shooter = new ShooterManager(depo, lift, reg);
-
         led  = hardwareMap.get(Servo.class, "led");
         led2 = hardwareMap.get(Servo.class, "led2");
 
@@ -139,13 +151,22 @@ public class BotCTeleop_BlueNew extends OpMode {
     // -----------------------------------------------------------------------
     @Override
     public void start() {
+        turret  = new TurretLimelight(hardwareMap);
+        lift    = new lifters(hardwareMap);
+        depo    = new Deposition_C(hardwareMap);
+        reg     = new regressions();
+        intake  = new IntakeManager(hardwareMap, lift.sensors);
+        vision  = new VisionSubsystem(hardwareMap);
+        shooter = new ShooterManager(depo, lift, reg);
         pinpoint.update();
         lockedHeading = pinpoint.getHeading(AngleUnit.RADIANS);
         loopTimer.reset();
+        VisionSubsystem.isRed =false;
 
         lift.allDown();
         lift.launchAngleServo.setPosition(0.04);
         lift.set_camera_tag_pos();
+        motif = regressions.motif;
     }
 
     // -----------------------------------------------------------------------
@@ -177,6 +198,13 @@ public class BotCTeleop_BlueNew extends OpMode {
         handleShooting();
         reg.RobY = cur.getY();
 
+        // --- AUTO-UNFREEZE LOGIC ---
+        boolean shootingNow = shooter.isShooting();
+        if (wasShooting && !shootingNow && frozen) {
+            frozen = false;
+        }
+        wasShooting = shootingNow;
+
         // --- HEADING LOCK DRIVE (dt passed in cleanly) ---
         if (!goingToGate) {
             handleHeadingLockDrive(dt);
@@ -198,91 +226,134 @@ public class BotCTeleop_BlueNew extends OpMode {
     // HEADING LOCK DRIVE
     // -----------------------------------------------------------------------
     private void handleHeadingLockDrive(double dt) {
+        xPID.setPID(Xp, Xi, Xd);
+        yPID.setPID(Yp, Yi, Yd);
+        hPID.setPID(Hp, Hi, Hd);
+
         pinpoint.update();
         double heading = pinpoint.getHeading(AngleUnit.RADIANS);
+        Pose curPose = follower.getPose();
 
-        speed = gamepad1.cross ? 0.3 : 1.0;
-        double forward = -gamepad1.left_stick_y * speed;
-        double strafe  = (gamepad1.right_trigger - gamepad1.left_trigger) * speed;
-        double turn    = gamepad1.right_stick_x * speed;
-
-        boolean driverTurning     = Math.abs(gamepad1.right_stick_x) > TURN_DEADBAND;
-        boolean driverTranslating = Math.abs(gamepad1.left_stick_y) > TRANSLATION_DEADBAND
-                || Math.abs(gamepad1.right_trigger) > TRANSLATION_DEADBAND
-                || Math.abs(gamepad1.left_trigger)  > TRANSLATION_DEADBAND;
-
-        if (transSettling && driverTranslating) transSettling = false;
-
-        double rotationOutput;
-
-        if (driverTurning) {
-            rotationOutput   = turn;
-            wasTurning       = true;
-            turningSettling  = false;
-            transSettling    = false;
-            lockedHeading    = heading;
-            lastHeadingError = 0;
-            integralSum      = 0;
-            firstLockLoop    = false;
-
-        } else if (wasTurning) {
-            wasTurning      = false;
-            turningSettling = true;
-            settleTimer.reset();
-            rotationOutput  = 0;
-
-        } else if (turningSettling) {
-            rotationOutput = 0;
-            if (settleTimer.seconds() >= TURN_SETTLE_TIME) {
-                lockedHeading    = heading;
-                integralSum      = 0;
-                lastHeadingError = 0;
-                turningSettling  = false;
-                firstLockLoop    = true; // next LOCKED loop skips derivative
+        if (gamepad1.shareWasPressed()) {
+            frozen = !frozen;
+            if (frozen) {
+                holdPose = new Pose(curPose.getX(), curPose.getY(), heading);
+                xPID.reset();
+                yPID.reset();
+                hPID.reset();
             }
-
-        } else if (wasTranslating && !driverTranslating) {
-            transSettling = true;
-            transSettleTimer.reset();
-            rotationOutput = 0;
-
-        } else if (transSettling) {
-            rotationOutput = 0;
-            if (transSettleTimer.seconds() >= TRANSLATION_SETTLE_TIME) {
-                lockedHeading    = heading;
-                integralSum      = 0;
-                lastHeadingError = 0;
-                transSettling    = false;
-                firstLockLoop    = true; // next LOCKED loop skips derivative
-            }
-
-        } else {
-            // LOCKED — run PID
-            double headingError = lockedHeading - heading;
-            while (headingError >  Math.PI) headingError -= 2 * Math.PI;
-            while (headingError < -Math.PI) headingError += 2 * Math.PI;
-
-            if (Math.abs(headingError) < INTEGRAL_MAX_ERR) {
-                integralSum += headingError * dt;
-            } else {
-                integralSum = 0;
-            }
-
-            // Skip derivative on the very first loop after entering LOCKED
-            // to prevent a spike from lastHeadingError being stale
-            double derivative = 0;
-            if (!firstLockLoop && dt > 0) {
-                derivative = (headingError - lastHeadingError) / dt;
-            }
-            firstLockLoop    = false;
-            lastHeadingError = headingError;
-
-            rotationOutput = headingError * HEADING_P
-                    + integralSum  * HEADING_I
-                    + derivative   * HEADING_D;
         }
 
-        wasTranslating = driverTranslating;
+        double forward, strafe, rotationOutput;
+
+        if (frozen) {
+            // Calculate PID outputs in field-relative terms
+            // calculate(measured, target)
+            double xPowerField = xPID.calculate(curPose.getX(), holdPose.getX());
+            double yPowerField = yPID.calculate(curPose.getY(), holdPose.getY());
+
+            // Calculate heading error and normalize it to [-pi, pi]
+            double hError = holdPose.getHeading() - heading;
+            while (hError > Math.PI) hError -= 2 * Math.PI;
+            while (hError < -Math.PI) hError += 2 * Math.PI;
+
+            // Calculate heading power (using target as current + error)
+            double hPower = hPID.calculate(heading, heading + hError);
+
+            // Rotate field-centric powers to robot-centric coordinates
+            // Pedro Pathing: X+ Forward, Y+ Left, Heading CCW
+            double cos = Math.cos(heading);
+            double sin = Math.sin(heading);
+
+            forward = xPowerField * cos + yPowerField * sin;
+            // Robot Y+ is Left, but motor mapping +strafe is Right.
+            // So strafe_motor = -robot_y = x_field * sin - y_field * cos
+            strafe  = xPowerField * sin - yPowerField * cos;
+            // Motor mapping +turn is Clockwise. hPower is positive for CCW.
+            rotationOutput = -hPower;
+
+        } else {
+            speed = gamepad1.cross ? 0.3 : 1.0;
+            forward = -gamepad1.left_stick_y * speed;
+            strafe  = (gamepad1.right_trigger - gamepad1.left_trigger) * speed;
+            double turn = gamepad1.right_stick_x * speed;
+
+            boolean driverTurning = Math.abs(gamepad1.right_stick_x) > TURN_DEADBAND;
+            boolean driverTranslating = Math.abs(gamepad1.left_stick_y) > TRANSLATION_DEADBAND
+                    || Math.abs(gamepad1.right_trigger) > TRANSLATION_DEADBAND
+                    || Math.abs(gamepad1.left_trigger) > TRANSLATION_DEADBAND;
+
+            if (transSettling && driverTranslating) transSettling = false;
+
+            if (driverTurning) {
+                rotationOutput = turn;
+                wasTurning = true;
+                turningSettling = false;
+                transSettling = false;
+                lockedHeading = heading;
+                lastHeadingError = 0;
+                integralSum = 0;
+                firstLockLoop = false;
+
+            } else if (wasTurning) {
+                wasTurning = false;
+                turningSettling = true;
+                settleTimer.reset();
+                rotationOutput = 0;
+
+            } else if (turningSettling) {
+                rotationOutput = 0;
+                if (settleTimer.seconds() >= TURN_SETTLE_TIME) {
+                    lockedHeading = heading;
+                    integralSum = 0;
+                    lastHeadingError = 0;
+                    turningSettling = false;
+                    firstLockLoop = true; // next LOCKED loop skips derivative
+                }
+
+            } else if (wasTranslating && !driverTranslating) {
+                transSettling = true;
+                transSettleTimer.reset();
+                rotationOutput = 0;
+
+            } else if (transSettling) {
+                rotationOutput = 0;
+                if (transSettleTimer.seconds() >= TRANSLATION_SETTLE_TIME) {
+                    lockedHeading = heading;
+                    integralSum = 0;
+                    lastHeadingError = 0;
+                    transSettling = false;
+                    firstLockLoop = true; // next LOCKED loop skips derivative
+                }
+
+            } else {
+                // LOCKED — run PID
+                double headingError = lockedHeading - heading;
+                while (headingError > Math.PI) headingError -= 2 * Math.PI;
+                while (headingError < -Math.PI) headingError += 2 * Math.PI;
+
+                if (Math.abs(headingError) < INTEGRAL_MAX_ERR) {
+                    integralSum += headingError * dt;
+                } else {
+                    integralSum = 0;
+                }
+
+                // Skip derivative on the very first loop after entering LOCKED
+                // to prevent a spike from lastHeadingError being stale
+                double derivative = 0;
+                if (!firstLockLoop && dt > 0) {
+                    derivative = (headingError - lastHeadingError) / dt;
+                }
+                firstLockLoop = false;
+                lastHeadingError = headingError;
+
+                rotationOutput = headingError * HEADING_P
+                        + integralSum * HEADING_I
+                        + derivative * HEADING_D;
+            }
+
+            wasTranslating = driverTranslating;
+        }
 
         double lf = forward + strafe + rotationOutput;
         double lr = forward - strafe + rotationOutput;
@@ -336,30 +407,52 @@ public class BotCTeleop_BlueNew extends OpMode {
     // RAMP SCAN
     // -----------------------------------------------------------------------
     private void handleRampScan() {
-        if (gamepad2.circleWasPressed() && !vision.isRampScanning()) {
-            modeBeforeRampScan = mode;
+        if (gamepad2.circleWasPressed() && rampFlag==0) {
+            lift.set_camera_ramp_pos();
+            lift.allDown();
+//            modeBeforeRampScan = mode;
             mode = Mode.faceRamp;
-            vision.startRampScan();
+            rampFlag = 1;
+//            vision.startRampScan();
             rampScanDelayTimer.startTimer();
+            shooter.setMotifShot(true);
         }
 
 
-        if (vision.isRampScanning()) {
-            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
-                lift.allDown();
-            }
-        } else if (rampScanDelayTimer.timerIsOn()) {
-            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
-                mode        = modeBeforeRampScan;
-                ballOnRamp  = vision.getRampBallVerdict() % 3;
-                greenInSlot = getGreenPos();
-            }
-            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.3)) {
-                rampScanDelayTimer.stopTimer();
-                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-            }
+//        if (vision.isRampScanning()) {
+//            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
+//                lift.allDown();
+//            }
+//        }
+        if(rampScanDelayTimer.checkAtSecondsBigWindow(0.2) && rampFlag==1){
+            vision.startRampScan();
+            rampFlag =2;
         }
+        else if (rampScanDelayTimer.checkAtSecondsBigWindow(2.0) && rampFlag==2) {
+            rampFlag = 3;
+            mode        =  Mode.faceGoal;
+            vision.finishRampScan();
+            ballOnRamp  = vision.getRampBallVerdict();
+            greenInSlot = getGreenPos();
+        }
+        else if(rampScanDelayTimer.checkAtSecondsOpenEnd(2.2) && rampFlag==3){
+            rampScanDelayTimer.stopTimer();
+            shooter.startShooting(motif, (ballOnRamp % 3), greenInSlot);
+            rampFlag =0;
+        }
+//        else if (rampScanDelayTimer.timerIsOn()) {
+//            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.0)) {
+//                mode        =  Mode.faceGoal;
+//                ballOnRamp  = vision.getRampBallVerdict() % 3;
+//                greenInSlot = getGreenPos();
+//            }
+//            if (rampScanDelayTimer.checkAtSecondsBigWindow(1.3)) {
+////                rampFlag=0;
+//                rampScanDelayTimer.stopTimer();
+////                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+//            }
+//        }
     }
 
     // -----------------------------------------------------------------------
@@ -372,7 +465,7 @@ public class BotCTeleop_BlueNew extends OpMode {
 
         switch (mode) {
             case faceGoal:
-                if (cur.getY() < 55) {
+                if (distanceToGoal > 125) {
                     turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getBlueTurretFar(cur.getX(),cur.getY()));
                 } else {
                     turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
@@ -401,6 +494,7 @@ public class BotCTeleop_BlueNew extends OpMode {
     // -----------------------------------------------------------------------
     private void handleTagLocalization() {
         if (gamepad1.triangleWasPressed()) {
+            lift.set_camera_tag_pos();
             if (tagInitializing || mode == Mode.findTag) {
                 tagInitializing = false;
                 mode = Mode.nothing;
@@ -453,6 +547,7 @@ public class BotCTeleop_BlueNew extends OpMode {
     // SHOOTING
     // -----------------------------------------------------------------------
     private void handleShooting() {
+        shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
         if (gamepad2.psWasPressed()) {
             if      (motif.equals("gpp")) motif = "pgp";
             else if (motif.equals("pgp")) motif = "ppg";
@@ -462,25 +557,35 @@ public class BotCTeleop_BlueNew extends OpMode {
         if (gamepad2.dpadLeftWasPressed()) {
             shooter.stop();
             intake.stop();
+            rampFlag = 0;
+            rampScanDelayTimer.stopTimer();
+            mode = Mode.faceGoal;
         }
 
         if (gamepad2.crossWasPressed()) {
             lift.allDown();
             if (!lift.checkNoBalls()) {
-                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+//                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
                 ballOnRamp  = 0;
                 greenInSlot = getGreenPos();
                 shooter.startShooting(motif, ballOnRamp, greenInSlot);
             }
         }
         if (gamepad2.squareWasPressed()) {
-//            lift.allDown();
-//            if (!lift.checkNoBalls()) {
+            lift.allDown();
+            if (!lift.checkNoBalls()) {
 //                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-//                ballOnRamp  = 0;
-//                greenInSlot = getGreenPos();
-//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-//            }
+                ballOnRamp  = 0;
+                greenInSlot = getGreenPos();
+                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+
+                // Freeze position
+                frozen = true;
+                holdPose = follower.getPose();
+                xPID.reset();
+                yPID.reset();
+                hPID.reset();
+            }
         }
         if (gamepad2.triangleWasPressed()) {
 //            lift.allDown();
@@ -562,6 +667,7 @@ public class BotCTeleop_BlueNew extends OpMode {
         while (headingErr < -Math.PI) headingErr += 2 * Math.PI;
 
         telemetryA.addData("motif",                motif);
+        telemetryA.addData("balls on ramp",                ballOnRamp);
         telemetryA.addLine(savedGatePose != null ?
                 "SAVED POSE: (" + String.format("%.1f", savedGatePose.getX()) + ", " + String.format("%.1f", savedGatePose.getY()) + ")" : "NO SAVED POSE");
         telemetryA.addData("turret mode",          mode);

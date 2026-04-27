@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_B_bot.ColorSensors;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -158,6 +159,7 @@ public class FarRedHumanplayer15 extends OpMode {
         shotCycleCount = 0;
         setPathState(0);
         setActionState(0);
+        regressions.motif = motif;
     }
 
     @Override

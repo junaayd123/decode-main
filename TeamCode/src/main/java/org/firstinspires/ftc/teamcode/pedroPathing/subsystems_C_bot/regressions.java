@@ -6,6 +6,7 @@ public class regressions {
     lifters LL;
     public double RobY;
     public double RobHeading;
+    public static String motif = "gpp";
 
     public int distanceToVelo(double dist) {
         //https://www.desmos.com/calculator/nxghj961jg

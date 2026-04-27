@@ -22,6 +22,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Consta
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -214,6 +215,7 @@ public class excess_farblue_turretdetect extends OpMode {
         telemetry.update();
         setPathState(0);
         setActionState(0);
+        regressions.motif = motif;
     }
 
     @Override

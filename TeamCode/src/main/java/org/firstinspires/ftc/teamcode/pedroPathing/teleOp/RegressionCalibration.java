@@ -127,7 +127,7 @@ public class RegressionCalibration extends OpMode {
         switch (mode) {
             case faceGoal:
                 if (distanceToGoal > 125) {
-                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getRedTurretFar(cur.getX(),cur.getY()));
+                    turret.toTargetInDegrees2(Math.toDegrees(robHeading) + reg.getRedTurretFar(cur.getX(),cur.getY(),cur.getHeading()));
                 } else {
                     turret.toTargetInDegrees2(Math.toDegrees(robHeading - headingToTarget));
                 }

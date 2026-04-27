@@ -38,7 +38,9 @@ public class VisionSubsystem {
     static final double CAMERA_PITCH_DEG = 0.0;
     static final double CAMERA_FOV_DEG = 78.0;
     static final double BALL_DIAMETER_M = 0.127;
-    static final double ROTATION_DEG = -18.0;
+    static final double ROTATION_DEG_red = -18.0;
+    static final double ROTATION_DEG_blue = 18.0;
+    public static boolean isRed;
     static final double ROI_TOP = 0.50;
     static final double CROP_BOTTOM = 0.20;
     static final Scalar GREEN_LOWER = new Scalar(32, 50, 118);
@@ -202,7 +204,13 @@ public class VisionSubsystem {
         public Object processFrame(Mat frame, long captureTimeNanos) {
             int w = frame.cols(), h = frame.rows();
             Point center = new Point(w / 2.0, h / 2.0);
-            Mat M = Imgproc.getRotationMatrix2D(center, -ROTATION_DEG, 1.0);
+            Mat M;
+            if(isRed) {
+                M = Imgproc.getRotationMatrix2D(center, -ROTATION_DEG_red, 1.0);
+            }
+            else{
+                M = Imgproc.getRotationMatrix2D(center, -ROTATION_DEG_blue, 1.0);
+            }
             Imgproc.warpAffine(frame, rotated, M, frame.size());
             M.release();
 

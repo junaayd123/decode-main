@@ -22,6 +22,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.ColorSensors_Intensity;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
@@ -173,6 +174,7 @@ public class farblueoptimized extends OpMode {
 
         setPathState(0);
         setActionState(0);
+        regressions.motif = motif;
     }
 
     @Override
