@@ -570,7 +570,12 @@ public class excess_farred_hough extends OpMode {
                         excessPathTimeoutTimer.resetTimer();
                         setPathState(521);
                     } else {
-                        setPathState(60); // No circles detected — conservative fallback to HP
+                        dynamicGateY = 6.8; // No circles detected — drive to minimum gate Y
+                        intake.setPower(-1);
+                        buildGateDeepCollectPath();
+                        follower.followPath(gateDeepCollectPath, true);
+                        excessPathTimeoutTimer.resetTimer();
+                        setPathState(521);
                     }
                 }
                 break;

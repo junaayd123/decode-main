@@ -112,8 +112,8 @@ public class excess_farblue_hough extends OpMode {
     private static final double DETECTION_WAIT = 1;
     private static final int SCAN_MIN_SAMPLES = 3;
     private static final int SCAN_MIN_HOUGH_SAMPLES = 1;
-    private static final double TURRET_OFFSET = -10;
-    private static final double TURRET_DETECT_DEGREES = 8;
+    private static final double TURRET_OFFSET = -12;
+    private static final double TURRET_DETECT_DEGREES = 10;
     private static final double GATE_COLLECT_X = 74.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(-85);
 
@@ -570,7 +570,12 @@ public class excess_farblue_hough extends OpMode {
                         excessPathTimeoutTimer.resetTimer();
                         setPathState(521);
                     } else {
-                        setPathState(60); // No circles detected — conservative fallback to HP
+                        dynamicGateY = -6.8; // No circles detected — drive to minimum gate Y
+                        intake.setPower(-1);
+                        buildGateDeepCollectPath();
+                        follower.followPath(gateDeepCollectPath, true);
+                        excessPathTimeoutTimer.resetTimer();
+                        setPathState(521);
                     }
                 }
                 break;
