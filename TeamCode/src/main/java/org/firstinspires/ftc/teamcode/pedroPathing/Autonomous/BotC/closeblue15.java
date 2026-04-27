@@ -391,7 +391,7 @@ public class closeblue15 extends OpMode {
                 }
                 break;
 
-            case 150: // ramp scan in progress (~1s)
+            case 150: // ramp scan in progress (~1.5s then finish)
                 depo.updatePID();
             {
                 StringBuilder sb = new StringBuilder();
@@ -403,7 +403,8 @@ public class closeblue15 extends OpMode {
                 }
                 if (dets.size() > 0) lastScanDetails = sb.toString();
             }
-            if (!vision.isRampScanning()) {
+            if (pathTimer.getElapsedTimeSeconds() > 1.5) {
+                vision.finishRampScan();
                 int verdict = vision.getRampBallVerdict();
                 lastScanVerdict = verdict;
                 ballOnRamp = (verdict >= 0) ? verdict % 3 : 0;

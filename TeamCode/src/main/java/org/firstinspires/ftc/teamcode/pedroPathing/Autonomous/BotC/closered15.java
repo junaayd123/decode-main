@@ -70,7 +70,7 @@ public class closered15 extends OpMode {
     private static final int TOTAL_GATE_CYCLES = 2;
 
     // ========== CONSTANTS ==========
-    private static final double GATE_WAIT_TIME_FIRST = 1;
+    private static final double GATE_WAIT_TIME_FIRST = 0.7;
     private static final double GATE_WAIT_TIME_LATER = 0.9;
     private static final double SETTLE_TIME = 0.015;
     private static final double SPIT_DURATION_SEC = 0.25;
@@ -86,7 +86,7 @@ public class closered15 extends OpMode {
     private final Pose midpoint1 = new Pose(9, 48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(54, 56.75, Math.toRadians(34.5));
+    private final Pose infront_of_lever_new = new Pose(54.5, 57, Math.toRadians(34.5));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
@@ -392,9 +392,8 @@ public class closered15 extends OpMode {
                 }
                 break;
 
-            case 150: // ramp scan in progress (~1s)
+            case 150: // ramp scan in progress (~1.5s then finish)
                 depo.updatePID();
-                // snapshot live detections each loop so we keep the last frame before scan ends
             {
                 StringBuilder sb = new StringBuilder();
                 java.util.List<VisionSubsystem.BallDetection> dets = vision.getBallDetections();
@@ -405,7 +404,8 @@ public class closered15 extends OpMode {
                 }
                 if (dets.size() > 0) lastScanDetails = sb.toString();
             }
-            if (!vision.isRampScanning()) {
+            if (pathTimer.getElapsedTimeSeconds() > 1.5) {
+                vision.finishRampScan();
                 int verdict = vision.getRampBallVerdict();
                 lastScanVerdict = verdict;
                 ballOnRamp = (verdict >= 0) ? verdict % 3 : 0;
@@ -642,8 +642,8 @@ public class closered15 extends OpMode {
         int pos = LL.sensors.getLeft();
         if (pos == 1) return 0;
         pos = LL.sensors.getRight();
-        if (pos == 1) return 1;
-        return 2;
+        if (pos == 1) return 2;
+        return 1;
     }
 
     // ========== PATH BUILDING METHODS ==========
