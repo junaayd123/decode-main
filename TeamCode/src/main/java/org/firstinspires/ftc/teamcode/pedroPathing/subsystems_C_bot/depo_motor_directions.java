@@ -12,6 +12,7 @@ public class depo_motor_directions extends OpMode {
     private DcMotorEx depo;
     private DcMotorEx depo1;
     private DcMotorEx depo2;
+    private ColorSensors_New colSensors;
 
     // Power to apply when a button is held
     private static final double TEST_POWER = 0.3;
@@ -21,6 +22,7 @@ public class depo_motor_directions extends OpMode {
         depo  = hardwareMap.get(DcMotorEx.class, "depo");
         depo1 = hardwareMap.get(DcMotorEx.class, "depo1");
         depo2 = hardwareMap.get(DcMotorEx.class, "depo2");
+        colSensors= new ColorSensors_New(hardwareMap);
 
         depo.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         depo1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -47,7 +49,9 @@ public class depo_motor_directions extends OpMode {
         depo.setPower (gamepad1.x ? TEST_POWER : 0);
         depo1.setPower(gamepad1.y ? TEST_POWER : 0);
         depo2.setPower(gamepad1.b ? TEST_POWER : 0);
-
+        telemetry.addData("intensity left", colSensors.getIntLeft());
+        telemetry.addData("intensity right", colSensors.getIntRight());
+        telemetry.addData("intensity back", colSensors.getIntBack());
         telemetry.addLine("=== Depo Motor Direction Test ===");
         telemetry.addData("X  →  depo  ", gamepad1.x  ? "RUNNING" : "stopped");
         telemetry.addData("Y  →  depo1 ", gamepad1.y  ? "RUNNING" : "stopped");

@@ -37,6 +37,38 @@ public class ColorSensors_New {
         SensorLeft2 = hardwareMap.get(NormalizedColorSensor.class, "color_left2");
         SensorRight2 = hardwareMap.get(NormalizedColorSensor.class, "color_right2");
     }
+    public double getIntensity(NormalizedColorSensor colorSensor1, NormalizedColorSensor colorSensor2){
+        double intensity, intensity2;
+        float red,blue,green;
+        NormalizedRGBA colors = colorSensor1.getNormalizedColors();
+
+        red = colors.red;
+        green = colors.green;
+        blue = colors.blue;
+        intensity = red+green+blue;
+        colors = colorSensor2.getNormalizedColors();
+        red = colors.red;
+        green = colors.green;
+        blue = colors.blue;
+        intensity2 = red+green+blue;
+        return Math.max(intensity, intensity2);
+    }
+    public double getIntBack(){
+        return getIntensity(SensorBack,SensorBack2);
+    }
+    public double getIntRight(){
+        return getIntensity(SensorRight,SensorRight2);
+    }
+    public double getIntLeft(){
+        return getIntensity(SensorLeft,SensorLeft2);
+    }
+    public boolean isFullIntensity(){
+        if(getIntBack()>0.1 && getIntLeft()>0.1 && getIntRight()>0.03){
+            return true;
+        }
+        else return false;
+    }
+
 
     public int getColor(NormalizedColorSensor colorSensor){
         // 0 = no ball, 1 = green, 2 = purple
@@ -147,6 +179,7 @@ public class ColorSensors_New {
 
         return 0;
     }
+
 
     public int getBack(){
         int verdict1, verdict2;

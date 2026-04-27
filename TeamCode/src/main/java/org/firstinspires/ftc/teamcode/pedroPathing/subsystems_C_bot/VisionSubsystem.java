@@ -86,9 +86,6 @@ public class VisionSubsystem {
     public void update() {
         if (rampScanning) {
             rampVotes.add(ballProcessor.getTotalBalls());
-            if (rampScanTimer.checkAtSeconds(1.0)) {
-                finishRampScan();
-            }
         }
     }
 
@@ -97,10 +94,10 @@ public class VisionSubsystem {
         rampVotes.clear();
         rampBallVerdict = -1;
         setBallProcessorEnabled(true);
-        rampScanTimer.startTimer();
+//        rampScanTimer.startTimer();
     }
 
-    private void finishRampScan() {
+    public void finishRampScan() {
         rampScanning = false;
         setBallProcessorEnabled(false);
         if (!rampVotes.isEmpty()) {
@@ -275,7 +272,8 @@ public class VisionSubsystem {
                 detections.clear();
                 detections.addAll(newDetections);
             }
-            rotated.copyTo(frame);
+            //rotated.copyTo(frame);
+            crop.copyTo(frame);
             return frame;
         }
 

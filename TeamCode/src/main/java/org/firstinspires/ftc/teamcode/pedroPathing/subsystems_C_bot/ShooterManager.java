@@ -12,6 +12,10 @@ public class ShooterManager {
     private int shooterSequence = 0;
     private double shootInterval = 0.35;
     private String sequence = "rbl";
+    private boolean motifShot=false;
+    public void setMotifShot(boolean m){
+        motifShot = m;
+    }
     
     public int firstShot, secondShot, thirdShot;
 
@@ -27,17 +31,22 @@ public class ShooterManager {
     }
     
     public void updateTarget(double distance, boolean shootingTest, double manualVelo) {
-        if (distance > 125) {
-            shootInterval = 0.25;
-        } else {
-            shootInterval = 0.2;
+        if(!motifShot) {
+            if (distance > 125) {
+                shootInterval = 0.25;
+            } else {
+                shootInterval = 0.2;
+            }
         }
+        else shootInterval = .6;
 //        shootInterval = 0.2;
 
         if (shootingTest) {
             depo.setTargetVelocity(manualVelo);
         } else {
-            depo.setTargetVelocity(reg.distanceToVelo(distance));
+            if(shooting) {
+                depo.setTargetVelocity(reg.distanceToVelo(distance));
+            }
             lift.set_angle_custom(reg.distanceToAngle(distance));
         }
     }
@@ -112,6 +121,7 @@ public class ShooterManager {
             depo.setTargetVelocity(0);
             timer.stopTimer();
             shooterSequence = 0;
+            motifShot = false;
         }
     }
 
@@ -133,6 +143,7 @@ public class ShooterManager {
             depo.setTargetVelocity(0);
             timer.stopTimer();
             shooterSequence = 0;
+            motifShot = false;
         }
     }
 
@@ -154,6 +165,7 @@ public class ShooterManager {
             depo.setTargetVelocity(0);
             timer.stopTimer();
             shooterSequence = 0;
+            motifShot = false;
         }
     }
 }

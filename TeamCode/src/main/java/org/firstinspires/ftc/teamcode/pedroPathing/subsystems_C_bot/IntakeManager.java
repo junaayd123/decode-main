@@ -13,13 +13,15 @@ public class IntakeManager {
     private ColorSensors_New sensors;
     private Timer reverseTimer;
     private Timer jamCheckTimer;
+    private Timer waitTimer;
     private Timer startupIgnoreTimer; // ✅ NEW: Ignore current spikes during motor startup
 
     private enum IntakeState {
         IDLE,
         COLLECTING,
         REVERSING,
-        JAM_RECOVERY
+        JAM_RECOVERY,
+        WAIT
     }
 
     private IntakeState currentState = IntakeState.IDLE;
@@ -59,6 +61,7 @@ public class IntakeManager {
         jamCheckTimer = new Timer();
         startupIgnoreTimer = new Timer();
         highCurrentTimer = new Timer();
+        waitTimer = new Timer();
         highCurrentTimerActive = false;
     }
 
@@ -85,14 +88,22 @@ public class IntakeManager {
                 break;
 
             case COLLECTING:
-                if (isIntakeFull()) {
+                if (sensors.isFullIntensity()) {
                     consecutiveFullReadings++;
                     if (consecutiveFullReadings >= FULL_THRESHOLD) {
-                        startReverse();
+                        waitTimer.startTimer();
+                        currentState = IntakeState.WAIT;
                     }
                 } else {
                     consecutiveFullReadings = 0;
                 }
+                break;
+            case WAIT:
+                if(waitTimer.checkAtSecondsOpenEnd(0.1)){
+                    waitTimer.stopTimer();
+                    startReverse();
+                }
+
                 break;
 
             case REVERSING:
