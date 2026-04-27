@@ -86,7 +86,7 @@ public class closered15 extends OpMode {
     private final Pose midpoint1 = new Pose(9, 48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(53.3, 56.75, Math.toRadians(34.5));
+    private final Pose infront_of_lever_new = new Pose(54, 56.75, Math.toRadians(34.5));
     private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));

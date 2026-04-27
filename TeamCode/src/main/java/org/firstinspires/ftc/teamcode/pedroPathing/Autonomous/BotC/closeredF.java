@@ -286,7 +286,6 @@ public class closeredF extends OpMode {
 
             case 2:
                 if (actionState == 0) {
-                    turret.setDegreesTarget(-15);
                     setPathState(3);
                 }
                 break;
@@ -301,6 +300,7 @@ public class closeredF extends OpMode {
             case 4:
                 if (!follower.isBusy()) {
                     LL.set_angle_close();
+                    turret.setDegreesTarget(-15);
                     depo.setTargetVelocity(depo.closeVelo_New_auto);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
