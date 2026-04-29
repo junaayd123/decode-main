@@ -123,7 +123,7 @@ public class lifters {
     public void set_angle_mid(){launchAngleServo.setPosition(0.1);}
     public void set_angle_close2(){launchAngleServo.setPosition(0.11);}
     public void set_camera_tag_pos(){camera.setPosition(0.36);}
-    public void set_camera_ramp_pos(){camera.setPosition(0.24);}
+    public void set_camera_ramp_pos(){camera.setPosition(0.27);}
     public void set_camera_obelisk_pos(){camera.setPosition(0.24);}
 
     public void allDown(){

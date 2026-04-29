@@ -98,6 +98,7 @@ public class excess_farred_hough extends OpMode {
     private String detectedMotif = "";
     private boolean motifLocked = false;
     private int motifDetectionCount = 0;
+    private int intakeThreshhold = 0;
     private static final int MOTIF_DETECTION_THRESHOLD = 3;
 
     // ========== CONSTANTS ==========
@@ -126,14 +127,14 @@ public class excess_farred_hough extends OpMode {
 
     // ========== POSES (far shot family from state_farredoptimized) ==========
     private final Pose startPose           = new Pose(7 + 6.5, 7,    Math.toRadians(0));
-    private final Pose farshotpose         = new Pose(12,      17,   Math.toRadians(0));
-    private final Pose leavePose           = new Pose(18,      20,   Math.toRadians(0));
+    private final Pose farshotpose         = new Pose(17,      17,   Math.toRadians(0));
+    private final Pose leavePose           = new Pose(25,      20,   Math.toRadians(0));
     private final Pose ThirdPickupPose     = new Pose(60,      35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      38,   Math.toRadians(0));
 
     // Excess area poses from scenariofarred
-    private final Pose excessBallArea          = new Pose(68,  30,  Math.toRadians(-90));
-    private final Pose excessBallAreaStrafeEnd = new Pose(68,  9.8, Math.toRadians(-90));
+    private final Pose excessBallArea          = new Pose(66,  30,  Math.toRadians(-90));
+    private final Pose excessBallAreaStrafeEnd = new Pose(66,  9.8, Math.toRadians(-90));
     private final Pose gateCollectDeepPose     = new Pose(74,  49,  Math.toRadians(85));  // actual collect position
 
     // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
@@ -585,20 +586,35 @@ public class excess_farred_hough extends OpMode {
             // ===== GATE COLLECT → RETURN → SHOOT =====
             case 521: // Wait at deep collection position
                 intake.setPower(-1);
+                intensitySensors.update();
+                if (intakeThreshhold>=2) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(53);
+                    intakeThreshhold = 0;
+                }
+                if (intensitySensors.isFullRaw()) {
+                    intakeThreshhold+=1;
+                }
                 if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 2.0) {
                     ballCount = 3;
                     actionTimer.resetTimer();
                     setPathState(522);
+                    intakeThreshhold = 0;
                 }
                 break;
 
             case 522: // Hold at collection point — sensor-based early exit
                 intake.setPower(-1);
                 intensitySensors.update();
-                if (intensitySensors.isFullRaw()) {
+                if (intakeThreshhold>=2) {
                     intake.setPower(1);
                     actionTimer.resetTimer();
-                    setPathState(523);
+                    setPathState(53);
+                    intakeThreshhold = 0;
+                }
+                if (intensitySensors.isFullRaw()) {
+                    intakeThreshhold+=1;
                 } else if (actionTimer.getElapsedTimeSeconds() >= GATE_COLLECT_WAIT) {
                     setPathState(53);
                 }

@@ -148,17 +148,67 @@ public class ColorSensors_Intensity {
         return stickyFull || (recentFull && anyNow);
     }
 
+    private final float BLUE_GREEN_RATIO_GREEN_MAX = 0.70f;
+    private final float BLUE_GREEN_RATIO_PURPLE_MIN = 1.00f;
+    private final float BLUE_GREEN_RATIO_NO_BALL_MIN = 0.78f;
+    private final float BLUE_GREEN_RATIO_NO_BALL_MAX = 0.96f;
+    private final float BLUE_RED_RATIO_NO_BALL_MIN = 0.95f;
+    private final float BLUE_RED_RATIO_NO_BALL_MAX = 1.15f;
+
+    public int determineColor(NormalizedColorSensor colorSensor) {
+        // 0 = no ball, 1 = green, 2 = purple
+        if (!detectBallInstant(colorSensor)) {
+            return 0;
+        }
+
+        NormalizedRGBA colors = colorSensor.getNormalizedColors();
+        float red = colors.red;
+        float green = colors.green;
+        float blue = colors.blue;
+
+        float blueGreenRatio = (green > 0.001f) ? (blue / green) : 0f;
+        float blueRedRatio = (red > 0.001f) ? (blue / red) : 0f;
+
+        if (blueGreenRatio >= BLUE_GREEN_RATIO_NO_BALL_MIN &&
+                blueGreenRatio <= BLUE_GREEN_RATIO_NO_BALL_MAX &&
+                blueRedRatio >= BLUE_RED_RATIO_NO_BALL_MIN &&
+                blueRedRatio <= BLUE_RED_RATIO_NO_BALL_MAX) {
+            return 0;
+        }
+
+        if (blueGreenRatio < BLUE_GREEN_RATIO_GREEN_MAX) {
+            return 1;
+        } else if (blueGreenRatio >= BLUE_GREEN_RATIO_PURPLE_MIN) {
+            return 2;
+        } else {
+            if (blueRedRatio < 0.9 || blueRedRatio > 1.2) {
+                return 2;
+            } else {
+                return 0;
+            }
+        }
+    }
+
     // Slot format matches existing pattern: 0 = no ball, 1 = ball present.
     public int getRight() {
-        return rightHasBall() ? 1 : 0;
+        if (!rightHasBall()) return 0;
+        int color1 = determineColor(SensorRight);
+        int color2 = determineColor(SensorRight2);
+        return (color1 != 0) ? color1 : color2;
     }
 
     public int getBack() {
-        return backHasBall() ? 1 : 0;
+        if (!backHasBall()) return 0;
+        int color1 = determineColor(SensorBack);
+        int color2 = determineColor(SensorBack2);
+        return (color1 != 0) ? color1 : color2;
     }
 
     public int getLeft() {
-        return leftHasBall() ? 1 : 0;
+        if (!leftHasBall()) return 0;
+        int color1 = determineColor(SensorLeft);
+        int color2 = determineColor(SensorLeft2);
+        return (color1 != 0) ? color1 : color2;
     }
 
     public int getRightRaw() {

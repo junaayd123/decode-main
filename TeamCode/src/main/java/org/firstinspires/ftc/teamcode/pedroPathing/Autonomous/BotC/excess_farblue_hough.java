@@ -23,7 +23,6 @@ import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
 import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
-import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.regressions;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.VisionProcessor;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
@@ -116,7 +115,7 @@ public class excess_farblue_hough extends OpMode {
     private static final int SCAN_MIN_HOUGH_SAMPLES = 1;
     private static final double TURRET_OFFSET = -12;
     private static final double TURRET_DETECT_DEGREES = 10;
-    private static final double GATE_COLLECT_X = 74.0;
+    private static final double GATE_COLLECT_X = 68.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(-85);
 
     // Sinusoidal regression copied from red and mirrored for blue output.
@@ -127,14 +126,14 @@ public class excess_farblue_hough extends OpMode {
 
     // ========== POSES (far shot family from state_farblueoptimized) ==========
     private final Pose startPose           = new Pose(7 + 6.5, -7,    Math.toRadians(0));
-    private final Pose farshotpose         = new Pose(12,      -17,   Math.toRadians(0));
-    private final Pose leavePose           = new Pose(18,      -20,   Math.toRadians(0));
+    private final Pose farshotpose         = new Pose(17,      -17,   Math.toRadians(0));
+    private final Pose leavePose           = new Pose(25,      -20,   Math.toRadians(0));
     private final Pose ThirdPickupPose     = new Pose(60,      -35,   Math.toRadians(0));
     private final Pose midpoint2           = new Pose(8,      -38,   Math.toRadians(0));
 
     // Excess area poses from scenariofarblue
-    private final Pose excessBallArea          = new Pose(77,  -35,  Math.toRadians(90));
-    private final Pose excessBallAreaStrafeEnd = new Pose(76,  -9, Math.toRadians(90));
+    private final Pose excessBallArea          = new Pose(68,  -35,  Math.toRadians(90));
+    private final Pose excessBallAreaStrafeEnd = new Pose(68,  -9, Math.toRadians(90));
     private final Pose gateCollectDeepPose     = new Pose(75,  -49,  Math.toRadians(-85));  // actual collect position
 
     // HP collect poses (post-detection branch — duplicated from excess for independent tuning)
@@ -146,7 +145,10 @@ public class excess_farblue_hough extends OpMode {
     private PathChain goBackPath;
     private PathChain leavePath;
     private PathChain excessPath;
-    private double turret_2ndshot = 72;
+    private double turret_2ndshot = 70;
+    private double turret_1stshot = 70;
+    private double turret_excess_shot = 70;
+
     private PathChain excessPathStrafe;
     private PathChain gateDeepCollectPath;
     private PathChain hpPath;
@@ -224,7 +226,7 @@ public class excess_farblue_hough extends OpMode {
             telemetry.addLine("✓ Locked motif: " + motif);
         }
 
-        turret.setDegreesTarget(75 + TURRET_OFFSET);
+        turret.setDegreesTarget(turret_1stshot + TURRET_OFFSET);
         turret.setPid();
 
         shotCycleCount    = 0;
@@ -519,6 +521,7 @@ public class excess_farblue_hough extends OpMode {
                 break;
 
             case 35: // Settle before excess shot
+                turret.setDegreesTarget(turret_2ndshot + TURRET_OFFSET);
                 depo.updatePID();
                 if (actionTimer.getElapsedTimeSeconds() > SETTLE_TIME) {
                     setActionState(1);
@@ -568,7 +571,7 @@ public class excess_farblue_hough extends OpMode {
                     if (scanHoughSamples >= SCAN_MIN_HOUGH_SAMPLES) {
                         dynamicGateY = computeGateYFromRawX(scanHoughXBest);
                         intake.setPower(-1);
-                        buildGateDeepCollectPath();
+                        buildGateDeepCollectPath();//blob excess
                         follower.followPath(gateDeepCollectPath, true);
                         excessPathTimeoutTimer.resetTimer();
                         setPathState(521);
@@ -587,7 +590,13 @@ public class excess_farblue_hough extends OpMode {
 
             case 521: // Wait at deep collection position
                 intake.setPower(-1);
-                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 2.0) {
+                intensitySensors.update();
+                if (intensitySensors.isFullRaw()) {
+                    intake.setPower(1);
+                    actionTimer.resetTimer();
+                    setPathState(53);
+                }
+                if (!follower.isBusy() || excessPathTimeoutTimer.getElapsedTimeSeconds() > 1.8) {  // 1.8 chjange dfrom 2.0
                     ballCount = 3;
                     actionTimer.resetTimer();
                     setPathState(522);
@@ -600,7 +609,7 @@ public class excess_farblue_hough extends OpMode {
                 if (intensitySensors.isFullRaw()) {
                     intake.setPower(1);
                     actionTimer.resetTimer();
-                    setPathState(523);
+                    setPathState(53);
                 } else if (actionTimer.getElapsedTimeSeconds() >= GATE_COLLECT_WAIT) {
                     setPathState(53);
                 }
@@ -615,7 +624,7 @@ public class excess_farblue_hough extends OpMode {
 
             case 53: // Drive back to far shooting pose from gate
                 intake.setPower(1);
-                turret.setDegreesTarget(turret_2ndshot + TURRET_OFFSET);
+                turret.setDegreesTarget(turret_excess_shot + TURRET_OFFSET);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(54);
@@ -716,7 +725,7 @@ public class excess_farblue_hough extends OpMode {
 
             case 63: // Drive back to far shooting pose from HP
                 intake.setPower(1);
-                turret.setDegreesTarget(turret_2ndshot + TURRET_OFFSET);
+                turret.setDegreesTarget(turret_excess_shot + TURRET_OFFSET);
                 buildReturnToShootingPath();
                 follower.followPath(goBackPath, true);
                 setPathState(64);
