@@ -25,6 +25,23 @@ public class regressions {
             }
         }
     }
+    public int distanceToVeloBlue(double dist) {
+        //https://www.desmos.com/calculator/nxghj961jg
+        if(RobY==0) {
+            if (dist < 125) { //close
+                return (int) (7.3355 * dist + 1038.2+20);
+            } else {
+                return (int) (9.36897 * dist + 771.99703-20);
+            }
+        }
+        else{
+            if (RobY > 55) { //close
+                return (int) (7.3355 * dist + 1038.2+20);
+            } else {
+                return (int) (9.36897 * dist + 771.99703-20);
+            }
+        }
+    }
 
     public double distanceToAngle(double dist) {
         if (RobY == 0) {
@@ -51,7 +68,7 @@ public class regressions {
         return Xreg + Yreg+Hreg;
     }
     public double getBlueTurretFar(double X, double Y) {
-        double Xreg = -0.484121 * X - 115;
+        double Xreg = -0.484121 * X - 121;
         double Yreg = -0.112277 * Y - 1.22382;
         return Xreg + Yreg;
     }

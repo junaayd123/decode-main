@@ -107,7 +107,7 @@ public class BotCTeleop_BlueNew extends OpMode {
     private boolean goingToGate     = false;
     private int rampFlag=0;
 
-    private final Pose redGoal      = new Pose(-64, 128, 0);
+    private final Pose redGoal      = new Pose(-61, 128, 0);
     private final Pose redGoalFixed = new Pose(-72, 144, 0);
     private final Pose rampPose     = new Pose(-72, 83, 0);
     private final Pose startPose    = new Pose(53, 70, 0);

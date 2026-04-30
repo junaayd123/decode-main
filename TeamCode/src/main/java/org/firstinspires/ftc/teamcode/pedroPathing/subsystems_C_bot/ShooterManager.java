@@ -9,6 +9,7 @@ public class ShooterManager {
     private Timer timer;
     
     private boolean shooting = false;
+    public boolean isBlue = false;
     private int shooterSequence = 0;
     private double shootInterval = 0.35;
     private String sequence = "rbl";
@@ -45,7 +46,12 @@ public class ShooterManager {
             depo.setTargetVelocity(manualVelo);
         } else {
             if(shooting) {
-                depo.setTargetVelocity(reg.distanceToVelo(distance));
+                if(isBlue){
+                    depo.setTargetVelocity(reg.distanceToVeloBlue(distance));
+                }
+                else {
+                    depo.setTargetVelocity(reg.distanceToVelo(distance));
+                }
             }
             lift.set_angle_custom(reg.distanceToAngle(distance));
         }
