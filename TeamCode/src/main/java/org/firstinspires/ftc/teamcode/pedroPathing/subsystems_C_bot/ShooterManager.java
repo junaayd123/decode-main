@@ -39,7 +39,7 @@ public class ShooterManager {
                 shootInterval = 0.2;
             }
         }
-        else shootInterval = .6;
+        else shootInterval = .5;
 //        shootInterval = 0.2;
 
         if (shootingTest) {

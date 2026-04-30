@@ -303,8 +303,8 @@ public class excess_farred_hough extends OpMode {
         for (AprilTagDetection detection : currentDetections) {
             if (detection.metadata != null && detection.metadata.name.contains("Obelisk")) {
                 if      (detection.id == 21) newMotif = "gpp";
-                else if (detection.id == 22) newMotif = "ppg";
-                else if (detection.id == 23) newMotif = "pgp";
+                else if (detection.id == 22) newMotif = "pgp";
+                else if (detection.id == 23) newMotif = "ppg";
 
                 if (!newMotif.isEmpty()) {
                     if (newMotif.equals(detectedMotif)) {

@@ -588,13 +588,14 @@ public class BotCTeleop_HeadingLock extends OpMode {
             }
         }
         if (gamepad2.triangleWasPressed()) {
-//            lift.allDown();
-//            if (!lift.checkNoBalls()) {
-//                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
-//                ballOnRamp  = 1;
-//                greenInSlot = getGreenPos();
-//                shooter.startShooting(motif, ballOnRamp, greenInSlot);
-//            }
+            lift.allDown();
+            if (!lift.checkNoBalls()) {
+                shooter.updateTarget(distanceToGoal, shootingTest, ourVelo);
+                ballOnRamp  = 0;
+                shooter.setMotifShot(true);
+                greenInSlot = getGreenPos();
+                shooter.startShooting(motif, ballOnRamp, greenInSlot);
+            }
         }
         if (gamepad2.circleWasPressed()) {
 //            lift.allDown();
