@@ -107,7 +107,7 @@ public class BotCTeleop_BlueNew extends OpMode {
     private boolean goingToGate     = false;
     private int rampFlag=0;
 
-    private final Pose redGoal      = new Pose(-61, 128, 0);
+    private final Pose redGoal      = new Pose(-64, 134, 0);
     private final Pose redGoalFixed = new Pose(-72, 144, 0);
     private final Pose rampPose     = new Pose(-72, 83, 0);
     private final Pose startPose    = new Pose(53, 70, 0);
@@ -144,6 +144,7 @@ public class BotCTeleop_BlueNew extends OpMode {
         led2 = hardwareMap.get(Servo.class, "led2");
 
         telemetryA = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
     }
 
     // -----------------------------------------------------------------------
@@ -167,6 +168,7 @@ public class BotCTeleop_BlueNew extends OpMode {
         lift.launchAngleServo.setPosition(0.04);
         lift.set_camera_tag_pos();
         motif = regressions.motif;
+        shooter.isBlue = true;
     }
 
     // -----------------------------------------------------------------------
@@ -554,13 +556,23 @@ public class BotCTeleop_BlueNew extends OpMode {
             else                          motif = "gpp";
         }
 
-        if (gamepad2.dpadLeftWasPressed()) {
+        if (gamepad2.dpadDownWasPressed()) {
             shooter.stop();
             intake.stop();
             rampFlag = 0;
             rampScanDelayTimer.stopTimer();
             mode = Mode.faceGoal;
         }
+        if (gamepad2.dpadLeftWasPressed()) {
+            reg.turretOffset-=0.5;
+        }
+        else if (gamepad2.dpadRightWasPressed()) {
+            reg.turretOffset+=0.5;
+        }
+        else if (gamepad2.dpadUpWasPressed()) {
+            reg.turretOffset=0;
+        }
+
 
         if (gamepad2.crossWasPressed()) {
             lift.allDown();

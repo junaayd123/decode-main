@@ -272,7 +272,7 @@ public class closeredF extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-65);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-80);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);

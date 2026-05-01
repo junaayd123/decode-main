@@ -273,7 +273,7 @@ public class closeblueF extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_autoBlue-100);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue-120);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -303,8 +303,8 @@ public class closeblueF extends OpMode {
             case 4:
                 if (!follower.isBusy()) {
                     LL.set_angle_close();
-                    turret.setDegreesTarget(4);
-                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue-30);
+                    turret.setDegreesTarget(2);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue-80);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -445,12 +445,12 @@ public class closeblueF extends OpMode {
             case 14:
                 LL.set_angle_close();
                 if (gateMode) {
-                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue - 80);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue - 120);
                     buildReturnToShootingLastGate();
                     turret.setDegreesTarget(-1);
                     follower.followPath(goBackPath1, true);
                 } else {
-                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue-10);
+                    depo.setTargetVelocity(depo.closeVelo_New_autoBlue-60);
                     buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                 }
@@ -505,7 +505,7 @@ public class closeblueF extends OpMode {
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_autoBlue - 120);
+                depo.setTargetVelocity(depo.closeVelo_New_autoBlue - 140);
                 buildReturnToShootingLast();
                 turret.setDegreesTarget(1.5);
                 follower.followPath(goBackPath2, true);

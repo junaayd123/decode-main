@@ -108,6 +108,7 @@ public class BotCTeleop_HeadingLock extends OpMode {
     private int rampFlag=0;
 
     private final Pose redGoal      = new Pose(60, 137, 0);
+    private final Pose backUp      = new Pose(36.5, 1, Math.toRadians(90));
     private final Pose redGoalFixed = new Pose(72, 144, 0);
     private final Pose rampPose     = new Pose(72, 83, 0);
     private final Pose startPose    = new Pose(53, 70, 0);
@@ -554,12 +555,21 @@ public class BotCTeleop_HeadingLock extends OpMode {
             else                          motif = "gpp";
         }
 
-        if (gamepad2.dpadLeftWasPressed()) {
+        if (gamepad2.dpadDownWasPressed()) {
             shooter.stop();
             intake.stop();
             rampFlag = 0;
             rampScanDelayTimer.stopTimer();
             mode = Mode.faceGoal;
+        }
+        if (gamepad2.dpadLeftWasPressed()) {
+            reg.turretOffset-=0.5;
+        }
+        else if (gamepad2.dpadRightWasPressed()) {
+            reg.turretOffset+=0.5;
+        }
+        else if (gamepad2.dpadUpWasPressed()) {
+            reg.turretOffset=0;
         }
 
         if (gamepad2.crossWasPressed()) {
@@ -611,7 +621,8 @@ public class BotCTeleop_HeadingLock extends OpMode {
             lift.set_angle_custom(reg.distanceToAngle(distanceToGoal));
         }
 
-        if (gamepad1.dpadUpWasPressed())   ourVelo += 20;
+//        if (gamepad1.dpadUpWasPressed())   ourVelo += 20;
+        if (gamepad1.dpadUpWasPressed())   follower.setPose(backUp);
         if (gamepad1.dpadDownWasPressed())  ourVelo -= 20;
     }
 
