@@ -115,6 +115,7 @@ public class excess_farred_hough extends OpMode {
     private static final int SCAN_MIN_SAMPLES = 3;
     private static final int SCAN_MIN_HOUGH_SAMPLES = 1;
     private static final double TURRET_OFFSET    = 4; // global offset applied to every turret angle
+    //
     private static final double TURRET_DETECT_DEGREES = -8;
     private static final double GATE_COLLECT_X = 74.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(85);

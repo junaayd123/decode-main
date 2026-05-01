@@ -69,6 +69,7 @@ public class regressions {
         return Xreg + Yreg+Hreg+turretOffset;
     }
     public double getBlueTurretFar(double X, double Y) {
+        //
         double Xreg = -0.484121 * X - 118;
         double Yreg = -0.112277 * Y - 1.22382;
         return Xreg + Yreg+turretOffset;

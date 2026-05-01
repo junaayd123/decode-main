@@ -96,7 +96,7 @@ public class closeblueF extends OpMode {
     private final Pose outfromgate = new Pose(50, -50, Math.toRadians(-42));
     private final Pose outfromgate1 = new Pose(50, -43, Math.toRadians(-42));
     private final Pose outPose = new Pose(30, -81.5, Math.toRadians(-34));
-
+//
 
     // ========== PATHS ==========
     private PathChain goBackPath;
