@@ -63,13 +63,13 @@ public class regressions {
     }
 
     public double getRedTurretFar(double X, double Y, double H) {
-        double Xreg = -0.484121 * X - 69-6;
+        double Xreg = -0.484121 * X - 67.5+4.5;
         double Yreg = 0.18 * Y - 1.22;
         double Hreg =  -0.0055555*3 * Math.abs(Math.toDegrees(H));
         return Xreg + Yreg+Hreg+turretOffset;
     }
     public double getBlueTurretFar(double X, double Y) {
-        double Xreg = -0.484121 * X - 124-1;
+        double Xreg = -0.484121 * X - 118;
         double Yreg = -0.112277 * Y - 1.22382;
         return Xreg + Yreg+turretOffset;
     }

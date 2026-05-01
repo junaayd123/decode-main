@@ -114,7 +114,7 @@ public class excess_farred_hough extends OpMode {
     private static final double DETECTION_WAIT = 1; // collect one detection window, then build/run immediately
     private static final int SCAN_MIN_SAMPLES = 3;
     private static final int SCAN_MIN_HOUGH_SAMPLES = 1;
-    private static final double TURRET_OFFSET       = -3; // global offset applied to every turret angle
+    private static final double TURRET_OFFSET    = 4; // global offset applied to every turret angle
     private static final double TURRET_DETECT_DEGREES = -8;
     private static final double GATE_COLLECT_X = 74.0;
     private static final double GATE_COLLECT_HEADING = Math.toRadians(85);
@@ -182,7 +182,7 @@ public class excess_farred_hough extends OpMode {
         stopShooter();
 
         turret.resetTurretEncoder();
-        turret.setDegreesTarget(-98 + TURRET_OFFSET);
+        turret.setDegreesTarget(-98);
 
         if (camTilt != null) camTilt.setPosition(0.24);
 

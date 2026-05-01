@@ -44,7 +44,7 @@ public class RegressionCalibration extends OpMode {
     private double totalHedOffset;
     private double speed = 1.0;
     private boolean tagInitializing = false;
-    
+
     // Goals
     private Pose redGoal = new Pose(62, 137, 0); // Modifiable via G2 Dpad for Turret Alignment
     private final Pose redGoalFixed = new Pose(72, 144, 0); // Fixed for Distance Calculation
@@ -67,7 +67,7 @@ public class RegressionCalibration extends OpMode {
     public void init() {
         follower = C_Bot_Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
-        
+
         turret = new TurretLimelight(hardwareMap);
         lift = new lifters(hardwareMap);
         depo = new Deposition_C(hardwareMap);
@@ -78,7 +78,7 @@ public class RegressionCalibration extends OpMode {
 
         led = hardwareMap.get(Servo.class, "led");
         led2 = hardwareMap.get(Servo.class, "led2");
-        
+
         telemetry.addData("Status", "Initialized");
     }
 
@@ -97,7 +97,7 @@ public class RegressionCalibration extends OpMode {
         intake.update();
         turret.updateEncoderPos();
         follower.update();
-        
+
         Pose cur = follower.getPose();
         distanceToGoal = cur.distanceFrom(redGoalFixed);
 
@@ -175,9 +175,9 @@ public class RegressionCalibration extends OpMode {
             if (intake.isCollecting()) intake.stop();
             else intake.startCollecting();
         }
-        
+
         if (shooter.isShooting()) intake.stop();
-        
+
         if (gamepad2.left_bumper) intake.manualReverse();
         else if (!gamepad2.left_bumper && !intake.isCollecting() && !intake.isReversing()) intake.manualStop();
     }
@@ -186,7 +186,7 @@ public class RegressionCalibration extends OpMode {
         // Manual Velo Control (Gamepad 1 Dpad Up/Down)
         if (gamepad1.dpadUpWasPressed()) ourVelo += 20;
         if (gamepad1.dpadDownWasPressed()) ourVelo -= 20;
-        
+
         // Manual Angle Control (Gamepad 1 Dpad Left/Right)
         if (gamepad1.dpadRightWasPressed()) manualAngle += 0.01;
         if (gamepad1.dpadLeftWasPressed()) manualAngle -= 0.01;
@@ -305,7 +305,7 @@ public class RegressionCalibration extends OpMode {
         telemetry.addData("G2 Square", "LOG DATA POINT");
         telemetry.addData("G2 Circle", "STOP SHOOTER");
         telemetry.addData("G2 Cross", "SHOOT MANUAL");
-        
+
         telemetry.addLine("\n--- REGRESSIONS ---");
         telemetry.addData("Points Saved", dataPoints.size());
         telemetry.addLine(veloRegString);

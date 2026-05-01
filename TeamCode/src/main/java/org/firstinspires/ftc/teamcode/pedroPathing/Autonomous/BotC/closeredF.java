@@ -76,9 +76,9 @@ public class closeredF extends OpMode {
     private static final int TOTAL_GATE_CYCLES_GATE = 3;
 
     // ========== CONSTANTS ==========
-    private static final double GATE_WAIT_TIME_FIRST = 1.25;
-    private static final double GATE_WAIT_TIME_LATER = 0.575;
-    private static final double SETTLE_TIME = 0.05;
+    private static final double GATE_WAIT_TIME_FIRST = 0.5;
+    private static final double GATE_WAIT_TIME_LATER = 0.4;
+    private static final double SETTLE_TIME = 0.015;
     private static final double SPIT_DURATION_SEC = 0.25;
 
     // ========== POSES ==========
@@ -92,8 +92,8 @@ public class closeredF extends OpMode {
     private final Pose midpoint1 = new Pose(9, 48, Math.toRadians(0));
     private final Pose midpoint2 = new Pose(10, 68, Math.toRadians(0));
     private final Pose secondpickuppose = new Pose(51.5, 55.5, Math.toRadians(0));
-    private final Pose infront_of_lever_new = new Pose(53.3, 56.75, Math.toRadians(34.5));
-    private final Pose back_lever = new Pose(54.3, 49.3, Math.toRadians(37.5));
+    private final Pose infront_of_lever_new = new Pose(54.5, 57, Math.toRadians(34.5));
+    private final Pose back_lever = new Pose(54.3, 52, Math.toRadians(36.5));
     private final Pose outfromgate = new Pose(50, 48, Math.toRadians(42));
     private final Pose outfromgate1 = new Pose(50, 43, Math.toRadians(42));
     private final Pose outPose = new Pose(21, 81.5, Math.toRadians(34));
@@ -272,7 +272,7 @@ public class closeredF extends OpMode {
         switch (pathState) {
             case 0:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-80);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-120);
                 buildGoBackPath();
                 follower.followPath(goBackPath, true);
                 setPathState(1);
@@ -303,7 +303,7 @@ public class closeredF extends OpMode {
                 if (!follower.isBusy()) {
                     LL.set_angle_close();
                     turret.setDegreesTarget(-15);
-                    depo.setTargetVelocity(depo.closeVelo_New_auto);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto-80);
                     follower.followPath(bezierSecondPath, true);
                     setPathState(5);
                 }
@@ -357,7 +357,7 @@ public class closeredF extends OpMode {
                 break;
 
             case 102: // does the 2nd path of moving back
-                depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
+                depo.setTargetVelocity(depo.closeVelo_New_auto);
                 depo.updatePID();
                 if (!follower.isBusy() || pathTimer.getElapsedTimeSeconds() > 3.5) {
                     actionTimer.resetTimer();
@@ -444,12 +444,12 @@ public class closeredF extends OpMode {
             case 14:
                 LL.set_angle_close();
                 if (gateMode) {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto - 80);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto - 140);
                     turret.setDegreesTarget(63);
                     buildReturnToShootingLastGate();
                     follower.followPath(goBackPath1, true);
                 } else {
-                    depo.setTargetVelocity(depo.closeVelo_New_auto + 50);
+                    depo.setTargetVelocity(depo.closeVelo_New_auto -60);
                     buildReturnToShootingPath();
                     follower.followPath(goBackPath, true);
                 }
@@ -489,7 +489,7 @@ public class closeredF extends OpMode {
             case 20:
                 intake.setPower(-1);
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-140);
                 buildThirdLinePickupPath();
                 follower.followPath(thirdLinePickupPath, true);
                 setPathState(21);
@@ -508,7 +508,7 @@ public class closeredF extends OpMode {
 
             case 22:
                 LL.set_angle_close();
-                depo.setTargetVelocity(depo.closeVelo_New_auto-80);
+                depo.setTargetVelocity(depo.closeVelo_New_auto-140);
                 buildReturnToShootingLast();
                 turret.setDegreesTarget(63);
                 follower.followPath(goBackPath2, true);
