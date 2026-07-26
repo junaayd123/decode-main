@@ -1,0 +1,732 @@
+package org.firstinspires.ftc.teamcode.pedroPathing.teleOp;
+
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.paths.PathBuilder;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_A_bot.Timer;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.C_Bot_Constants;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.Deposition_C;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.TurretLimelight;
+import org.firstinspires.ftc.teamcode.pedroPathing.subsystems_C_bot.lifters;
+
+@TeleOp(name = "OFSWB TeleOp", group = "A_TeleOp")
+public class OFSWBteleOp extends OpMode {
+    private boolean aligning = false;
+    private boolean aligning2 = false;
+    private boolean alignForFar = false;
+    private boolean goingToGate = false;
+    private double distanceToGoal;
+    // Coordinates of red/blue speaker tags (meters)
+
+    private boolean bluealliance = false;
+    private boolean blueStartPose = false;
+    private double desiredHeading = 0;
+    String motif = "gpp";
+    String sequence = "rbl";
+    int ballOnRamp;
+
+    int[] ballsInRobot = {0,0,0};
+    int greenInSlot;//0 if in left, 1 if right, 2 if back
+    private DcMotor intake = null;
+    private Deposition_C depo;
+    boolean shootingTest =false;
+    boolean intakeRunning;
+    int firstShot, secondShot, thirdShot;
+    Servo led;
+    Servo led2;
+    int lastShotSlot = -1; // 0 = Left, 1 = Right, 2 = Back, -1 = none
+    private lifters LL;
+    boolean direction = false; //false if intake is forward, true if depo;
+    double speed;
+    Timer timer1;
+    Timer timersecondshot;
+    Timer timer3;
+    Timer timerthirdshot;
+    Timer timerfirstshot;
+    double ourVelo = 1300;
+    double hoodAngle = 0.09; // constant hood/launch angle, no longer distance-based
+    double manualTurretDegrees = 0; // manual turret target, driven by gamepad2 dpad left/right
+    boolean shooting = false;
+    double shootinterval = 0.35;
+    int shooterSequence;
+    int shooterSequenceFar;
+    double timeOfSecondShot;
+
+    Gamepad g1= new Gamepad();
+    Gamepad preG2= new Gamepad();
+    Gamepad preG1 = new Gamepad();
+    Gamepad g2= new Gamepad();
+    TurretLimelight turret;
+//    boolean alignToTags;
+
+    private Follower follower;
+
+    private final Pose startPose = new Pose(53,70,0); //red
+    private final Pose blueGoal = new Pose(-72,140,0);
+    private final Pose redGoal = new Pose(62,137,0);//used for close turret aim
+    private final Pose redGoalFixed = new Pose(72,144,0);//used to calculate distance
+    private final Pose blueGoalfar = new Pose(-69,144,0);
+    private final Pose redGoalfar = new Pose(62,140,0);//used for far turret aim
+    private final Pose gatePose = new Pose(62, 62, 34);
+
+    double headingTotag;
+    boolean flywheelEarlyStart;
+    private boolean frozen = false;
+    private Pose holdPose;
+    private Pose savedGatePose = null;
+    @Override
+    public void init() {
+        turret = new TurretLimelight(hardwareMap);
+        LL = new lifters(hardwareMap);
+        depo = new Deposition_C(hardwareMap);
+        intake = hardwareMap.get(DcMotor.class, "intake");
+        follower = C_Bot_Constants.createFollower(hardwareMap);
+        follower.setStartingPose(startPose);
+        g1.copy(gamepad1);
+        g2.copy(gamepad2);
+        timer1 = new Timer();
+        timersecondshot = new Timer();
+        timer3 = new Timer();
+        timerthirdshot = new Timer();
+        timerfirstshot = new Timer();
+        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        depo.right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        led = hardwareMap.get(Servo.class, "led");
+        led2 = hardwareMap.get(Servo.class, "led2");
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+    }
+    @Override
+    public void start(){
+        follower.startTeleopDrive();
+        depo.setTargetVelocity(0);
+        LL.allDown();
+        LL.set_angle_min();
+        timer1.resetTimer();
+        timersecondshot.resetTimer();
+        timer3.resetTimer();
+        timerthirdshot.resetTimer();
+        timerfirstshot.resetTimer();
+//        tagInitializing = true;
+    }
+
+    @Override
+    public void loop() {
+        Pose cur = follower.getPose();
+        preG1.copy(g1);
+        preG2.copy(g2);
+        g1.copy(gamepad1);
+        g2.copy(gamepad2);
+        depo.updatePID();
+//        if(g1.psWasPressed()){
+//            bluealliance = !bluealliance;
+//            if(bluealliance) turret.setBlueAlliance();
+//            else turret.setRedAlliance();
+//        }
+        follower.getTotalHeading();
+//        if(g1.ps && g1.startWasPressed()){//invert pose
+//            Pose invert = new Pose(-cur.getX(),cur.getY(),cur.getHeading()+Math.toRadians(180));
+//            follower.setPose(invert);
+//            blueStartPose = !blueStartPose;
+//        }
+        turret.updateEncoderPos();
+        Pose targett2 = redGoalFixed; // still used below for distanceToGoal telemetry/shot calcs
+
+        if (gamepad2.rightBumperWasPressed()) {
+            LL.allDown();
+            if (intake.getPower() < -0.5) {
+                intake.setPower(0);
+                intakeRunning = false;
+            } else {
+                intake.setPower(-1);
+                intakeRunning = true;
+            }
+        }
+        if(shooting){
+            intake.setPower(0);
+            intakeRunning = false;
+        }
+
+        if (intakeRunning) {
+            led.setPosition(0.28);
+            led2.setPosition(0.28);
+            if (LL.sensors.getRight() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getLeft() != 0) {
+                timer3.startTimer();
+                intakeRunning = false;
+                led.setPosition(0.5);
+                led2.setPosition(0.5);
+            }
+        }
+        if(g2.left_bumper){
+            intake.setPower(1);
+        }
+        else if(!g2.left_bumper && !intakeRunning && !timer3.timerIsOn()){
+            intake.setPower(0);
+        }
+
+        reverseIntake();
+        if(g1.cross) speed = 0.3;
+        else speed = 1;
+        if(g2.triangle && !preG2.triangle){
+            shootingTest = !shootingTest;
+        }
+        if(g1.shareWasPressed()){
+            turret.resetTurretEncoder();
+        }
+        if(g2.psWasPressed()){
+            if(motif.equals("gpp")) motif = "pgp";
+            else if(motif.equals("pgp")) motif = "ppg";
+            else motif = "gpp";
+        }
+        if(g2.dpadLeftWasPressed()){
+            manualTurretDegrees -= 10; // 2 ticks per click, 10 degrees per tick
+        }
+        else if(g2.dpadRightWasPressed()){
+            manualTurretDegrees += 10; // 2 ticks per click, 10 degrees per tick
+        }
+        turret.toTargetInDegrees2(manualTurretDegrees); // manual turret control, no auto-aim
+        if(distanceToGoal>125) shootinterval = 0.43;
+//        else if (distanceToGoal<75){
+//            shootinterval = 0.25;
+//        }
+        else shootinterval = 0.2;
+        if(g2.cross && !preG2.cross){//shoot 3 close
+            LL.allDown();
+            if(!LL.checkNoBalls()) {
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    LL.set_angle_custom(hoodAngle);
+                }
+//                motif = "gpp";
+                ballOnRamp = 0;
+                greenInSlot = 0;
+                shooting = true;
+
+            }
+        }
+        if(!shootingTest){
+            if(shooting) depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+            LL.set_angle_custom(hoodAngle);
+            if(flywheelEarlyStart) {
+                if (LL.sensors.getLeft() != 0 && LL.sensors.getBack() != 0 && LL.sensors.getRight() != 0) {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                }
+                else if(!shooting && timer1.timerIsOff()){
+                    depo.setTargetVelocity(0);
+                }
+            }
+        }
+        if(g2.circleWasPressed()){
+            timer1.stopTimer();
+            intakeRunning = false;
+            shooting = false;
+            intake.setPower(0);
+            depo.setTargetVelocity(0);
+            LL.allDown();
+        }
+        if(g2.dpadUpWasPressed()){
+            hoodAngle += 0.01; // 1 tick per click
+        }
+        else if(g2.dpadDownWasPressed()){
+            hoodAngle -= 0.01; // 1 tick per click
+        }
+
+        if(g2.square && !preG2.square){//gpp
+            LL.allDown();
+            if(!LL.checkNoBalls()) {
+                if(shootingTest){
+                    depo.setTargetVelocity(ourVelo);
+                }
+                else {
+                    depo.setTargetVelocity(veloBasedOnDistance(distanceToGoal));
+                    LL.set_angle_custom(hoodAngle);
+                }
+                shooting = true;
+//                motif = "gpp";
+                ballOnRamp = 0;
+                greenInSlot = getGreenPos();
+                ballsInRobot[0] = LL.sensors.getLeft();
+                ballsInRobot[1] = LL.sensors.getRight();
+                ballsInRobot[2] = LL.sensors.getBack();
+
+            }
+        }
+        if (g1.circleWasPressed()) {
+            if (savedGatePose == null) {
+                // First press — save current position as gate
+                savedGatePose = new Pose(cur.getX(), cur.getY(), cur.getHeading());
+                // flash telemetry confirmation, control returns immediately
+            } else {
+                // Second press — path back to saved position
+                PathChain gateChain = follower.pathBuilder()
+                        .addPath(new BezierLine(cur, savedGatePose))
+                        .setLinearHeadingInterpolation(cur.getHeading(), savedGatePose.getHeading())
+                        .build();
+                follower.followPath(gateChain);
+                goingToGate = true;
+                aligning = true;
+            }
+        }
+
+// Resume teleop when path finishes
+        if (goingToGate && aligning && !follower.isBusy()) {
+            aligning = false;
+            goingToGate = false;
+            follower.startTeleopDrive();
+        }
+
+// Cancel with stick
+        if (goingToGate && aligning && follower.isBusy()) {
+            double stickMag = Math.hypot(gamepad1.left_stick_x, gamepad1.left_stick_y);
+            if (stickMag > 0.15 || Math.abs(gamepad1.right_stick_x) > 0.15) {
+                follower.breakFollowing();
+                aligning = false;
+                goingToGate = false;
+                follower.startTeleopDrive();
+            }
+        }
+
+        // SMALL TURN UNSTICKING ONLY FOR FACE-ALLIANCE LOGIC
+
+        followerstuff();
+        telemetry.addData("motif", motif);
+//        telemetry.addData("start pose Blue?", blueStartPose);
+        distanceToGoal = cur.distanceFrom(targett2);// used to be getDistance();
+        telemetry.addData("turret tick pos",turret.currentPos);
+        telemetry.addData("shooter sequence",shooterSequence);
+        telemetry.addData("actual depo velo",depo.getVelocity());
+        telemetry.addData("first shot velo",firstShot);
+        telemetry.addData("second shot",secondShot);
+        telemetry.addData("third shot",thirdShot);
+        telemetry.addLine(shootingTest ? "Testing shooting using cross":"regular teleOp shooting");
+        telemetry.addData("distance to goal",distanceToGoal);
+        telemetry.addData("target velocity", ourVelo);
+        telemetry.addData("shooting angle", LL.launchAngleServo.getPosition());
+        telemetry.addData("X", cur.getX());
+        telemetry.addData("y", cur.getY());
+        telemetry.addData("heading", Math.toDegrees(cur.getHeading()));
+        telemetry.addData("total heading", Math.toDegrees(follower.getTotalHeading()));
+        telemetry.addData("desired heading",Math.toDegrees(desiredHeading));
+        telemetry.addData("green in slot",greenInSlot);
+        telemetry.addLine(savedGatePose != null ?
+                "YES GATE (" + savedGatePose.getX() + ", " + savedGatePose.getY() + ")" : "NO GATE");
+//        telemetry.addData("left color",LL.sensors.getLeft());
+//        telemetry.addData("right color",LL.sensors.getRight());
+//        telemetry.addData("back color",LL.sensors.getBack());
+        if(depo.reachedTargetHighTolerance()){
+            if (shooting) {
+                timer1.startTimer();
+                shooting = false;
+            }
+        }
+        if(motif.equals("gpp")) {
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "lrb";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "rbl";
+            else sequence = "blr";
+        }
+        else if(motif.equals("pgp")){
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "blr";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "lrb";
+            else sequence = "rbl";
+        }
+        else{//ppg
+            if((ballOnRamp==0&&greenInSlot==0)||(ballOnRamp==1&&greenInSlot==2)||(ballOnRamp==2&&greenInSlot==1)) sequence = "rbl";
+            else if((ballOnRamp==0&&greenInSlot==1)||(ballOnRamp==1&&greenInSlot==0)||(ballOnRamp==2&&greenInSlot==2)) sequence = "blr";
+            else sequence = "lrb";
+        }
+//        if(distanceToGoal<125) {
+        if (sequence.equals("lrb")) LRBnoRecovery();
+        else if (sequence.equals("rbl")) RBLnoRecovery();
+        else BLRnoRecovery();
+//        }
+//        else LRBfar();
+        if(g1.dpad_up&& !preG1.dpad_up){
+            ourVelo+=20;
+        }
+        else if(g1.dpad_down&& !preG1.dpad_down){
+            ourVelo-=20;
+        }
+        if(g1.dpad_left&& !preG1.dpad_left){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()-0.01);
+        }
+        else if(g1.dpad_right&& !preG1.dpad_right){
+            LL.launchAngleServo.setPosition(LL.launchAngleServo.getPosition()+0.01);
+        }
+
+        // Telemetry
+
+        telemetry.update();
+    }
+    //    private void ledColorTime(double color, double sec){
+//        if(timer5.checkAtSeconds(0)){
+//            led.setPosition(color);
+//        }
+//        if(timer5.checkAtSeconds(sec)){
+//            led.setPosition(0);
+//            timer5.stopTimer();
+//        }
+//    }
+    //b
+    private int veloBasedOnDistance(double dist){
+        //https://www.desmos.com/calculator/nxghj961jg
+        //desmos table for the shooting velo
+        //x is distanceCM y1 is velo y2 is launch angle
+        //below is old stuff
+        if(dist<125){
+            return (int) (7.07643*dist+1142.07867);
+//            (8.21956*(dist+3)+1019.53588) before 2/18
+            //everything below was before for lmq
+//            if(dist<75){
+//                return (int) (4.16622*dist+875.18954); //today 875
+//            }
+//            else {
+////                return (int) (5.35158*dist+873.83526);//old stuff
+//                return (int) (4.16622*dist+915.18954); //today 915
+//            }
+//            return (int) (5.35158*dist+873.83526); before today
+        }//(3.69593*dist+960.60458); old
+        else
+            return (int)(4.49259*(dist)+1581.95157);
+        //below is at lmq
+//            return (int) (7.14286*dist+589.28571); //far
+//        if(!bluealliance) {
+//            if (dist < 60) return 1125; //close distance
+//            else if (dist < 70) return 1150;
+//            else if (dist < 75) return 1175;
+//            else if (dist < 80) return 1200;
+//            else if (dist < 87) return 1225;
+//            else if (dist < 110) return 1300;
+//            else if (dist > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
+//        else{
+//            if (dist+5 < 60) return 1125; //close distance
+//            else if (dist+5 < 70) return 1150;
+//            else if (dist+5 < 75) return 1175;
+//            else if (dist+5 < 80) return 1200;
+//            else if (dist+5 < 87) return 1225;
+//            else if (dist+5 < 110) return 1300;
+//            else if (dist+5 > 115 && dist < 150) return 1480;//far distance
+//            else return 0;//didnt localize the tag
+//        }
+    }
+    private double angleBasedOnDistance(double dist){
+//        if(dist<70) return 0.06; //close distance
+//        else if(dist<87) return 0.09; //close distance
+//        else if(dist<110) return 0.12; //close distance
+//        else if(dist>115 && dist<150) return 0.18;//far distance
+//        else return 0.06; //this shouldnt happen but 0.06 is a safe backup
+        if (dist>125) return LL.farShotPos;//far
+        else{
+            if(dist<100) return 0.00194321*dist-0.0088222;
+            else return 0.00194321*dist-0.0188222;
+//            if(dist<117){
+//                return -0.0000249359*Math.pow(dist,2)+0.00605204*dist-0.178503;
+//            }
+//            else{
+//
+//            }
+//            return (0.00218724*dist-0.0581913);
+//            (0.00218724*dist-0.0581913) //before 2/18
+            //everything below was for lmq
+//            if(dist<75){
+//                return 0.00180592*dist-0.0205829;//works for very close
+//            }
+//            else{
+//                return 0.00180592*dist-0.0005829;//works for very close
+//            }
+
+//            if(dist<58) return 0.06;
+//            else if(dist<70) return 0.09;
+//            else if(dist<94) return 0.12;
+//            else return 0.15;
+        }
+        //old 0.00132566*dist+0.00291356
+    }
+    private void reverseIntake() {
+        if (timer3.checkAtSeconds(0)) {
+            intake.setPower(1);
+        }
+        if (timer3.checkAtSeconds(0.5)) {
+            intake.setPower(0);
+            timer3.stopTimer();
+        }
+    }
+
+    // ---------- DRIVE TO RED OR BLUE SHOOTING POSE ----------
+
+    private void followerstuff() {
+        follower.update();
+//        telemetry.addData("FollowerBusy", follower.isBusy());
+//        telemetry.addData("AligningFlag", aligning);
+//
+//        // ONLY exit aligning when Pedro says it's done (NO tolerance here)
+//        if (!follower.isBusy() && aligning2) {
+//            follower.startTeleopDrive();
+//            aligning2 = false;
+//            telemetry.addData("AlignStatus", "Finished - teleop re-enabled");
+//        } else if (aligning) {
+//            telemetry.addData("AlignStatus", "Running");
+//        }
+
+        // Manual drive ONLY when idle AND NOT aligning
+        if (!follower.isBusy() && !aligning) {
+            if(direction) {
+//                led.setPosition(0.388);
+                follower.setTeleOpDrive( gamepad1.left_stick_y*speed, (gamepad1.right_trigger - gamepad1.left_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+            }
+            else {
+//                led.setPosition(0);
+                follower.setTeleOpDrive( -gamepad1.left_stick_y*speed, (gamepad1.left_trigger - gamepad1.right_trigger)*speed, -gamepad1.right_stick_x*speed, true );
+            }
+        }
+    }
+
+
+
+
+
+    private int getGreenPos(){
+        int pos;
+        pos = LL.sensors.getLeft();
+        if(pos==1) return 0;
+        else{
+            pos = LL.sensors.getRight();
+            if(pos==1) return 2;
+            else return 1;
+        }
+    }
+    private void LRBnoRecovery(){
+        if (timer1.checkAtSeconds(0)) {
+            firstShot = (int) depo.getVelocity();
+            LL.leftUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            secondShot = (int) depo.getVelocity();
+            LL.allDown();
+            LL.rightUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            thirdShot= (int) depo.getVelocity();
+            LL.allDown();
+            LL.backUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(shootinterval*3+0.25) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }private void LRBfar(){
+        if (timer1.checkAtSeconds(0)) {
+            LL.leftUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            LL.allDown();
+            LL.rightUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(0.7) && shooterSequence==2){
+            LL.allDown();
+            LL.backUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(1.1) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void BLRnoRecovery(){
+        if (timer1.checkAtSeconds(0)) {
+            LL.backUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            LL.allDown();
+            LL.leftUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            LL.allDown();
+            LL.rightUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+    private void RBLnoRecovery(){
+        if (timer1.checkAtSeconds(0)) {
+            LL.rightUp();
+            shooterSequence = 1;
+        }
+        if(timer1.checkAtSeconds(shootinterval) && shooterSequence==1){
+            LL.allDown();
+            LL.backUp();
+            shooterSequence = 2;
+        }
+        if(timer1.checkAtSeconds(shootinterval*2) && shooterSequence==2){
+            LL.allDown();
+            LL.leftUp();
+            shooterSequence = 3;
+        }
+        if(timer1.checkAtSeconds(shootinterval*3) && shooterSequence==3){
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+        }
+    }
+
+    private void shootLRB() {//shoots in left right back order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.leftUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+        }
+
+        // Shot 2
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.rightUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+        }
+
+        // Shot 3
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.backUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+        }
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+            lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
+        }
+    }
+    private void shootBLR(){//shoots in back left right order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.backUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+        }
+
+        // Shot 2
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.leftUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+        }
+
+        // Shot 3
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.rightUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+        }
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+            lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
+        }
+    }
+    private void shootRBL(){//shoots in right back left order
+//        if (lastShotSlot == -1) return; // nothing scheduled
+
+        if (timer1.checkAtSeconds(0)) { //this executes when depo reached target so timer just started and we can fire the first shot
+//            fireShotFromSlot(lastShotSlot); //lifts the first ball
+            LL.rightUp();
+            shooterSequence = 1; //this variable is a flag for the sequence to run properly
+        }
+
+        // Shot 2
+        if (timer1.checkAtSeconds(shootinterval)&&shooterSequence==1) {//after 0.4 sec after first shot starts puts the lifts down
+            LL.allDown();
+            shooterSequence = 2;//sets up to check the depo velocity again
+        }
+        if(shooterSequence==2 && depo.reachedTargetHighTolerance()){ //this if statement is ran after depo reached target
+//            fireNextAvailableShot();//lifts second ball
+            LL.backUp();
+            shooterSequence=3;//sets the sequence to check
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;//gets the curent time of the sequence so that next block runs now+0.4 instead of at a 0.8 seconds
+        }
+
+        // Shot 3
+        if (timer1.checkAtSeconds(shootinterval+timeOfSecondShot)&&shooterSequence==3) {//at 0.4 seconds after 2nd lift
+            LL.allDown();//puts the lifts down
+            shooterSequence = 4;
+        }
+        if(shooterSequence==4 && depo.reachedTargetHighTolerance()){//does the velocity check again
+            LL.leftUp();
+//            fireNextAvailableShot();
+            shooterSequence=5;
+            timeOfSecondShot = timer1.timer.seconds()-timer1.curtime;
+        }
+
+        // Finish cycle
+        if (timer1.checkAtSeconds(0.4+timeOfSecondShot)&&shooterSequence==5) {//resets the whole timer and sequence is done
+            LL.allDown();
+            depo.setTargetVelocity(0);
+            timer1.stopTimer();
+            shooterSequence = 0;
+            lastShotSlot = -1; // ✅ CONSUMES SLOT — will NOT shoot same one again
+        }
+    }
+
+}
+
+//hi
